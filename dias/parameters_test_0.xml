@@ -1,0 +1,40 @@
+<parameters_list name="parameters">
+    <!--
+     Parameter File to be read by DiAs System
+     
+     Valid types:
+     - int
+     - double
+     - string
+     - long
+     - boolean
+     
+     Format:
+     <parameter name="" value="" type=""> </parameter>
+     -->
+
+    <!--
+     Modes:
+     0 = No OL or CL (Sensor Only and Stopped always available)
+     1 = OL Available
+     2 = CL and Safety Available (If time within BRM schedule use BRM Only)
+     3 = OL, CL and Safety available (If time within BRM schedule use BRM Only)
+     4 = OL is always available, CL with BRM Only available if within Controller segment
+     -->
+    <parameter name="mode" value="0" type="int"> </parameter>
+    
+    <!--
+     Traffic Light Control:
+     0 = Disabled
+     1 = SSM Controlled
+     2 = APC Controlled
+     3 = BRM Controlled
+     -->
+    <parameter name="traffic_lights" value="0" type="int"> </parameter>
+    
+    <!--
+     Blood Glucose display units:
+     0 = mg/dl
+     1 = mmol/L
+     -->
+    <parameter name="blood_glucose_display_units" value="0" type="int"> </parameter>

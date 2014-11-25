@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">DiAs Service</string>
+    <string name="app_name">DiAs Service</string>
+    <string name="title_activity_hypo_alarm">HypoAlarmActivity</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="units_of_insulin">Manually injected insulin in Units</string>
+    
+</resources>

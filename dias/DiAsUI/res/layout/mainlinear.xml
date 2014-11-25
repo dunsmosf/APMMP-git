@@ -1,0 +1,791 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:weightSum="5" >
+
+    <LinearLayout
+        android:id="@+id/linearTop"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:orientation="horizontal"
+        android:weightSum="4" >
+
+        <LinearLayout
+            android:id="@+id/linearLeft"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:gravity="bottom|center_horizontal"
+            android:orientation="vertical" >
+
+            <FrameLayout
+                android:id="@+id/frameHypoLights"
+                android:layout_width="fill_parent"
+                android:layout_height="0dp"
+                android:layout_weight="90" >
+
+                <ImageView
+                    android:id="@+id/hypoLightBorder"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_border" />
+
+                <ImageView
+                    android:id="@+id/hypoLightOff"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_off" />
+
+                <ImageView
+                    android:id="@+id/hypoLightRed"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_r" />
+
+                <ImageView
+                    android:id="@+id/hypoLightYellow"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_y" />
+
+                <ImageView
+                    android:id="@+id/hypoLightGreen"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_g" />
+
+                <LinearLayout
+                    android:id="@+id/hypoTextFrame"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:gravity="bottom|center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingBottom="5sp" >
+
+                    <TextView
+                        android:id="@+id/textViewHypo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Low"
+                        android:textAppearance="?android:attr/textAppearanceLarge"
+                        android:textColor="#BBBBBB"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/FrameLayout01"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="2" >
+
+            <LinearLayout
+                android:id="@+id/linearInfoScreen"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:gravity="bottom"
+                android:orientation="vertical" >
+
+                <LinearLayout
+                    android:id="@+id/linearMidInfo"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical" >
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/LinearLayout10"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:gravity="bottom"
+                android:orientation="vertical"
+                android:visibility="gone" >
+
+                <LinearLayout
+                    android:id="@+id/LinearLayout08"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="3.5"
+                    android:gravity="center_vertical|center_horizontal"
+                    android:orientation="vertical" >
+
+                    <TextView
+                        android:id="@+id/TextView09"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:textSize="34sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/LinearLayout07"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="5.5"
+                    android:orientation="vertical" >
+
+                    <LinearLayout
+                        android:id="@+id/LinearLayout11"
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical" >
+
+                        <TextView
+                            android:id="@+id/TextView10"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="3"
+                            android:textSize="28px"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/TextView12"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="2"
+                            android:textSize="28px"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/LinearLayout09"
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical" >
+
+                        <TextView
+                            android:id="@+id/TextView08"
+                            android:layout_width="fill_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="28px"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/LinearLayout03"
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1.5"
+                        android:gravity="center_vertical" >
+
+                        <TextView
+                            android:id="@+id/TextView11"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="2.8"
+                            android:text="Insulin in last"
+                            android:textSize="28px"
+                            android:textStyle="bold" />
+
+                        <Spinner
+                            android:id="@+id/Spinner02"
+                            android:layout_width="0dp"
+                            android:layout_height="fill_parent"
+                            android:layout_weight="2.5" />
+
+                        <TextView
+                            android:id="@+id/TextView07"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="2"
+                            android:textSize="28px"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/linearRight"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:gravity="bottom|center_horizontal"
+            android:orientation="vertical" >
+
+            <FrameLayout
+                android:id="@+id/frameHyperLights"
+                android:layout_width="fill_parent"
+                android:layout_height="0dp"
+                android:layout_weight="90" >
+
+                <ImageView
+                    android:id="@+id/hyperLightBorder"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_border" />
+
+                <ImageView
+                    android:id="@+id/hyperLightOff"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_off" />
+
+                <ImageView
+                    android:id="@+id/hyperLightRed"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_r" />
+
+                <ImageView
+                    android:id="@+id/hyperLightYellow"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_y" />
+
+                <ImageView
+                    android:id="@+id/hyperLightGreen"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:src="@drawable/light_g" />
+
+                <LinearLayout
+                    android:id="@+id/hyperTextFrame"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:gravity="bottom|center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingBottom="5sp" >
+
+                    <TextView
+                        android:id="@+id/textViewHyper"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="High"
+                        android:textAppearance="?android:attr/textAppearanceLarge"
+                        android:textColor="#BBBBBB"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearMid"
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:gravity="bottom|center_horizontal"
+        android:orientation="vertical" >
+
+        <FrameLayout
+            android:id="@+id/frameMid"
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_weight="9" >
+
+            <LinearLayout
+                android:id="@+id/linearMidInner"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:orientation="vertical" >
+
+                <FrameLayout
+                    android:id="@+id/frameMidHigh"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="4.5" >
+
+                    <FrameLayout
+                        android:id="@+id/frameMidHighButtons"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent" >
+
+                        <LinearLayout
+                            android:id="@+id/LinearLayout02"
+                            android:layout_width="fill_parent"
+                            android:layout_height="fill_parent"
+                            android:gravity="bottom"
+                            android:orientation="vertical" >
+
+                            <LinearLayout
+                                android:id="@+id/linearMidInfoCGM"
+                                android:layout_width="fill_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="2"
+                                android:gravity="center_vertical|center_horizontal"
+                                android:orientation="horizontal" >
+
+                                <TextView
+                                    android:id="@+id/textViewCGM"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_weight="3.7"
+                                    android:gravity="center"
+                                    android:textSize="34sp"
+                                    android:textStyle="bold" />
+
+                                <LinearLayout
+                                    android:id="@+id/linearArrow"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1.25"
+                                    android:gravity="center_vertical"
+                                    android:orientation="vertical"
+                                    android:weightSum="1" >
+
+                                    <ImageView
+                                        android:id="@+id/imageViewArrow"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="0dp"
+                                        android:layout_weight="0.5"
+                                        android:background="@drawable/arrow_0"
+                                        android:visibility="invisible" />
+                                </LinearLayout>
+
+                                <TextView
+                                    android:id="@+id/textViewCGMTime"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="2.3"
+                                    android:gravity="center_vertical|center_horizontal"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
+                                    android:visibility="invisible" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/LinearLayout01"
+                                android:layout_width="fill_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical" >
+
+                                <LinearLayout
+                                    android:id="@+id/linearMidInfoMeal"
+                                    android:layout_width="fill_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1"
+                                    android:gravity="center_vertical"
+                                    android:orientation="vertical" >
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/linearMidInfoBolus"
+                                    android:layout_width="fill_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1"
+                                    android:gravity="center_vertical" >
+
+                                    <TextView
+                                        android:id="@+id/textViewBolusInfo"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="wrap_content"
+                                        android:textSize="28px"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/extraInfo"
+                            android:layout_width="fill_parent"
+                            android:layout_height="fill_parent"
+                            android:gravity="bottom"
+                            android:orientation="vertical"
+                            android:visibility="gone" >
+
+                            <LinearLayout
+                                android:id="@+id/LinearLayout06"
+                                android:layout_width="fill_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="3.5"
+                                android:gravity="center_vertical|center_horizontal"
+                                android:orientation="vertical" >
+
+                                <TextView
+                                    android:id="@+id/TextView02"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_horizontal"
+                                    android:textSize="34sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/LinearLayout01"
+                                android:layout_width="fill_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="5.5"
+                                android:orientation="vertical" >
+
+                                <LinearLayout
+                                    android:id="@+id/LinearLayout04"
+                                    android:layout_width="fill_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1"
+                                    android:gravity="center_vertical" >
+
+                                    <TextView
+                                        android:id="@+id/TextView01"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="3"
+                                        android:textSize="28px"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:id="@+id/TextView03"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="2"
+                                        android:textSize="28px"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/LinearLayout05"
+                                    android:layout_width="fill_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1"
+                                    android:gravity="center_vertical" >
+
+                                    <TextView
+                                        android:id="@+id/TextView05"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="wrap_content"
+                                        android:textSize="28px"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/LinearLayout02"
+                                    android:layout_width="fill_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1.5"
+                                    android:gravity="center_vertical" >
+
+                                    <TextView
+                                        android:id="@+id/TextView04"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="2.8"
+                                        android:text="Insulin in last"
+                                        android:textSize="28px"
+                                        android:textStyle="bold" />
+
+                                    <Spinner
+                                        android:id="@+id/Spinner01"
+                                        android:layout_width="0dp"
+                                        android:layout_height="fill_parent"
+                                        android:layout_weight="2.5" />
+
+                                    <TextView
+                                        android:id="@+id/TextView06"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="2"
+                                        android:textSize="28px"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:id="@+id/bolusInterceptorScreenHigh"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:gravity="bottom"
+                        android:orientation="vertical"
+                        android:weightSum="2" >
+
+                        <TextView
+                            android:id="@+id/textViewBolusInterceptorMessage1"
+                            android:layout_width="fill_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textSize="30px"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textViewBolusInterceptorMessage2"
+                            android:layout_width="fill_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textSize="30px"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/frameMidLow"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="5" >
+
+                    <FrameLayout
+                        android:id="@+id/bolusCorrectionScreen"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:visibility="invisible" >
+
+                        <Button
+                            android:id="@+id/buttonCancel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/android_red_button"
+                            android:onClick="cancelBolus"
+                            android:soundEffectsEnabled="true"
+                            android:text="Cancel"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/buttonAccept"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/android_green_button"
+                            android:onClick="acceptBolus"
+                            android:soundEffectsEnabled="true"
+                            android:text="Accept"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textViewCorrectionBolusMessage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="20px"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textViewBolusInterceptorTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="20px"
+                            android:textStyle="bold" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/frameMidLowButtons"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent" >
+
+                        <LinearLayout
+                            android:id="@+id/linearMidLowWrapper"
+                            android:layout_width="fill_parent"
+                            android:layout_height="fill_parent"
+                            android:gravity="top"
+                            android:orientation="vertical"
+                            android:weightSum="10" >
+
+                            <LinearLayout
+                                android:id="@+id/linearMidRow2Buttons"
+                                android:layout_width="fill_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="5"
+                                android:gravity="bottom" >
+
+                                <Button
+                                    android:id="@+id/buttonMeal"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/android_meal_button"
+                                    android:onClick="mealClick"
+                                    android:soundEffectsEnabled="true" />
+
+                                <Button
+                                    android:id="@+id/buttonSensorOnly"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/button_start_sensor_only"
+                                    android:onClick="sensorOnlyClick" />
+
+                                <Button
+                                    android:id="@+id/buttonOpenLoop"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/button_start_open_loop"
+                                    android:onClick="openLoopClick" />
+
+                                <Button
+                                    android:id="@+id/buttonClosedLoop"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/button_start_closed_loop"
+                                    android:onClick="closedLoopClick" />
+
+                                <Button
+                                    android:id="@+id/buttonPlots"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/android_plots_button"
+                                    android:onClick="plotsClick"
+                                    android:soundEffectsEnabled="true" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/linearMid2"
+                                android:layout_width="fill_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="5"
+                                android:gravity="bottom"
+                                android:weightSum="4" >
+
+                                <FrameLayout
+                                    android:id="@+id/frameExerciseNewsubject"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1" >
+
+                                    <Button
+                                        android:id="@+id/buttonExercise"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="fill_parent"
+                                        android:background="@drawable/button_not_exercising"
+                                        android:onClick="exerciseClick"
+                                        android:singleLine="false"
+                                        android:soundEffectsEnabled="true" />
+                                </FrameLayout>
+
+                                <FrameLayout
+                                    android:id="@+id/frameHypoOpenloop"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1" >
+
+                                    <Button
+                                        android:id="@+id/buttonHypoTreatment"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="fill_parent"
+                                        android:background="@drawable/android_hypo_treatment_button"
+                                        android:onClick="hypoTreatmentClick"
+                                        android:soundEffectsEnabled="true" />
+                                </FrameLayout>
+
+                                <FrameLayout
+                                    android:id="@+id/frameCalibrationClosedloop"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1" >
+
+                                    <Button
+                                        android:id="@+id/buttonCalibration"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="fill_parent"
+                                        android:background="@drawable/android_calibration_button"
+                                        android:onClick="calibrationClick"
+                                        android:soundEffectsEnabled="true" />
+                                </FrameLayout>
+
+                                <FrameLayout
+                                    android:id="@+id/frameStopStart"
+                                    android:layout_width="0dp"
+                                    android:layout_height="fill_parent"
+                                    android:layout_weight="1" >
+
+                                    <Button
+                                        android:id="@+id/buttonStop"
+                                        android:layout_width="fill_parent"
+                                        android:layout_height="fill_parent"
+                                        android:background="@drawable/android_stop_button"
+                                        android:onClick="stopClick"
+                                        android:soundEffectsEnabled="true" />
+                                </FrameLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:id="@+id/bolusInterceptorScreenLow"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:orientation="vertical" >
+
+                        <LinearLayout
+                            android:id="@+id/bolusInterceptorScreenLowEditText"
+                            android:layout_width="fill_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="2"
+                            android:gravity="center_vertical" >
+
+                            <TextView
+                                android:id="@+id/textViewBolusAmountTitle1"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="2"
+                                android:text="Bolus amount:"
+                                android:textAppearance="?android:attr/textAppearanceLarge"
+                                android:textStyle="bold" />
+
+                            <EditText
+                                android:id="@+id/editTextBolus"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:inputType="numberDecimal"
+                                android:numeric="decimal"
+                                android:textSize="30px" >
+
+                                <requestFocus />
+                            </EditText>
+
+                            <TextView
+                                android:id="@+id/textViewBolusAmountTitle2"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:paddingLeft="20sp"
+                                android:text="units"
+                                android:textAppearance="?android:attr/textAppearanceLarge"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/bolusInterceptorScreenLowButtons"
+                            android:layout_width="fill_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:weightSum="3" >
+
+                            <Button
+                                android:id="@+id/buttonContinueBasal"
+                                android:layout_width="0dp"
+                                android:layout_height="fill_parent"
+                                android:layout_weight="1"
+                                android:background="@drawable/cancel_bolus"
+                                android:onClick="continueBasalClick"
+                                android:soundEffectsEnabled="true"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <FrameLayout
+                                android:id="@+id/frameBolusInterceptorFiller1"
+                                android:layout_width="0dp"
+                                android:layout_height="fill_parent"
+                                android:layout_weight="1" >
+                            </FrameLayout>
+
+                            <Button
+                                android:id="@+id/buttonInject"
+                                android:layout_width="0dp"
+                                android:layout_height="fill_parent"
+                                android:layout_weight="1"
+                                android:background="@drawable/android_inject_button"
+                                android:onClick="injectBolusClick"
+                                android:soundEffectsEnabled="true"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </FrameLayout>
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>
