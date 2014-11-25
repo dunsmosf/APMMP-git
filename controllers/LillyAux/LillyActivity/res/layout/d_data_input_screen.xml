@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:layout_width="570dp"
+         android:layout_height="310dp"
+         android:layout_gravity="center"
+         android:orientation="vertical">
+        
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="20dp"
+                 android:layout_marginBottom="20dp"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center">
+
+                 <TextView
+                     android:layout_width="110dp"
+                     android:layout_height="wrap_content"
+                     android:gravity="right"
+                     android:layout_marginRight="20dp"
+                     android:text="Blood Glucose"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <EditText
+	                  android:id="@+id/editSMBGmeal"
+	                  android:layout_width="80dp"
+	                  android:layout_height="35dp"
+	                  android:ems="10"
+	                  android:hint="mg/dl"
+	                  android:imeOptions="actionDone"
+	                  android:inputType="numberDecimal"
+	                  android:numeric="decimal"
+	                  android:textSize="16sp" >
+                 <requestFocus />
+              	 </EditText>
+
+                 <TextView
+                     android:layout_width="70dp"
+                     android:layout_height="wrap_content"
+                     android:layout_marginLeft="20dp"
+                     android:text="mg/dl"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+	             
+             </LinearLayout>
+                 
+               <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="20dp"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center" >
+
+                 <TextView
+                     android:layout_width="110dp"
+                     android:layout_height="wrap_content"
+                     android:gravity="right"
+                     android:layout_marginRight="20dp"
+                     android:text="Meal Carbs"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+                 
+                 <EditText
+	                   android:id="@+id/editMealCarbs"
+	                   android:layout_width="80dp"
+	                   android:layout_height="35dp"
+	                   android:ems="10"
+	                   android:hint="grams"
+	                   android:imeOptions="actionDone"
+	                   android:inputType="numberDecimal"
+	                   android:numeric="decimal"
+	                   android:textSize="16sp" />
+
+                <TextView
+	                   android:layout_width="70dp"
+	                   android:layout_height="wrap_content"
+	                   android:layout_marginLeft="20dp"
+                       android:text="g"
+	                   android:textSize="16sp"
+	                   android:textStyle="bold" />
+	              
+             </LinearLayout>
+
+            <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center">
+         
+                <TextView
+                    android:layout_width="110dp"
+                    android:gravity="center_horizontal"
+                    android:layout_height="wrap_content"
+                    android:text="OR"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+             
+                <LinearLayout
+	                 android:orientation="horizontal"
+	                 android:layout_width="80dp"
+	                 android:layout_height="wrap_content"
+	                 android:gravity="center" >
+	            </LinearLayout>
+	         	 
+	         	<LinearLayout
+	                 android:orientation="horizontal"
+	                 android:layout_width="70dp"
+	                 android:layout_height="wrap_content"
+	                 android:gravity="center" >
+	            </LinearLayout>
+         	    
+             </LinearLayout>
+             
+             
+      		 <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginBottom="20dp"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center" >
+
+		         <TextView
+		             android:layout_width="110dp"
+		             android:layout_height="wrap_content"
+		             android:gravity="right"
+		             android:layout_marginRight="20dp"
+		             android:text="Meal Insulin"
+		             android:textSize="16sp"
+		             android:textStyle="bold" />
+		
+                 <EditText
+	                 android:id="@+id/editMealInsulin"
+   		             android:layout_width="80dp"
+	                 android:layout_height="35dp"
+	                 android:ems="10"
+	                 android:hint="Units"
+	                 android:imeOptions="actionDone"
+	                 android:inputType="numberDecimal"
+	                 android:numeric="decimal"
+	                 android:textSize="16sp"
+	                 android:textStyle="bold" />
+	
+	             <TextView
+	                 android:layout_width="70dp"
+	                 android:layout_height="wrap_content"
+	                 android:layout_marginLeft="20dp"
+	             	 android:text="U"
+	                 android:textSize="16sp"
+	                 android:textStyle="bold" />
+             </LinearLayout>
+
+            
+	
+            <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="20dp"
+                 android:layout_marginBottom="20dp"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_gravity="center_horizontal">
+	        	
+                 <Button
+                     android:layout_width="140sp"
+                     android:layout_height="56sp"
+                     android:background="@drawable/android_cancel_button"
+                     android:onClick="CancelDataInputClick"
+                     android:soundEffectsEnabled="true"
+                     android:visibility="visible" />
+             
+                 <Button
+                     android:layout_width="140sp"
+                     android:layout_height="56sp"
+                     android:layout_marginLeft="80dp"
+                     android:background="@drawable/android_done_button"
+                     android:onClick="DoneDataInputClick"
+                     android:soundEffectsEnabled="true"
+                     android:visibility="visible" />
+             	    
+        	 </LinearLayout>
+         
+
+     </LinearLayout>

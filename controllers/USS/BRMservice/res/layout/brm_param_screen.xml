@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:id="@+id/viewerLayout"
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+         android:gravity="center_vertical|center_horizontal"
+         android:orientation="vertical"
+         android:weightSum="5" >
+
+
+           <LinearLayout
+               android:id="@+id/temporaryBasalRateMessage"
+               android:layout_width="wrap_content"
+               android:layout_height="0dp"
+               android:layout_weight="1"
+               android:orientation="horizontal"
+               android:padding="10dp" >
+
+               <TextView
+                   android:id="@+id/textViewCalibrationScreenMessage2"
+                   android:layout_width="0dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="1"
+                   android:text="Select a basal rate modulator paramater and duration.\nPress Confirm when finished."
+                   android:textSize="16sp"
+                   android:textStyle="bold" >
+               </TextView>
+           </LinearLayout>
+           
+           <LinearLayout
+               android:id="@+id/BGthreshold"
+               android:layout_width="wrap_content"
+               android:layout_height="0dp"
+               android:layout_weight="1"
+               android:orientation="horizontal"
+               android:padding="10dp" >
+
+               <TextView
+                   android:id="@+id/BGlevelhigh"
+                   android:layout_width="0dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="1"
+                   android:paddingLeft="280dp"
+                   android:paddingRight="10dp"
+                   
+                   android:text="@string/BGhigh"
+                   android:textSize="15sp"
+                   android:textStyle="bold" />
+
+               <TextView
+                   android:id="@+id/BGlevellow"
+                   android:layout_width="0dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="1"
+                   android:text="@string/BGlow"
+                   android:textSize="15sp"
+                   android:textStyle="bold" 
+                   android:paddingLeft="30dp">
+               </TextView>
+           </LinearLayout>
+
+
+         <LinearLayout
+               android:id="@+id/temporary_basal_rate_percentage"
+               android:layout_width="fill_parent"
+               android:layout_height="0dp"
+               android:layout_weight="1"
+               android:layout_gravity="top"
+               android:padding="10dp" >
+
+               <TextView
+                   android:id="@+id/basal_rate_modulator_params_message"
+                   android:layout_width="0dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="3"
+                   android:layout_gravity="center_vertical"
+                   android:text="Basal rate modulator params            "
+                   android:textSize="16sp"
+                   android:textStyle="bold" >
+               </TextView>
+
+               <Spinner
+                   android:id="@+id/basal_rate_modulator_params_spinner_left"
+                   android:layout_width="100dp"
+                   android:layout_height="50dp"
+                   android:entries="@array/basal_rate_modulator_params" />
+               
+               <Spinner
+                   android:id="@+id/basal_rate_modulator_params_spinner_right"
+                   android:layout_width="100dp"
+                   android:layout_height="50dp"
+                   android:entries="@array/basal_rate_modulator_params" />
+
+           </LinearLayout>
+
+<!--  
+         <LinearLayout
+               android:id="@+id/temporary_basal_rate_duration_minutes"
+               android:layout_width="fill_parent"
+               android:layout_height="0dp"
+               android:layout_weight="1"
+               android:layout_gravity="top"
+               android:padding="10dp" >
+
+               <TextView
+                   android:id="@+id/basal_rate_modulator_duration_minutes_message"
+                   android:layout_width="0dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="3"
+                   android:layout_gravity="center_vertical"
+                   android:text="Basal rate modulator duration                 "
+                   android:textSize="16sp"
+                   android:textStyle="bold" >
+               </TextView>
+
+               <Spinner
+                   android:id="@+id/basal_rate_modulator_duration_spinner"
+                   android:layout_width="fill_parent"
+                   android:layout_height="50dp"
+                   android:entries="@array/basal_rate_modulator_duration_minutes" />
+
+           </LinearLayout>
+
+-->
+         <LinearLayout
+               android:id="@+id/temporaryBasalRateDone"
+               android:layout_width="wrap_content"
+               android:layout_height="0dp"
+               android:layout_weight="1"
+               android:orientation="horizontal"
+               android:padding="10dp" >
+
+               <Button
+                   android:id="@+id/buttonBRMparamCancel"
+                   android:layout_width="90dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="2"
+                   android:onClick="cancelBRMparamClick"
+                   android:soundEffectsEnabled="true"
+                   android:text="Cancel"
+                   android:textColor="#FFFF0000"
+                   android:textStyle="bold"
+                   android:visibility="visible" >
+
+               </Button>
+ 
+               <Button
+                   android:id="@+id/buttonBRMparamConfirm"
+                   android:layout_width="90dp"
+                   android:layout_height="wrap_content"
+                   android:layout_weight="2"
+                   android:onClick="confirmBRMparamClick"
+                   android:soundEffectsEnabled="true"
+                   android:text="Confirm"
+                   android:textColor="#FF0000FF"
+                   android:textStyle="bold"
+                   android:visibility="visible" >
+
+               </Button>
+           </LinearLayout>
+
+     </LinearLayout>

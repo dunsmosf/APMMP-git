@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">OCAd Meal Activity</string>
+    <string name="extended_bolus_prompt">Duration in mins</string>
+    <string name="dialog_bolus_confirm">Adjust the bolus size, confirm or cancel</string>
+    <string name="dialog_bolus_plus">+</string>
+    <string name="dialog_bolus_minus">-</string>
+    <string name="dialog_smbg">Please Enter Your SMBG Value:</string>
+    <string name="dialog_ratio">New weight to carb ratio (grams per kg):</string>
+    <string name="dialog_set">Enter</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="smbg_value">SMBG Value</string>
+    <string name="gridTitle">Hyperglycemic Grid</string>
+    <string name="gridXAxisTitle">How quickly will your glucose rise?</string>
+    <string name="gridYAxisTitle">How big of an effect will your meal cause?</string>
+    <string-array name="extended_bolus_duration_array">
+        <item>0 mins</item>
+        <item>30 mins</item>
+        <item>60 mins</item>
+        <item>90 mins</item>
+        <item>120 mins</item>
+        </string-array>
+</resources>

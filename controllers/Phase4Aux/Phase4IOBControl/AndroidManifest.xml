@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      android:versionCode="1"
+      android:versionName="1.0" 
+      package="edu.virginia.dtc.APCservice">
+      <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="15" />
+    	<supports-screens android:resizeable="true"
+                  android:smallScreens="true"
+                  android:normalScreens="true"
+                  android:largeScreens="true"
+                  android:anyDensity="true"/>	
+<permission android:name="edu.read"></permission>
+<uses-permission android:name="edu.read"></uses-permission>
+<permission android:name="edu.write"></permission>
+<uses-permission android:name="edu.write"/>
+    <application android:icon="@drawable/icon" android:label="@string/app_name">
+        <activity android:name="TestActivity"
+                  android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+		<service
+		 	android:name="edu.virginia.dtc.APCservice.IOMain"
+		 	android:exported="true"
+		 	android:enabled="true" >
+            <intent-filter>
+                <action android:name="DiAs.APController" />
+            </intent-filter>
+		 </service>
+        <activity android:name="edu.virginia.dtc.APCservice.HMSServiceShutdown" 
+        			android:exported="true"
+        			android:screenOrientation="landscape"
+        			 android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        </activity>
+        <meta-data android:name="Version" android:value="$Rev: 1140 $*"/>
+   </application>
+   <uses-permission android:name="android.permission.WAKE_LOCK" />
+</manifest>

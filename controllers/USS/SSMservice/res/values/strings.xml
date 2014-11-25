@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello"></string>
+    <string name="app_name">SSM Service</string>
+    
+    <string-array name="temporary_basal_rate_percentages">
+         
+         
+        <item>0 %</item>
+        <item>100 %</item>
+         
+       <!--  
+        <item>0 %</item>
+        <item>10 %</item>
+        <item>20 %</item>
+        <item>30 %</item>
+        <item>40 %</item>
+        <item>50 %</item>
+        <item>60 %</item>
+        <item>70 %</item>
+        <item>80 %</item>
+        <item>90 %</item>
+        <item>100 %</item>
+        <item>110 %</item>
+        <item>120 %</item>
+        <item>130 %</item>
+        <item>140 %</item>
+        <item>150 %</item>
+        <item>160 %</item>
+        <item>170 %</item>
+        <item>180 %</item>
+        <item>190 %</item>
+        <item>200 %</item>
+       --> 
+      
+        
+	</string-array>
+	
+    <string-array name="temporary_basal_rate_duration_minutes">
+        <item>30 minutes</item>
+        <item>1 hour</item>
+        <item>1.5 hours</item>
+        <item>2 hours</item>
+        <item>2.5 hours</item>
+        <item>3 hours</item>
+        <item>3.5 hours</item>
+        <item>4 hours</item>
+        <item>4.5 hours</item>
+        <item>5 hours</item>
+        <item>5.5 hours</item>
+        <item>6 hours</item>
+        <item>6.5 hours</item>
+        <item>7 hours</item>
+        <item>7.5 hours</item>
+        <item>8 hours</item>
+        <item>8.5 hours</item>
+        <item>9 hours</item>
+        <item>9.5 hours</item>
+        <item>10 hours</item>
+        <item>10.5 hours</item>
+        <item>11 hours</item>
+        <item>11.5 hours</item>
+        <item>12 hours</item>
+        <item>12.5 hours</item>
+        <item>13 hours</item>
+        <item>13.5 hours</item>
+        <item>14 hours</item>
+        <item>14.5 hours</item>
+        <item>15 hours</item>
+        <item>15.5 hours</item>
+        <item>16 hours</item>
+        <item>16.5 hours</item>
+        <item>17 hours</item>
+        <item>17.5 hours</item>
+        <item>18 hours</item>
+        <item>18.5 hours</item>
+        <item>19 hours</item>
+        <item>19.5 hours</item>
+        <item>20 hours</item>
+        <item>20.5 hours</item>
+        <item>21 hours</item>
+        <item>21.5 hours</item>
+        <item>22 hours</item>
+        <item>22.5 hours</item>
+        <item>23 hours</item>
+        <item>23.5 hours</item>
+        <item>24 hours</item>
+     </string-array>
+    
+    
+</resources>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:layout_width="570dp"
+         android:layout_height="310dp"
+         android:layout_gravity="center|bottom"
+         android:orientation="vertical">
+
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="40dp"
+                 android:layout_marginBottom="5dp"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center">
+
+                 <TextView
+                     android:layout_width="200dp"
+                     android:layout_height="wrap_content"
+                     android:gravity="right"
+                     android:text="CF Correction"
+                     android:layout_marginRight="15dp"
+                     android:textColor="#FFFFFF"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+          
+                 <LinearLayout
+                 	 android:orientation="horizontal"
+	                 android:layout_width="170dp"
+	                 android:layout_marginLeft="15dp"
+                     android:layout_height="wrap_content"
+	                 android:gravity="center">
+                 
+                 	 <EditText
+                         android:id="@+id/editCFcorr1"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:editable="false"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="center"
+                         android:inputType="numberDecimal"
+                         android:numeric="decimal"
+                         android:textColor="#FFFFFF"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                 
+                 	 </LinearLayout>
+                 	 
+                 </LinearLayout>
+                 
+
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="5dp"
+                 android:layout_marginBottom="15dp"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center">
+
+                  <TextView
+                     android:layout_width="170dp"
+                     android:layout_height="35dp"
+                     android:gravity="right|center_vertical"
+                     android:text="Include IOB"
+                     android:textColor="#FFFFFF"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <CheckBox
+                     android:id="@+id/iobCheckbox1"
+                     android:layout_width="30dp"
+                     android:layout_height="30dp"
+                     android:layout_marginRight="15dp"
+                     android:checked="false"
+                     android:gravity="right|center_vertical"
+                     android:onClick="checkboxIOBClick1" />
+                 
+                 <LinearLayout
+                 	 android:orientation="horizontal"
+	                 android:layout_width="170dp"
+	                 android:layout_marginLeft="15dp"
+                     android:layout_height="wrap_content"
+	                 android:gravity="center">
+                 
+                     <EditText
+                         android:id="@+id/editIOBcorr1"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="center"
+                         android:inputType="none"
+                         android:textColor="#FFFFFF"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                    
+                 </LinearLayout>
+
+             </LinearLayout>
+             
+             
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="15dp"
+                 android:layout_marginBottom="20dp"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center">
+
+                 <TextView
+                     android:layout_width="200dp"
+                     android:layout_height="35dp"
+                     android:layout_marginRight="15dp"
+                     android:gravity="right"
+                     android:text="Your Usual Correction"
+                     android:textColor="#FFFFFF"
+                     android:textSize="20sp"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                     android:orientation="horizontal"
+	                 android:layout_width="170dp"
+	                 android:layout_marginLeft="15dp"
+                     android:layout_height="wrap_content"
+	                 android:gravity="center">
+                 
+                     <EditText
+                         android:id="@+id/editTotalConvCorr1"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:editable="false"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="center"
+                         android:inputType="numberDecimal"
+                         android:numeric="decimal"
+                         android:textColor="#FFFFFF"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                     
+                 </LinearLayout>
+
+             </LinearLayout>
+             
+             <LinearLayout
+             	 android:orientation="horizontal"
+                 android:layout_marginTop="20dp"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_gravity="center_horizontal">
+	        		        	
+                 <Button
+                     android:layout_width="140sp"
+                     android:layout_height="56sp"
+                     android:background="@drawable/android_back_button"
+                     android:onClick="BackFromConvCorrCalc1"
+                     android:soundEffectsEnabled="true"
+                     android:textSize="16sp"
+                     android:textStyle="bold"
+                     android:visibility="visible" />
+                    
+         	</LinearLayout>
+
+     </LinearLayout>

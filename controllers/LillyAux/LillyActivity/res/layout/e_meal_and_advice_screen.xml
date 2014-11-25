@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:layout_width="570dp"
+         android:layout_height="310dp"
+         android:layout_gravity="center|bottom"
+         android:orientation="vertical">
+
+             <LinearLayout
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:orientation="horizontal"
+                 android:gravity="center_horizontal" >
+	        	
+                 <Button
+                     android:layout_width="198sp"
+                     android:layout_height="60sp"
+                     android:background="@drawable/android_conv_corr_calc_button"
+                     android:onClick="ViewConvCorrCalcClick1"
+                     android:soundEffectsEnabled="true"
+                     android:visibility="visible" />
+             
+            </LinearLayout>
+            
+			<LinearLayout
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:layout_marginTop="7dp"
+                 android:layout_marginBottom="7dp"
+                 android:orientation="horizontal"
+                 android:gravity="center_horizontal" >
+
+                 <TextView
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:gravity="right"
+                     android:text="Advised Correction Is "
+                     android:textSize="16sp"
+                     android:textColor="#008000"
+                     android:textStyle="bold" />
+
+                 <EditText
+                     android:id="@+id/editShowCorrRatio"
+                     android:layout_width="wrap_content"
+                     android:layout_height="22dp"
+                     android:enabled="false"
+                     android:focusable="false"
+                     android:focusableInTouchMode="false"
+                     android:inputType="none"
+                     android:textColor="#008000"
+                     android:background="@null"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+                 
+                 <TextView
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:layout_gravity="left"
+                     android:text=" Times Your Usual Correction"
+                     android:textSize="16sp"
+                     android:textColor="#008000"
+                     android:textStyle="bold" />
+                 
+             </LinearLayout>
+			
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center" >
+
+                 <TextView
+                     android:layout_width="212dp"
+                     android:layout_height="wrap_content"
+                     android:gravity="right"
+                     android:layout_marginRight="15dp"
+                     android:text="Algorithm Correction"
+                     android:textSize="16sp"
+                     android:textColor="#FFFFFF"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                     android:orientation="horizontal"
+	                 android:layout_width="212dp"
+	                 android:layout_marginLeft="15dp"
+                     android:layout_height="wrap_content"
+	                 android:gravity="center">
+
+                     <EditText
+                         android:id="@+id/editShowAlgCorrInsulin"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="center"
+                         android:inputType="none"
+                         android:textColor="#FFFF66"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                     
+                 </LinearLayout>
+
+             </LinearLayout>
+             
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center" >
+
+                 <TextView
+                     android:layout_width="212dp"
+                     android:layout_height="wrap_content"
+                     android:gravity="right"
+                     android:layout_marginRight="15dp"
+                     android:text="Meal Insulin"
+                     android:textSize="16sp"
+                     android:textColor="#FFFFFF"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                 	 android:orientation="horizontal"
+	                 android:layout_width="212dp"
+	                 android:layout_marginLeft="15dp"
+                     android:layout_height="wrap_content"
+	                 android:gravity="center">
+
+                     <EditText
+                         android:id="@+id/editShowMealInsulin"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:inputType="none"
+                         android:gravity="center"
+                         android:textColor="#FFFF66"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                     
+                 </LinearLayout>
+
+             </LinearLayout>
+             
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:gravity="center" >
+
+                 <TextView
+                     android:layout_width="212dp"
+                     android:gravity="right"
+                     android:layout_height="wrap_content"
+                     android:layout_marginRight="15dp"
+                     android:text="Approved Bolus"
+                     android:textSize="20sp"
+                     android:textColor="#FFFFFF"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+	                 android:orientation="horizontal"
+	                 android:layout_width="212dp"
+	                 android:layout_height="wrap_content"
+	                 android:layout_marginLeft="15dp"
+	                 android:gravity="center">
+	            
+                 	 <Button
+	                     android:layout_width="56dp"
+	                     android:layout_height="56dp"
+	                     android:background="@drawable/android_minus_button"
+	                     android:onClick="MinusClick1"
+	                     android:soundEffectsEnabled="true"
+	                     android:textSize="16sp"
+	                     android:textStyle="bold"
+	                     android:visibility="visible" />
+	                     
+                     <EditText
+                         android:id="@+id/editApprovedInsulin1"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="center"
+                         android:inputType="none"
+                         android:textColor="#FFFF66"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                     
+                     <Button
+	                     android:layout_width="56dp"
+	                     android:layout_height="56dp"
+	                     android:background="@drawable/android_plus_button"
+	                     android:onClick="PlusClick1"
+	                     android:soundEffectsEnabled="true"
+	                     android:textSize="16sp"
+	                     android:textStyle="bold"
+	                     android:visibility="visible" />
+	                 
+                 </LinearLayout>
+
+             </LinearLayout>
+
+             <LinearLayout
+                 android:orientation="horizontal"
+                 android:layout_marginTop="10dp"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_gravity="center_horizontal">
+	        	
+                 <Button
+                     android:layout_width="140sp"
+                     android:layout_height="56sp"
+                     android:background="@drawable/android_cancel_button"
+                     android:onClick="CancelMealAndAdviceClick"
+                     android:soundEffectsEnabled="true"
+                     android:visibility="visible" />
+             
+                 <Button
+                     android:layout_width="140sp"
+                     android:layout_height="56sp"
+                     android:layout_marginLeft="80dp"
+                     android:background="@drawable/android_done_button"
+                     android:onClick="ConfirmMealAndAdviceClick"
+                     android:soundEffectsEnabled="true"
+                     android:visibility="visible" />
+             	    
+        	 </LinearLayout>
+                 
+     </LinearLayout>

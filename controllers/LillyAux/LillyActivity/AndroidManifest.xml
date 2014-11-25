@@ -1,0 +1,30 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.virginia.dtc.MealActivity"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+   	<permission android:name="edu.read"></permission>
+    <uses-permission android:name="edu.read"></uses-permission>
+    <permission android:name="edu.write"></permission>
+    <uses-permission android:name="edu.write"></uses-permission>
+    
+    <uses-sdk android:minSdkVersion="11" android:targetSdkVersion="15" />
+
+    <application android:label="@string/app_name"
+        android:icon="@drawable/ic_launcher"
+        android:theme="@style/AppTheme">
+
+        <activity android:label="Meal Screen"
+                  android:configChanges="orientation|keyboardHidden" 
+                  android:name="MealActivity"
+                  android:screenOrientation="sensorLandscape"
+                  android:theme="@style/MealScreenTheme"
+                  android:windowSoftInputMode="adjustPan" >
+            <intent-filter> 
+                <action android:name="android.intent.action.MAIN"></action> 
+            </intent-filter>
+        </activity>
+        <meta-data android:name="Version" android:value="$Rev: 2159 $"/>
+    </application>
+
+</manifest>

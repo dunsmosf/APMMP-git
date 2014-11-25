@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:id="@+id/defaultMealLayout"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+    	 android:orientation="vertical" >
+
+         <LinearLayout
+             android:id="@+id/mealCarbLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp"
+             android:paddingTop="10dp" >
+
+             <TextView
+                 android:id="@+id/mealTextDescripLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="2"
+                 android:text="Meal size:"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+
+             <EditText
+                 android:id="@+id/editMealCarbs"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="2.6"
+                 android:ems="10"
+                 android:hint="Enter meal size"
+                 android:imeOptions="flagNoExtractUi"
+                 android:inputType="numberDecimal"
+                 android:numeric="decimal"
+                 android:textSize="14sp" >
+             </EditText>
+
+             <TextView
+                 android:id="@+id/mealTextUnitLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".9"
+                 android:gravity="left"
+                 android:text=" g"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <EditText
+                 android:id="@+id/editMealCarbsTotal"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="1.5"
+                 android:editable="false"
+                 android:ems="10"
+                 android:enabled="false"
+                 android:focusable="false"
+                 android:focusableInTouchMode="false"
+                 android:gravity="right"
+                 android:inputType="numberDecimal"
+                 android:numeric="decimal"
+                 android:textColor="#FFFFFF"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <TextView
+                 android:id="@+id/mealTextBolusUnit"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".5"
+                 android:paddingLeft="10sp"
+                 android:text="U"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+         </LinearLayout>
+
+         <LinearLayout
+             android:id="@+id/mealBgLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp" >
+
+             <TextView
+                 android:id="@+id/bgTextDescripLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="2"
+                 android:text="BG:"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+
+             <EditText
+                 android:id="@+id/editBg"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="2.6"
+                 android:ems="10"
+                 android:hint="Enter BG"
+                 android:imeOptions="flagNoExtractUi"
+                 android:inputType="numberDecimal"
+                 android:numeric="decimal"
+                 android:textSize="14sp" />
+
+             <TextView
+                 android:id="@+id/bgTextUnitLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".9"
+                 android:text="mg/dl"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <EditText
+                 android:id="@+id/editBgTotal"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="1.5"
+                 android:editable="false"
+                 android:ems="10"
+                 android:enabled="false"
+                 android:focusable="false"
+                 android:focusableInTouchMode="false"
+                 android:gravity="right"
+                 android:inputType="numberDecimal"
+                 android:numeric="decimal"
+                 android:textColor="#FFFFFF"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <TextView
+                 android:id="@+id/bgTextBolusUnit"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".5"
+                 android:paddingLeft="10sp"
+                 android:text="U"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+         </LinearLayout>
+
+         <LinearLayout
+             android:id="@+id/mealIobLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp" >
+
+             <TextView
+                 android:id="@+id/iobTextDescripLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="2"
+                 android:text="Include IOB:"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+
+             <CheckBox
+                 android:id="@+id/iobCheckbox"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="3.0"
+                 android:checked="true"
+                 android:gravity="right"
+                 android:onClick="checkboxIOBClick" />
+
+             <EditText
+                 android:id="@+id/editIobTotal"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="1.5"
+                 android:ems="10"
+                 android:enabled="false"
+                 android:focusable="false"
+                 android:focusableInTouchMode="false"
+                 android:gravity="right"
+                 android:inputType="none"
+                 android:textColor="#FFFFFF"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <TextView
+                 android:id="@+id/iobTextBolusUnit"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".5"
+                 android:paddingLeft="10sp"
+                 android:text="U"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+         </LinearLayout>
+
+         <LinearLayout
+             android:id="@+id/mealCorrLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp" >
+
+             <TextView
+                 android:id="@+id/addCorrTextDescripLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="4"
+                 android:text="Additional correction:"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+
+             <EditText
+                 android:id="@+id/editCorrTotal"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="2.8"
+                 android:ems="10"
+                 android:gravity="right"
+                 android:hint="Correction amount"
+                 android:imeOptions="flagNoExtractUi"
+                 android:inputType="numberDecimal|numberSigned"
+                 android:numeric="decimal"
+                 android:text="Additional correction:"
+                 android:textAppearance="?android:attr/textAppearanceSmall"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <TextView
+                 android:id="@+id/addCorrTextBolusUnit"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".5"
+                 android:paddingLeft="10sp"
+                 android:text="U"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+         </LinearLayout>
+
+         <LinearLayout
+             android:id="@+id/mealTotalLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp" >
+
+             <TextView
+                 android:id="@+id/totalBolusTextDescripLabel"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="4"
+                 android:text="Total bolus:"
+                 android:textAppearance="?android:attr/textAppearanceMedium"
+                 android:textColor="#FFFF66"
+                 android:textStyle="bold" />
+
+             <EditText
+                 android:id="@+id/editAllTotal"
+                 android:layout_width="0dp"
+                 android:layout_height="35dp"
+                 android:layout_weight="2.8"
+                 android:ems="10"
+                 android:enabled="false"
+                 android:focusable="false"
+                 android:focusableInTouchMode="false"
+                 android:gravity="right"
+                 android:inputType="none"
+                 android:textColor="#FFFF66"
+                 android:textSize="14sp"
+                 android:textStyle="bold" />
+
+             <TextView
+                 android:id="@+id/totalBolusTextBolusUnit"
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight=".5"
+                 android:paddingLeft="10sp"
+                 android:text="U"
+                 android:textAppearance="?android:attr/textAppearanceMedium"
+                 android:textColor="#FFFF66"
+                 android:textStyle="bold" />
+         </LinearLayout>
+
+         
+         <LinearLayout
+             android:id="@+id/extendedBolusLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp" >
+            
+            <Button
+                 android:id="@+id/injectMealBolusButton"
+                 android:layout_width="70dp"
+                 android:layout_height="40dp"
+                 android:background="@drawable/android_inject_button"
+                 android:onClick="injectMealBolusClick"
+                 android:soundEffectsEnabled="true"
+                 android:textSize="16sp"
+                 android:textStyle="bold"
+                 android:visibility="visible" />
+             
+            </LinearLayout>
+         
+<!--        
+         <LinearLayout
+             android:id="@+id/mealButtonLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:gravity="bottom"
+             android:orientation="horizontal"
+             android:paddingLeft="10dp"
+             android:paddingRight="10dp" >
+
+             <Button
+                 android:id="@+id/injectMealBolusButton"
+                 android:layout_width="70dp"
+                 android:layout_height="40dp"
+                 android:background="@drawable/android_inject_button"
+                 android:onClick="injectMealBolusClick"
+                 android:soundEffectsEnabled="true"
+                 android:textSize="16sp"
+                 android:textStyle="bold"
+                 android:visibility="visible" />
+         </LinearLayout>
+  --> 
+  
+     </LinearLayout>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:layout_width="570dp"
+        android:layout_height="310dp"
+	    android:layout_gravity="center"
+	    android:orientation="vertical"
+	    android:weightSum="3" >
+	           	 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+        	android:layout_marginBottom="20dp"
+        	android:gravity="center"
+        	android:layout_gravity="center"
+            android:text="Enter the amount of long-acting\ninsulin you are about to inject"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+ 	 	
+         	
+        <LinearLayout
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_marginTop="20dp"
+        	android:layout_marginBottom="20dp"
+        	android:orientation="horizontal"
+	        android:gravity="center_horizontal" >
+	          
+	     	<EditText
+	             android:id="@+id/editLAinput"
+                 android:layout_width="80dp"
+	             android:layout_height="35dp"
+	             android:ems="10"
+	             android:gravity="center_horizontal"
+	             android:hint="Units"
+	             android:imeOptions="actionDone"
+	             android:inputType="number"
+	             android:numeric="decimal"
+	             android:textSize="16sp" >
+	             <requestFocus />
+	         </EditText>
+	         
+     		<TextView
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:gravity="center_vertical"
+                 android:layout_marginLeft="20dp"
+                 android:text="U"
+                 android:textSize="16sp"
+                 android:textStyle="bold" />
+    	 
+    	 </LinearLayout>
+                   
+         <LinearLayout
+             android:orientation="horizontal"
+             android:layout_marginTop="20dp"
+        	 android:layout_marginBottom="20dp"
+        	 android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_gravity="center_horizontal">
+     	
+             <Button
+                 android:layout_width="140sp"
+                 android:layout_height="56sp"
+                 android:background="@drawable/android_cancel_button"
+                 android:onClick="CancelLAinputClick"
+                 android:soundEffectsEnabled="true"
+                 android:visibility="visible" />
+         
+             <Button
+                 android:layout_width="140sp"
+                 android:layout_height="56sp"
+                 android:layout_marginLeft="80dp"
+                 android:background="@drawable/android_approve_button"
+                 android:onClick="ApproveLAinputClick"
+                 android:soundEffectsEnabled="true"
+                 android:visibility="visible" />
+         	    
+    	 </LinearLayout>
+         
+	</LinearLayout>

@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:id="@+id/defaultMealLayout"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:layout_gravity="center|bottom"
+         android:orientation="vertical"
+         android:weightSum="6" >
+
+         <LinearLayout
+             android:id="@+id/progressLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:layout_gravity="center"
+             android:layout_weight="1"
+             android:orientation="vertical"
+             android:visibility="gone" >
+
+             <ProgressBar
+                 android:id="@+id/progressBar1"
+                 style="?android:attr/progressBarStyleLarge"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="1"
+                 android:visibility="visible" 
+                 android:layout_gravity="center"
+                 android:layout_marginTop="50dp"/>
+
+             <TextView
+                 android:id="@+id/waitText"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_gravity="center"
+                 android:layout_marginTop="10dp"
+                 android:layout_weight="1"
+                 android:text="Please wait..."
+                 android:textAppearance="?android:attr/textAppearanceLarge" />
+
+             <TextView
+                 android:id="@+id/waitDetail"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="1"
+                 android:layout_gravity="center"
+                 android:textAppearance="?android:attr/textAppearanceMedium" />
+
+         </LinearLayout>
+
+         <LinearLayout
+             android:id="@+id/mealLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:layout_weight="1"
+             android:orientation="vertical"
+             android:visibility="visible" >
+
+             <LinearLayout
+                 android:id="@+id/mealCarbLayout"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:layout_marginBottom="0dp"
+                 android:layout_marginTop="10dp"
+                 android:orientation="horizontal" >
+
+                 <TextView
+                     android:id="@+id/mealTextDescripLabel"
+                     android:layout_width="90dp"
+                     android:layout_height="35dp"
+                     android:gravity="center_vertical"
+                     android:text="  Meal size:"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <EditText
+                     android:id="@+id/editMealCarbs"
+                     android:layout_width="80dp"
+                     android:layout_height="35dp"
+                     android:ems="10"
+                     android:gravity="center_vertical"
+                     android:hint="Grams"
+                     android:imeOptions="flagNoExtractUi"
+                     android:inputType="numberDecimal"
+                     android:numeric="decimal"
+                     android:textSize="16sp" >
+
+                     <requestFocus />
+                 </EditText>
+
+                 <TextView
+                     android:id="@+id/mealTextUnitLabel"
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:gravity="center_vertical"
+                     android:text=" g"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                     android:layout_width="fill_parent"
+                     android:layout_height="match_parent"
+                     android:gravity="right" >
+
+                     <EditText
+                         android:id="@+id/editMealCarbsTotal"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:editable="false"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="right"
+                         android:inputType="numberDecimal"
+                         android:numeric="decimal"
+                         android:textColor="#FFFFFF"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+
+                     <TextView
+                         android:id="@+id/units"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:paddingLeft="10sp"
+                         android:text="U "
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                 </LinearLayout>
+
+             </LinearLayout>
+
+             <LinearLayout
+                 android:id="@+id/mealBgLayout"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:orientation="horizontal" >
+
+                 <TextView
+                     android:id="@+id/bgTextDescripLabel"
+                     android:layout_width="90dp"
+                     android:layout_height="35dp"
+                     android:gravity="center_vertical"
+                     android:text="  BG:  "
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <EditText
+                     android:id="@+id/editBg"
+                     android:layout_width="80dp"
+                     android:layout_height="35dp"
+                     android:ems="10"
+                     android:gravity="center_vertical"
+                     android:hint="SMBG"
+                     android:imeOptions="flagNoExtractUi"
+                     android:inputType="numberDecimal"
+                     android:numeric="decimal"
+                     android:textSize="16sp" />
+
+                 <TextView
+                     android:id="@+id/bgTextUnitLabelMgPerDl"
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:text="mg/dl"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <TextView
+                     android:id="@+id/bgTextUnitLabelMMolPerL"
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:text="mmol/L"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                     android:layout_width="fill_parent"
+                     android:layout_height="match_parent"
+                     android:gravity="right" >
+
+                     <EditText
+                         android:id="@+id/editBgTotal"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:editable="false"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="right"
+                         android:inputType="numberDecimal"
+                         android:numeric="decimal"
+                         android:textColor="#FFFFFF"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+
+                     <TextView
+                         android:id="@+id/TextView01"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:paddingLeft="10sp"
+                         android:text="U "
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                 </LinearLayout>
+
+             </LinearLayout>
+
+             <LinearLayout
+                 android:id="@+id/mealIobLayout"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:layout_marginBottom="0dp"
+                 android:orientation="horizontal" >
+
+                 <TextView
+                     android:id="@+id/iobTextDescripLabel"
+                     android:layout_width="100dp"
+                     android:layout_height="35dp"
+                     android:gravity="center_vertical"
+                     android:text="  Include IOB:"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <CheckBox
+                     android:id="@+id/iobCheckbox"
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:checked="true"
+                     android:gravity="center_vertical|left"
+                     android:onClick="checkboxIOBClick" />
+
+                 <LinearLayout
+                     android:layout_width="fill_parent"
+                     android:layout_height="match_parent"
+                     android:gravity="right|center_vertical" >
+
+                     <EditText
+                         android:id="@+id/editIobTotal"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="right"
+                         android:inputType="none"
+                         android:textColor="#FFFFFF"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+
+                     <TextView
+                         android:id="@+id/TextView02"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:paddingLeft="10sp"
+                         android:text="U "
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                 </LinearLayout>
+
+             </LinearLayout>
+
+             <LinearLayout
+                 android:id="@+id/mealCorrLayout"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:layout_marginBottom="0dp"
+                 android:orientation="horizontal" >
+
+                 <TextView
+                     android:id="@+id/addCorrTextDescripLabel"
+                     android:layout_width="180dp"
+                     android:layout_height="35dp"
+                     android:gravity="center_vertical"
+                     android:text="  Additional correction:"
+                     android:textSize="16sp"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                     android:layout_width="fill_parent"
+                     android:layout_height="match_parent"
+                     android:gravity="right" >
+
+                     <EditText
+                         android:id="@+id/editCorrTotal"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:gravity="center_vertical"
+                         android:hint="Correction amount"
+                         android:imeOptions="flagNoExtractUi"
+                         android:inputType="numberDecimal|numberSigned"
+                         android:numeric="decimal"
+                         android:textAppearance="?android:attr/textAppearanceSmall"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+
+                     <TextView
+                         android:id="@+id/TextView03"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:paddingLeft="10sp"
+                         android:text="U "
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                 </LinearLayout>
+
+             </LinearLayout>
+
+             <LinearLayout
+                 android:id="@+id/mealTotalLayout"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:orientation="horizontal" >
+
+                 <TextView
+                     android:id="@+id/totalBolusTextDescripLabel"
+                     android:layout_width="150dp"
+                     android:layout_height="35dp"
+                     android:gravity="center_vertical"
+                     android:text="  Total bolus:"
+                     android:textAppearance="?android:attr/textAppearanceMedium"
+                     android:textColor="#FFFF66"
+                     android:textStyle="bold" />
+
+                 <LinearLayout
+                     android:layout_width="fill_parent"
+                     android:layout_height="wrap_content"
+                     android:gravity="right" >
+
+                     <EditText
+                         android:id="@+id/editAllTotal"
+                         android:layout_width="100dp"
+                         android:layout_height="35dp"
+                         android:ems="10"
+                         android:enabled="false"
+                         android:focusable="false"
+                         android:focusableInTouchMode="false"
+                         android:gravity="right"
+                         android:inputType="none"
+                         android:textColor="#FFFF66"
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+
+                     <TextView
+                         android:id="@+id/TextView04"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:paddingLeft="10sp"
+                         android:text="U "
+                         android:textSize="16sp"
+                         android:textStyle="bold" />
+                 </LinearLayout>
+
+             </LinearLayout>
+
+             <LinearLayout
+                 android:id="@+id/mealButtonLayout"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:layout_marginBottom="10dp"
+                 android:layout_marginTop="10dp"
+                 android:layout_weight="1"
+                 android:gravity="center_horizontal"
+                 android:orientation="horizontal" >
+
+                 <Button
+                     android:id="@+id/injectMealBolusButton"
+                     android:layout_width="140sp"
+                     android:layout_height="80sp"
+                     android:background="@drawable/android_cancel_button"
+                     android:onClick="injectMealBolusClick"
+                     android:soundEffectsEnabled="true"
+                     android:textSize="16sp"
+                     android:textStyle="bold"
+                     android:visibility="visible" />
+             </LinearLayout>
+         </LinearLayout>
+
+     </LinearLayout>

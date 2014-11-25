@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="570dp"
+    android:layout_height="310dp"
+    android:orientation="vertical" >
+    
+    <TextView
+        android:id="@+id/textView32"
+        android:layout_width="match_parent"
+        android:layout_height="86dp"
+        android:text="Are You Going To Eat?"
+        android:textSize="35dp"
+        android:gravity="center"
+        android:orientation="horizontal" />
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/ButtonYes"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:onClick="GoToDataInputScreen"
+            android:text="YES"
+            android:textSize="25dp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/ButtonNo"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_toRightOf="@id/ButtonYes"
+            android:onClick="GoToSMBGinputScreen"
+            android:text="NO"
+            android:textSize="25dp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+    
+</LinearLayout>

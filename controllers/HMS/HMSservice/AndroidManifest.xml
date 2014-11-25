@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	android:versionCode="1"
+	android:versionName="1.0" 
+	package="edu.virginia.dtc.APCservice">
+	<uses-sdk android:minSdkVersion="8" android:targetSdkVersion="15" />
+      
+    <supports-screens android:resizeable="true"
+		android:smallScreens="true"
+		android:normalScreens="true"
+		android:largeScreens="true"
+		android:anyDensity="true"/>	
+	<permission android:name="edu.read"></permission>
+	<permission android:name="edu.write"></permission>
+	<uses-permission android:name="edu.read"></uses-permission>
+	<uses-permission android:name="edu.write"/>
+		
+    <application android:icon="@drawable/icon" android:label="@string/app_name">
+		<service
+			android:name="edu.virginia.dtc.APCservice.IOMain"
+		 	android:exported="true"
+		 	android:enabled="true" >
+            <intent-filter>
+                <action android:name="DiAs.APCservice" />
+            </intent-filter>
+		</service>
+		<meta-data android:name="Version" android:value="$Rev: 1665 $*"/>
+	</application>
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+</manifest>

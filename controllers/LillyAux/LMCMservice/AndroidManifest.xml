@@ -1,0 +1,30 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.virginia.dtc.MCMservice"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+   	<permission android:name="edu.read"></permission>
+    <uses-permission android:name="edu.read"></uses-permission>
+    <permission android:name="edu.write"></permission>
+    <uses-permission android:name="edu.write"></uses-permission>
+    
+    <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="15" />
+
+    <application android:label="@string/app_name"
+        android:icon="@drawable/ic_launcher"
+        android:theme="@style/AppTheme">
+
+        
+        <service
+		 	android:name="edu.virginia.dtc.MCMservice.LMCMservice"
+		 	android:exported="true"
+		 	android:enabled="true" >
+            <intent-filter>
+                <action android:name="DiAs.MCMservice" />
+            </intent-filter>
+		</service>
+        
+        <meta-data android:name="Version" android:value="$Rev: 2159 $*"/>
+    </application>
+
+</manifest>

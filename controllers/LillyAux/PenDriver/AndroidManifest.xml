@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.virginia.dtc.standaloneDriver"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk android:minSdkVersion="15" />
+
+    <permission android:name="edu.read"></permission>
+    <permission android:name="edu.write"></permission>
+    <uses-permission android:name="edu.read"></uses-permission>
+    <uses-permission android:name="edu.write"></uses-permission>
+    
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name" >
+        <meta-data android:name="driver_pump" android:value="false"/>
+        <meta-data android:name="driver_cgm" android:value="false"/>
+        <meta-data android:name="driver_name" android:value="Standalone"/>
+        <meta-data android:name="driver_displayname" android:value="Pen Driver"/>
+        <meta-data android:name="driver_UI" android:value="edu.virginia.dtc.standaloneDriver.StandaloneUI"/>
+        <meta-data android:name="driver_service" android:value="edu.virginia.dtc.standaloneDriver.StandaloneDriver"/>
+        <meta-data android:name="supports_speedup" android:value="true"/>
+        <meta-data android:name="supports_multi" android:value="true"/>
+
+        <activity android:label="Pen Driver"
+                  android:configChanges="orientation|keyboardHidden" 
+                  android:name="StandaloneUI"  
+                  android:screenOrientation="sensorLandscape">
+            <intent-filter> 
+                <action android:name="android.intent.action.MAIN"></action> 
+            </intent-filter>
+        </activity>
+        
+        <service 
+            android:name="StandaloneDriver" 
+            android:exported="true" 
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="Driver.Pump.Standalone"/>
+                <action android:name="Driver.UI.Standalone"/>
+            </intent-filter>
+        </service>
+        <meta-data android:name="Version" android:value="$Rev: 1772 $"/>
+        
+        <activity android:name="com.lamerman.FileDialog"></activity>
+    </application>
+    
+</manifest>
