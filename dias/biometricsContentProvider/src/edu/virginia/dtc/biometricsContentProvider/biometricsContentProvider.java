@@ -632,7 +632,14 @@ public class biometricsContentProvider extends ContentProvider {
 		if(!checkPermissions(Biometrics.UPDATE, uri))		//Check if it has update permissions
  			return count;
 		
-		String table = Biometrics.getTableName(uri);
+	 	if (Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(uri)) {
+	 		if (! (values.containsKey("received_server") || values.containsKey("send_attempts_server"))) {
+	 			values.put("received_server", false);
+	 			values.put("send_attempts_server", 0);
+	 		}
+	 	}
+	 	
+	 	String table = Biometrics.getTableName(uri);
 	 	
 		count = biometricDB.update(table, values, selection, selectionArgs);
 		count2 = archiveDB.update(table, values, selection, selectionArgs);
@@ -651,7 +658,7 @@ public class biometricsContentProvider extends ContentProvider {
 		
         if(count > 0)
         {
-	 		//Make sure a change actually occured before notifying
+	 		//Make sure a change actually occurred before notifying
 	 		getContext().getContentResolver().notifyChange(uri, null);
         }
         return count;
