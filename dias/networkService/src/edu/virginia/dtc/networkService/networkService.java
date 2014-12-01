@@ -151,57 +151,12 @@ public class networkService extends Service {
 			
 			if (ping_result > 0 && isSubjectReady())
 			{
-				sendData(Biometrics.CGM_URI);
+				for (Uri uri : Biometrics.TABLES_URIS_TO_SEND) {
+					sendData(uri);
+				}
 				
-				sendData(Biometrics.INSULIN_URI);
-				
-				sendData(Biometrics.MEAL_URI);
-				
-				sendData(Biometrics.STATE_ESTIMATE_URI);
-				
-				sendData(Biometrics.LOG_URI);
-				
-				sendData(Biometrics.DEV_DETAILS_URI);
-				
-				sendData(Biometrics.SMBG_URI);
-				
-				sendData(Biometrics.EVENT_URI);
-				
-				sendData(Biometrics.SYSTEM_URI);
-				
-				sendData(Biometrics.USER_TABLE_3_URI);
-				
-				sendData(Biometrics.USER_TABLE_4_URI);
-				
-				sendData(Biometrics.PARAM_URI);
-				
-				sendData(Biometrics.SUBJECT_DATA_URI);
-					
-				// Profile data transmission
-				for(int i=0;i<4;i++)
-				{
-					// Sets each URI with the correct string to cycle through the similar profiles
-					Uri content_uri = null;
-					switch(i)
-					{
-						case 0:
-							content_uri = Biometrics.CR_PROFILE_URI;
-							break;
-						case 1:
-							content_uri = Biometrics.CF_PROFILE_URI;
-							break;
-						case 2:
-							content_uri = Biometrics.BASAL_PROFILE_URI;
-							break;
-						case 3:
-							content_uri = Biometrics.SAFETY_PROFILE_URI;
-							break;
-					}
-					
-					if(content_uri != null)
-					{
-						sendData(content_uri);
-					}
+				for (Uri profile_uri : Biometrics.PROFILE_URIS) {
+					sendData(profile_uri);
 				}
 				
 			}
@@ -241,7 +196,10 @@ public class networkService extends Service {
             
             	HttpResponse response = postRequest(content_uri, data);
             	boolean received = handleResponse(content_uri, response);
-            	Debug.e(TAG, FUNC_TAG, "HandleResponse result: "+received);
+            	if (received)
+            		Debug.w(TAG, FUNC_TAG, "HandleResponse result: "+received);
+            	else
+            		Debug.e(TAG, FUNC_TAG, "HandleResponse result: "+received);
             }
             else {
             	Debug.i(TAG, FUNC_TAG, "JSON Array empty, no data to send.");
@@ -267,7 +225,13 @@ public class networkService extends Service {
 		String tableName = Biometrics.getTableName(content_uri);
 		
 		// Getting table's columns
-    	Cursor cursor = getContentResolver().query(content_uri, null, null, null, "_id ASC LIMIT 1");
+		Cursor cursor;
+		if (Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(content_uri)) {
+			cursor = getContentResolver().query(content_uri, null, null, null, null);
+		}
+		else {
+			cursor = getContentResolver().query(content_uri, null, null, null, "_id ASC LIMIT 1");
+		}
     	List<String> columns_list = new LinkedList<String>(Arrays.asList(cursor.getColumnNames()));
     	columns_list.remove("received_server");
     	columns_list.remove("send_attempts_server");
@@ -287,7 +251,7 @@ public class networkService extends Service {
         else {
         	order_by = null;
         }
-        if (Arrays.asList(Biometrics.TIME_BASED_DATA_URIS).contains(content_uri)) {
+        if (Arrays.asList(Biometrics.TIME_BASED_DATA_URIS).contains(content_uri) || Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(content_uri)) {
 	        Cursor c = getContentResolver().query(content_uri, null, selection, null, order_by);
 	        Integer cursor_count = c.getCount();
 	        Debug.i(TAG, FUNC_TAG, FUNC_TAG+" > rows=" + cursor_count.toString());
@@ -302,8 +266,12 @@ public class networkService extends Service {
 	            
 	            ContentValues values = new ContentValues();
 	            values.put("send_attempts_server", attempts);
-	
-	            Integer row = getContentResolver().update(content_uri, values, "_id = "+c.getString(c.getColumnIndex("_id")), null);
+	            
+	            String where = null;
+	            if (columns_list.contains("_id")) {
+	            	where = "_id = "+c.getString(c.getColumnIndex("_id"));
+	            }
+	            Integer row = getContentResolver().update(content_uri, values, where, null);
 	            Debug.i(TAG, FUNC_TAG, tableName+" attempts incremented: "+row+" row, attempts = "+attempts);
 	
 	            JSONObject object = new JSONObject();
@@ -352,6 +320,7 @@ public class networkService extends Service {
 	            
 	            c.moveToNext();
 	        }
+	        c.close();
         }
         else if (Arrays.asList(Biometrics.PROFILE_URIS).contains(content_uri)) {
         	
