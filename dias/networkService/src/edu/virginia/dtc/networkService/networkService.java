@@ -2,19 +2,21 @@
 //  Copyright 2011 by the University of Virginia
 //	All Rights Reserved
 //
-//  Created by Patrick Keith-Hynes and Najib Ben Brahim
+//  Created by Patrick Keith-Hynes, Najib Ben Brahim and Antoine Robert
 //  Center for Diabetes Technology
 //  University of Virginia
 //*********************************************************************************************************************
 package edu.virginia.dtc.networkService;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.text.SimpleDateFormat;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -45,91 +47,30 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.telephony.TelephonyManager;
 import android.widget.Toast;
-//import android.content.SharedPreferences;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.Meal;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
+//import android.content.SharedPreferences;
 
 public class networkService extends Service {
 	public final String TAG = "NetworkService";
-	private static final boolean DEBUG_MODE = true;
-//	private static final boolean LOGGING = false;
+	
 	private static final boolean MESSAGE_LOGGING_ENABLED = false;
 	private static final int LOG_ACTION_SERIOUS = 5;
 	public static final String PREFS_NAME = "HardwareSettingsFile";
 
-	// DIAS_STATE values
-	public static final int DIAS_STATE_STOPPED = 0;
-	public static final int DIAS_STATE_OPEN_LOOP = 1;
-	public static final int DIAS_STATE_CLOSED_LOOP = 2;
-	public static final int DIAS_STATE_SAFETY_ONLY = 3;
-	public static final int DIAS_STATE_SENSOR_ONLY = 4;
 
-	// logical definitions for iDex CGM values
-	private static final int IDEX_CGM_NO_ANTENNA = 2;
-
-	public static final String REMOTE_MONITORING_URI = "";
-//	public static final String REMOTE_MONITORING_URI = "https://dwm.med.virginia.edu";
-//	public static final String REMOTE_MONITORING_URI = "https://jplace.legtux.org";
-//	public static final String REMOTE_MONITORING_URI = "https://dias.med.virginia.edu/test_diaswebmonitoring/web/app.php";
-//	public static final String REMOTE_MONITORING_URI = "https://staging.ap-monitoring.com";
-//	public static final String REMOTE_MONITORING_URI = "https://192.168.2.3";
-
-	public static final String KEY_121_CGM = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/cgm_transfer.php";
-	public static final String KEY_121_INSULIN = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/insulin_transfer.php";
-	public static final String KEY_121_MEAL = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/meal_transfer.php";
-	public static final String KEY_121_STATEESTIMATE = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/stateestimate_transfer.php";
-	public static final String KEY_122 = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/log_transfer.php";
-	public static final String KEY_121_SMBG = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/smbg_transfer.php";
-	public static final String KEY_121_EVENT = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/event_transfer.php";
-	public static final String KEY_121_SYSTEM = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/system_transfer.php";
-	public static final String KEY_121_USER_3 = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/user3_transfer.php";
-	public static final String KEY_121_USER_4 = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/user4_transfer.php";
-	public static final String KEY_121_PARAMS = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/params_transfer.php";
-	public static final String KEY_121_RECOVERY = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/init_recovery.php";
-	
-	public static final String KEY_121_CGM_END = "/diabetesassistant/androidservices/cgm_transfer.php";
-	public static final String KEY_121_INSULIN_END = "/diabetesassistant/androidservices/insulin_transfer.php";
-	public static final String KEY_121_MEAL_END = "/diabetesassistant/androidservices/meal_transfer.php";
-	public static final String KEY_121_STATEESTIMATE_END = "/diabetesassistant/androidservices/stateestimate_transfer.php";
-	public static final String KEY_122_END = "/diabetesassistant/androidservices/log_transfer.php";
-	public static final String KEY_121_SMBG_END = "/diabetesassistant/androidservices/smbg_transfer.php";
-	public static final String KEY_121_EVENT_END = "/diabetesassistant/androidservices/event_transfer.php";
-	public static final String KEY_121_SYSTEM_END = "/diabetesassistant/androidservices/system_transfer.php";
-	public static final String KEY_121_USER_3_END = "/diabetesassistant/androidservices/user3_transfer.php";
-	public static final String KEY_121_USER_4_END = "/diabetesassistant/androidservices/user4_transfer.php";
-	public static final String KEY_121_PARAMS_END = "/diabetesassistant/androidservices/params_transfer.php";
-	public static final String KEY_121_RECOVERY_END = "/diabetesassistant/androidservices/init_recovery.php";
-	
-	public static final String KEY_121_SUBJECTDATA = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/subjectdata_transfer.php";
-	public static final String KEY_121_CF = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/cf_transfer.php";
-	public static final String KEY_121_CR = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/cr_transfer.php";
-	public static final String KEY_121_BASAL = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/basal_transfer.php";
-	public static final String KEY_121_SAFETY = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/safety_transfer.php";
-	public static final String KEY_121_DEVICE = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/devices_transfer.php";
-
-	public static final String KEY_121_SUBJECTDATA_END = "/diabetesassistant/androidservices/subjectdata_transfer.php";
-	public static final String KEY_121_CF_END = "/diabetesassistant/androidservices/cf_transfer.php";
-	public static final String KEY_121_CR_END = "/diabetesassistant/androidservices/cr_transfer.php";
-	public static final String KEY_121_BASAL_END = "/diabetesassistant/androidservices/basal_transfer.php";
-	public static final String KEY_121_SAFETY_END = "/diabetesassistant/androidservices/safety_transfer.php";
-	public static final String KEY_121_DEVICE_END = "/diabetesassistant/androidservices/devices_transfer.php";
-	
-	public static final String KEY_121_PING = REMOTE_MONITORING_URI + "/diabetesassistant/webservices/ping.php";
-	public static final String KEY_121_PING_END = "/diabetesassistant/webservices/ping.php";
+	public static final String PING_URL_PATH = "/diabetesassistant/webservices/ping.php";
 
 	public static final String SSM_PROVIDER_NAME = "edu.virginia.dtc.provider.SSM";
 	public static final Uri SSM_CONTENT_URI = Uri.parse("content://" + SSM_PROVIDER_NAME + "/SSM");
@@ -147,6 +88,7 @@ public class networkService extends Service {
 	
 	private boolean remoteMonitoringURIValid = true;
 	private String remoteMonitoringURI;
+	
 	public static final int REMOTE_MONITORING_ICON_ID = 0x10000000;
 	public static final int NO_REMOTE_MONITORING_ICON_ID = 0x10000001;
 	public static final int WEAK_REMOTE_MONITORING_ICON_ID = 0x10000010;
@@ -156,7 +98,6 @@ public class networkService extends Service {
 
 	String returnString;
 	Integer battery_level = 100;
-	private long last_log_time = 0;
 
 	public long lastCGMTime = 0;
 	public long lastInsulinTime = 0;
@@ -166,20 +107,13 @@ public class networkService extends Service {
 	public long lastDeviceDataTime = 0;
 
 	public static final int SEND_BIOMETRICS_SLEEP_SECS = 30;
-	public static final int SEND_STATEESTIMATE_SLEEP_SECS = 30;
-	public static final int SEND_LOGS_SLEEP_SECS = 30;
-	
-	public static final int SEND_RECOVERY_SLEEP_SECS = 300; // 300 seconds for 5 minutes
-	public static final int SEND_DEVICE_SLEEP_SECS = 300; // 300 seconds for 5 minutes
-	
-	public static final int SEND_PING_SLEEP_SECS = 600; // 10 minutes
-	
+
 	private int timeoutConnection = 10000; // In milliseconds
 	private int timeoutSocket = 10000; // In milliseconds
 	
 	private boolean hasToSendProfiles = false;
-	private boolean hasNewSMBG = false;
 	
+	private final int MAX_SENDING_ATTEMPTS = 20;
 	private int consecutivePingFailures = 0;
 	
 	private int hourlyPingAttempts = 0;
@@ -187,45 +121,21 @@ public class networkService extends Service {
 	
 	public static final int DATA_BUNDLE_SIZE = 15; //Number of rows to include in one "Send Request"
 	
-	private boolean logReady = false;
-    private String logFile;
     
-    public static String[] CGM_PARAMS = {"id", "time", "cgm", "trend", "state", "diasState", "recv_time"};
-    public static String[] INSULIN_PARAMS = {"id", "req_time", "req_total", "req_basal", "req_meal", "req_corr",
-    	"deliv_time", "deliv_total", "deliv_basal", "deliv_meal", "deliv_corr",
-    	"recv_time", "running_total", "identifier", "status", "num_retries" };
-    public static String[] MEAL_PARAMS = {"id", "time", "meal_size_grams", "SMBG", "meal_status"};
-    public static String[] STATEESTIMATE_PARAMS = {"id", "time", "enough_data", "CGM", "IOB", "IOBlast", "IOBlast2", "Gpred", "Gbrakes", "Gpred_light",
-    	"Xi00", "Xi01", "Xi02", "Xi03", "Xi04", "Xi05", "Xi06", "Xi07", "isMealBolus", "Gpred_bolus", "CHOpred",
-		"Abrakes", "CGM_corr", "IOB_controller_rate", "SSM_amount", "State", "DIAS_state", "stoplight","stoplight2", "SSM_state", "SSM_state_timestamp"};
-    public static String[] LOG_PARAMS = {"id", "time", "status", "service", "priority"};
-    public static String[] DEVICE_PARAMS = {"id", "time", "battery", "plugged", "network_type", "network_strength", "ping_attempts_last_hour", "ping_success_last_hour", "battery_stats"};
-    public static String[] SMBG_PARAMS = {"id", "time", "smbg", "isCalibration", "isHypo", "didTreat", "carbs"};
-    public static String[] SUBJECTDATA_PARAMS = {"id", "subjectid", "session", "weight", "height", "age", "isfemale", "TDI", "AIT"};
-    public static String[] EVENT_PARAMS = {"id", "time", "code", "json"};
-    public static String[] SYSTEM_PARAMS = {"id", "time", "sysTime", "safetyMode", "diasState", "enableIOTest", "battery", 
-    	"cgmValue", "cgmTrend", "cgmLastTime", "cgmState", "cgmStatus", "pumpLastBolus", "pumpLastBolusTime", "pumpState", "pumpStatus", 
-    	"iobValue", "hypoLight", "hyperLight", "apcBolus", "apcStatus", "apcType", "apcString", "exercising", "alarmNoCgm", "alarmHypo"};
-    public static String[] USER_3_PARAMS = {"id", "time", "l0", "l1", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10",
-    	"d11", "d12", "d13", "d14", "d15"};
-    public static String[] USER_4_PARAMS = {"id", "time", "l0", "l1", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10",
-    	"d11", "d12", "d13", "d14", "d15"};
     public static String[] PARAMS_PARAMS = {"id", "name", "value", "type"};
-    private SmbgObserver smbgObserver;
     
 
-	// **************************************************************************************************************
-	// Thread Constructors
-	// **************************************************************************************************************
-	
-	private Thread Send_diasdata = new Thread() {
+	/***
+	 * Thread constructor
+	 */
+	private Thread SendDiasdata = new Thread() {
 		@Override
 		public void run() {
 			final String FUNC_TAG = "Send_biometrics";
 
 			int ping_result = 0;
 			try {
-				ping_result = Send_Request_ping();
+				ping_result = sendPing();
 				Debug.i(TAG, FUNC_TAG, "Sending_biometrics : Ping = "+ping_result);
 			}
 			catch (Exception e) {
@@ -241,106 +151,12 @@ public class networkService extends Service {
 			
 			if (ping_result > 0 && isSubjectReady())
 			{
-				Send_Request("cgm", KEY_121_CGM, KEY_121_CGM_END, Biometrics.CGM_URI, CGM_PARAMS);
+				for (Uri uri : Biometrics.TABLES_URIS_TO_SEND) {
+					sendData(uri);
+				}
 				
-				Send_Request("insulin", KEY_121_INSULIN, KEY_121_INSULIN_END, Biometrics.INSULIN_URI, INSULIN_PARAMS);
-				
-				Send_Request("meal", KEY_121_MEAL, KEY_121_MEAL_END, Biometrics.MEAL_URI, MEAL_PARAMS);
-				
-				Send_Request("stateestimate", KEY_121_STATEESTIMATE, KEY_121_STATEESTIMATE_END, Biometrics.STATE_ESTIMATE_URI, STATEESTIMATE_PARAMS);
-				
-				Send_Request("log", KEY_122, KEY_122_END, Biometrics.LOG_URI, LOG_PARAMS);
-				
-				Send_Request("devicedetails", KEY_121_DEVICE, KEY_121_DEVICE_END, Biometrics.DEV_DETAILS_URI, DEVICE_PARAMS);
-				
-				Send_Request("smbg", KEY_121_SMBG, KEY_121_SMBG_END, Biometrics.SMBG_URI, SMBG_PARAMS);
-				
-				Send_Request("event", KEY_121_EVENT, KEY_121_EVENT_END, Biometrics.EVENT_URI, EVENT_PARAMS);
-				
-				Send_Request("system", KEY_121_SYSTEM, KEY_121_SYSTEM_END, Biometrics.SYSTEM_URI, SYSTEM_PARAMS);
-				
-				Send_Request("user3", KEY_121_USER_3, KEY_121_USER_3_END, Biometrics.USER_TABLE_3_URI, USER_3_PARAMS);
-				
-				Send_Request("user4", KEY_121_USER_4, KEY_121_USER_4_END, Biometrics.USER_TABLE_4_URI, USER_4_PARAMS);
-				
-				Send_Request_Params(KEY_121_PARAMS, KEY_121_PARAMS_END, Biometrics.PARAM_URI, PARAMS_PARAMS);
-				
-				Send_Request("subjectdata", KEY_121_SUBJECTDATA, KEY_121_SUBJECTDATA, Biometrics.SUBJECT_DATA_URI, SUBJECTDATA_PARAMS);
-					
-				// Profile data transmission
-				for(int i=0;i<4;i++)
-				{
-					// Sets each URI with the correct string to cycle through the similar profiles
-					Uri content_uri = null;
-					String key = "", keyEnd = "";
-					switch(i)
-					{
-						case 0:
-							content_uri = Biometrics.CR_PROFILE_URI;
-							key = KEY_121_CR;
-							keyEnd = KEY_121_CR_END;
-							break;
-						case 1:
-							content_uri = Biometrics.CF_PROFILE_URI;
-							key = KEY_121_CF;
-							keyEnd = KEY_121_CF_END;
-							break;
-						case 2:
-							content_uri = Biometrics.BASAL_PROFILE_URI;
-							key = KEY_121_BASAL;
-							keyEnd = KEY_121_BASAL_END;
-							break;
-						case 3:
-							content_uri = Biometrics.SAFETY_PROFILE_URI;
-							key = KEY_121_SAFETY;
-							keyEnd = KEY_121_SAFETY_END;
-							break;
-					}
-					
-					if(content_uri != null)
-					{
-						Cursor profiles_to_send = getContentResolver().query(content_uri, null, "received_server = 0", null, null);
-						if (profiles_to_send.getCount() > 0) {
-							Debug.i(TAG, FUNC_TAG, profiles_to_send.getCount()+" new profile info to send");
-							try {
-								
-								Cursor sub = getContentResolver().query(content_uri, null, null, null, null);
-								Integer cursor_count = sub.getCount();
-								Debug.i(TAG, FUNC_TAG, "Sending_subjectData: " + cursor_count.toString());
-								sub.moveToFirst();
-								JSONArray profile = new JSONArray();
-								Integer index = 0;
-								while (sub.getCount() != 0 && sub.isAfterLast() == false) {
-									JSONObject object = new JSONObject();
-									try {
-										object.put("time", sub.getString(1));
-										object.put("value", sub.getString(2));
-										profile.put(index, object);
-										
-									} catch (JSONException e) {
-										Debug.i(TAG, FUNC_TAG, "JSON Encode for profile error: "+e.toString());
-									}
-									index +=1;
-									sub.moveToNext();
-								}
-								if ((DeviceID != null) && (profile.length() > 0)) {
-									Send_Request_timeValue(subject_number, DeviceID, content_uri, profile, key, keyEnd);
-								}
-								else {
-									Debug.e(TAG, FUNC_TAG, "Sending_diasdata > Send_Request_timeValue: Aborted because of null DeviceID");
-								}
-								sub.close();
-							}
-							catch (Exception e) {
-								Debug.e(TAG, FUNC_TAG, "Sending_profiledata > error=" + e.getMessage());
-								log_action(TAG, "Sending_profiledata, Error: " + e.getMessage(), LOG_ACTION_SERIOUS);
-							}
-						}
-						else {
-							Debug.i(TAG, FUNC_TAG, "Profile info already sent");
-						}
-						profiles_to_send.close();
-					}
+				for (Uri profile_uri : Biometrics.PROFILE_URIS) {
+					sendData(profile_uri);
 				}
 				
 			}
@@ -353,391 +169,272 @@ public class networkService extends Service {
 	
 
 	
-	// **************************************************************************************************************
-	// Scheduled Executor Service Setup
-	// **************************************************************************************************************
-
+	/***
+	 * Scheduled Executor Service Setup
+	 */
 	public static ScheduledExecutorService systemScheduler = Executors.newSingleThreadScheduledExecutor();
 	public static ScheduledFuture<?> futureDiasdata;
 
 	
-	// **************************************************************************************************************
-	// Send Requests Functions
-	// **************************************************************************************************************
-
-    public void Send_Request(String diasdata, String key, String key_end, Uri content_uri, String[] diasdataParams) {
-
-        final String FUNC_TAG = "Send_Request(" + diasdata + ")";
+	
+	/***
+	 * Attempts to send data from the 'content_uri' table if required. 
+	 * 
+	 * @param content_uri
+	 */
+	public void sendData(Uri content_uri) {
+    	
+    	String tableName = Biometrics.getTableName(content_uri);
+    	
+        final String FUNC_TAG = "SendData (" + tableName + ")";
         
         if (DeviceID != null) {
+        	
+        	JSONArray data = buildData(content_uri);
+	        
+            if (data.length() > 0) {
+            
+            	HttpResponse response = postRequest(content_uri, data);
+            	boolean received = handleResponse(content_uri, response);
+            	if (received)
+            		Debug.w(TAG, FUNC_TAG, "HandleResponse result: "+received);
+            	else
+            		Debug.e(TAG, FUNC_TAG, "HandleResponse result: "+received);
+            }
+            else {
+            	Debug.i(TAG, FUNC_TAG, "JSON Array empty, no data to send.");
+            }
+        }
+        else {
+        	Debug.e(TAG, FUNC_TAG, "Send Request Aborted because of null DeviceID");
+        }
+
+    }
+	
+	
+	/***
+	 * Build the data to be sent based on the 'content_uri' table content.
+	 * 
+	 * @param content_uri
+	 * @return the data bundle as a JSONArray object
+	 */
+	public JSONArray buildData(Uri content_uri){
+		
+		JSONArray data = new JSONArray();
+		final String FUNC_TAG = "buildData";
+		String tableName = Biometrics.getTableName(content_uri);
+		
+		// Getting table's columns
+		Cursor cursor;
+		if (Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(content_uri)) {
+			cursor = getContentResolver().query(content_uri, null, null, null, null);
+		}
+		else {
+			cursor = getContentResolver().query(content_uri, null, null, null, "_id ASC LIMIT 1");
+		}
+    	List<String> columns_list = new LinkedList<String>(Arrays.asList(cursor.getColumnNames()));
+    	columns_list.remove("received_server");
+    	columns_list.remove("send_attempts_server");
+    	Debug.i(TAG,  FUNC_TAG, "Columns: "+columns_list);
+    	cursor.close();
+    	
+    	// Querying data to send, limited to the 'DATA_BUNDLE_SIZE' most recent elements if applicable
+        String order_by = new String("");
+        String selection = "received_server = 0 AND send_attempts_server < "+ MAX_SENDING_ATTEMPTS;
         
-	        try {
-	            //DiAsSubjectData subject_data = readDiAsSubjectData();
+        if(columns_list.contains("time")) {
+        	order_by = "time DESC LIMIT "+DATA_BUNDLE_SIZE;
+        }
+        else if (columns_list.contains("deliv_time")){
+        	order_by = "deliv_time DESC LIMIT "+DATA_BUNDLE_SIZE;
+        }
+        else {
+        	order_by = null;
+        }
+        if (Arrays.asList(Biometrics.TIME_BASED_DATA_URIS).contains(content_uri) || Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(content_uri)) {
+	        Cursor c = getContentResolver().query(content_uri, null, selection, null, order_by);
+	        Integer cursor_count = c.getCount();
+	        Debug.i(TAG, FUNC_TAG, FUNC_TAG+" > rows=" + cursor_count.toString());
+	        
+	        int index = 0;
+	        
+	        c.moveToFirst();
+	        while (c.isAfterLast() == false) {
+	        	Integer attempts = Integer.parseInt(c.getString(c.getColumnIndex("send_attempts_server")));
+	        	
+	            attempts += 1;
 	            
-	            String order_by = new String("");
-	            String selection = "received_server = 0";
+	            ContentValues values = new ContentValues();
+	            values.put("send_attempts_server", attempts);
 	            
-	            //TODO: Find a better safety limit to avoid saturation if problem with transmission
-	            selection += " AND send_attempts_server < 20";
-	            
-	            if(Arrays.asList(diasdataParams).contains("time")) {
-	            	order_by = "time DESC";
+	            String where = null;
+	            if (columns_list.contains("_id")) {
+	            	where = "_id = "+c.getString(c.getColumnIndex("_id"));
 	            }
-	            else if (Arrays.asList(diasdataParams).contains("deliv_time")){
-	            	order_by = "deliv_time DESC";
-	            }
-	            else {
-	            	order_by = null;
-	            }
-	            if (order_by!=null){
-	            	order_by +=" LIMIT "+DATA_BUNDLE_SIZE;
-	            }
-	            //ArrayList<ArrayList<NameValuePair>> dataBundle = new ArrayList<ArrayList<NameValuePair>>();
-	            Cursor c = getContentResolver().query(content_uri, null, selection, null, order_by);
-	            Integer cursor_count = c.getCount();
-	            InputStream is = null;
-	            Debug.i(TAG, FUNC_TAG, FUNC_TAG+" > rows=" + cursor_count.toString());
-	            JSONObject post = new JSONObject();
-	            JSONArray data = new JSONArray();
-	            int index = 0;
-	            
-	            c.moveToFirst();
-	            while (c.isAfterLast() == false) {
-	                Debug.i("Hello", FUNC_TAG, "Hello "+diasdata+" 1");
+	            Integer row = getContentResolver().update(content_uri, values, where, null);
+	            Debug.i(TAG, FUNC_TAG, tableName+" attempts incremented: "+row+" row, attempts = "+attempts);
 	
-	                //long time = c.getLong(c.getColumnIndex("time"));
-	                Integer attempts = Integer.parseInt(c.getString(c.getColumnIndex("send_attempts_server")));
-	
-	                attempts += 1;
-	
-	                ContentValues values = new ContentValues();
-	                values.put("send_attempts_server", attempts);
-	
-	                Integer row = getContentResolver().update(content_uri, values, "_id = "+c.getString(c.getColumnIndex("_id")), null);
-	                Debug.i(TAG, FUNC_TAG, diasdata+" attempts incremented: "+row+" row, attempts = "+attempts);
-	
-	                JSONObject object = new JSONObject();
-	                
-	                object.put("id", c.getString(c.getColumnIndex("_id")));
-	                for(int i=1; i<diasdataParams.length; i++) {
-	                	object.put(diasdataParams[i], c.getString(c.getColumnIndex(diasdataParams[i])));
-	                }
-	                
-	                // Specific to INSULIN table
-	                if (Arrays.asList(diasdataParams).contains("deliv_time")) {
-	                	object.put("time", c.getString(c.getColumnIndex("deliv_time")));
-	                }
-	                
-	                // Specific to SUBJECTDATA table
-	                if (diasdata.equals("subjectdata")) {
-	                	TimeZone tz = TimeZone.getDefault();
+	            JSONObject object = new JSONObject();
+	            try {
+		            for(int i=0; i<columns_list.size(); i++) {
+		            	if (columns_list.get(i).equals("_id")) {
+		            		object.put("id", c.getString(c.getColumnIndex(columns_list.get(i))));
+		            	} else {
+		            		object.put(columns_list.get(i), c.getString(c.getColumnIndex(columns_list.get(i))));
+		            	}
+		            }
+		            
+		            // Specific to INSULIN table
+		            if (tableName.equals(Biometrics.INSULIN_TABLE_NAME)) {
+		            	object.put("time", c.getString(c.getColumnIndex("deliv_time")));
+		            }
+		            
+		            // Specific to SUBJECTDATA table
+		            if (tableName.equals(Biometrics.SUBJECT_DATA_TABLE_NAME)) {
+		            	TimeZone tz = TimeZone.getDefault();
 						String tz_id = tz.getID();
 						Debug.i(TAG, FUNC_TAG, "Getting default TimeZone: " +tz_id);
 						object.put("timezone", tz_id);
 						
 						String center_name = Params.getString(getContentResolver(), "center", "");
 						String protocol_code = Params.getString(getContentResolver(), "protocol", "");
+						Double hba1c = Params.getDouble(getContentResolver(), "hba1c", -1.0);
 						
 						object.put("center_name", center_name);
 						object.put("protocol_code", protocol_code);
+						if (hba1c > 0.0) {
+							object.put("hba1c", hba1c);
+						}
 						
-	                }
-	                
-	                //Debug.i(TAG, FUNC_TAG, "Row added: "+object.toString());
-	                
-	                data.put(index, object);
-	                index += 1;
-	                
-	                c.moveToNext();
+		            }
+	            } catch (JSONException e) {
+	            	Debug.i(TAG, FUNC_TAG, "JSON Error adding data bundle: "+e.toString());
 	            }
 	            
-	            c.close();
+	            try {
+					data.put(index, object);
+					index += 1;
+				} catch (JSONException e) {
+					Debug.i(TAG, FUNC_TAG, "JSON Error building data bundle: "+e.toString());
+				}
 	            
-	            if (data.length() > 0) {
-	            	
-	            	post.put("subjectnumber", subject_number);
-	                post.put("macaddress", DeviceID);
-	            	post.put("data", data);
-	            	
-	            	//Debug.i(TAG, FUNC_TAG, "Data to send: "+data.toString());
-	                //HTTP post
-	                try {
-	                    DefaultHttpClient httpclient = new DefaultHttpClient();
-	                    HttpParams httpParameters = new BasicHttpParams();
-	        			HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
-	        			HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
-	        			httpclient.setParams(httpParameters);
-	        			
-	                    String PostString;
-	                    Debug.i(TAG, FUNC_TAG, diasdata+" > remoteMonitoringURIValid=" + remoteMonitoringURIValid + ", remoteMonitoringURI=" + remoteMonitoringURI);
-	                    if (remoteMonitoringURIValid) {
-	                        PostString = new String(remoteMonitoringURI);
-	                        PostString = PostString.concat(key_end);
-	                    }
-	                    else {
-	                        PostString = new String(key);
-	                    }
-	                    HttpPost httppost = new HttpPost(PostString);
-	                    httppost.setEntity(new StringEntity(post.toString()));
-	                    httppost.setHeader("Accept", "application/json");
-	                    httppost.setHeader("Content-type","application/json");
-	                    
-	                    //Debug.i(TAG, FUNC_TAG, "POSTED entity: "+EntityUtils.toString(httppost.getEntity()));
-	                    
-	                    HttpResponse response = httpclient.execute(httppost);
-	                    HttpEntity entity = response.getEntity();
-	
-	                    is = entity.getContent();
-	
-	                } catch (Exception e) {
-	                    Debug.i(TAG, FUNC_TAG, "Send_Request_device > 1 > Error in http connection " + e.toString());
-	                    log_action(TAG, "Send_Request_device, Connection error: " + e.toString(), LOG_ACTION_SERIOUS);
-	                }
-	
-	                //convert response to string
-	                try {
-	                	String resultString = "";
-	                    String status = "";
-	                	
-	                    BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
-	                    StringBuilder sb = new StringBuilder();
-	                    String line = null;
-	                    while ((line = reader.readLine()) != null) {
-	                        sb.append(line + "\n");
-	                    }
-	                    is.close();
-	                    resultString=sb.toString();
-	                    Debug.i(TAG, FUNC_TAG, "result = "+resultString);
-	                    
-	                    JSONArray result = new JSONArray(resultString);
-	                    status = result.getJSONObject(0).getString("Status");;
-	                    Debug.i(TAG, FUNC_TAG, "JSON_Parser_Result = "+status);
-	                    if (status.equals("Received"))
-	                    {
-	                    	//JSONObject savedIds = result.getJSONObject(1);
-	                    	JSONArray savedIds = result.getJSONObject(1).getJSONArray("saved_ids");
-	                    	int savedIdsLength = savedIds.length();
-	                    	
-	                    	for (int i=0; i<savedIdsLength; i++) {
-	                    		String id = savedIds.get(i).toString();
-	                    		ContentValues new_values = new ContentValues();
-		                        new_values.put("received_server", true);
-		                        
-		                        // Set "received_server" to false to re-send data when status is not final
-		                        // For Insulin ("pending" or "delivering")
-		                        if (diasdata == "insulin") {
-		                        	Cursor insulinRow = getContentResolver().query(content_uri, new String[] {"status"}, "_id = "+id, null, null);
-		                        	insulinRow.moveToFirst();
-		                        	if (insulinRow.getInt(insulinRow.getColumnIndex("status")) == Pump.PENDING || insulinRow.getInt(insulinRow.getColumnIndex("status")) == Pump.DELIVERING) {
-		                        		new_values.put("received_server", false);
-		                        	}
-		                        	insulinRow.close();
-		                        }
-		                        // For Meal ("pending")
-//		                        if (diasdata == "meal") {
-//		                        	Cursor mealRow = getContentResolver().query(content_uri, new String[] {"meal_status"}, "_id = "+id, null, null);
-//		                        	mealRow.moveToFirst();
-//		                        	if (mealRow.getInt(mealRow.getColumnIndex("meal_status")) == Meal.MEAL_STATUS_PENDING) {
-//		                        		new_values.put("received_server", false);
-//		                        	}
-//		                        	mealRow.close();
-//		                        }
-		                        
-		                        int new_row = getContentResolver().update(content_uri, new_values, "_id = "+id, null);
-		                        Debug.i(TAG, FUNC_TAG, diasdata+" data received: "+new_row+" row");
-	                    	}
-	                    }
-	                    else if (status.equals("Error")) {
-	                        Debug.i(TAG, FUNC_TAG, status+" in "+diasdata+" data reception by server");
-	                    }
-	                    else {
-	                        Debug.i(TAG, FUNC_TAG, "Unknown error in "+diasdata+" data reception: status = "+status );
-	                    }
-	                }
-	                catch(Exception e) {
-	                    Debug.i(TAG, FUNC_TAG, "JSON Parse Reception "+diasdata+": Error converting result "+e.toString());
-	                    log_action(TAG, "Send_"+diasdata+", Response conversion error: "+e.toString(), LOG_ACTION_SERIOUS);
-	                }
-	
-	                Debug.i("Hello", FUNC_TAG, "Hello "+diasdata+" 2");
-	            }
-	            else {
-	            	Debug.i(TAG, FUNC_TAG, "JSON Array empty, no data to send.");
-	            }
-	            
-	        } catch (Exception e) {
-	            Debug.e(TAG, FUNC_TAG, FUNC_TAG+" > error=" + e.getMessage());
-	            log_action(TAG, FUNC_TAG+", Error: " + e.getMessage(), LOG_ACTION_SERIOUS);
+	            c.moveToNext();
 	        }
-	        
+	        c.close();
         }
-        else {
-        	Debug.e(TAG, FUNC_TAG, "Send Request Aborted because of null DeviceID");
-        }
-
-    }
-    
-    public void Send_Request_Params(String key, String key_end, Uri content_uri, String[] diasdataParams) {
-    	String diasdata = "params";
-        final String FUNC_TAG = "Send_Request(" + diasdata + ")";
-        
-        if (DeviceID != null) {
-        
-	        try {
-	            //DiAsSubjectData subject_data = readDiAsSubjectData();
-	            
-	            String order_by = null;
-	            String selection = "received_server = 0 AND send_attempts_server < 20";
-	            
-	            JSONObject post = new JSONObject();
-	            JSONArray data = new JSONArray();
-	            
-	            Cursor c = getContentResolver().query(content_uri, null, selection, null, order_by);
-	            Integer cursor_count = c.getCount();
-	            Debug.i(TAG, FUNC_TAG, FUNC_TAG+" > rows=" + cursor_count.toString());
-	            
-	            JSONArray parameters = new JSONArray();
-	            c.moveToFirst();
-	            int index = 0;
-	            while (c.isAfterLast() == false) {
-	                Debug.i("Hello", FUNC_TAG, "Hello "+diasdata+" 1");
-	
-	                Integer attempts = Integer.parseInt(c.getString(c.getColumnIndex("send_attempts_server")));
-	
-	                attempts += 1;
-	
-	                ContentValues values = new ContentValues();
-	                values.put("send_attempts_server", attempts);
-	
-	                Integer row = getContentResolver().update(content_uri, values, "_id = "+c.getString(c.getColumnIndex("_id")), null);
-	                Debug.i(TAG, FUNC_TAG, diasdata+" attempts incremented: "+row+" row, attempts = "+attempts);
-	                
-	                JSONObject object = new JSONObject();
-					try {
-						object.put(c.getString(c.getColumnIndex("name")), c.getString(c.getColumnIndex("value")));
-						parameters.put(index, object);
-						
-					} catch (JSONException e) {
-						Debug.i(TAG, FUNC_TAG, "JSON Encode for parameters error: "+e.toString());
+        else if (Arrays.asList(Biometrics.PROFILE_URIS).contains(content_uri)) {
+        	
+        	Cursor profiles_to_send = getContentResolver().query(content_uri, null, "received_server = 0", null, null);
+			
+        	if (profiles_to_send.getCount() > 0) {
+				Debug.i(TAG, FUNC_TAG, profiles_to_send.getCount()+" new profile info to send");
+				try {
+					
+					Cursor sub = getContentResolver().query(content_uri, null, null, null, null);
+					Integer cursor_count = sub.getCount();
+					Debug.i(TAG, FUNC_TAG, "Sending_subjectData: " + cursor_count.toString());
+					sub.moveToFirst();
+					JSONArray profile = new JSONArray();
+					Integer index = 0;
+					while (sub.getCount() != 0 && sub.isAfterLast() == false) {
+						JSONObject object = new JSONObject();
+						try {
+							object.put("time", sub.getString(1));
+							object.put("value", sub.getString(2));
+							profile.put(index, object);
+							
+						} catch (JSONException e) {
+							Debug.i(TAG, FUNC_TAG, "JSON Encode for profile error: "+e.toString());
+						}
+						index +=1;
+						sub.moveToNext();
 					}
-					index +=1;
-					c.moveToNext();
-	            }
-	            c.close();
-	            
-	            if (parameters.length() > 0) {
+					if (profile.length() > 0) {
+						JSONObject profiles = new JSONObject();
+						profiles.put("profiles", profile);
+						data.put(0, profiles);
+					}
+					sub.close();
+				}
+				catch (Exception e) {
+					Debug.e(TAG, FUNC_TAG, "Sending_profiledata > error=" + e.getMessage());
+					log_action(TAG, "Sending_profiledata, Error: " + e.getMessage(), LOG_ACTION_SERIOUS);
+				}
+			}
+			else {
+				Debug.i(TAG, FUNC_TAG, "Profile info already sent");
+			}
+			profiles_to_send.close();
+        }
+        else if (content_uri.equals(Biometrics.PARAM_URI)) {
+        	
+        	Cursor c = getContentResolver().query(content_uri, null, selection, null, order_by);
+            Integer cursor_count = c.getCount();
+            Debug.i(TAG, FUNC_TAG, FUNC_TAG+" > rows=" + cursor_count.toString());
+            
+            JSONArray parameters = new JSONArray();
+            c.moveToFirst();
+            int index = 0;
+            while (c.isAfterLast() == false) {
+                Debug.i("Hello", FUNC_TAG, "Hello "+tableName+" 1");
+
+                Integer attempts = Integer.parseInt(c.getString(c.getColumnIndex("send_attempts_server")));
+
+                attempts += 1;
+
+                ContentValues values = new ContentValues();
+                values.put("send_attempts_server", attempts);
+
+                Integer row = getContentResolver().update(content_uri, values, "_id = "+c.getString(c.getColumnIndex("_id")), null);
+                Debug.i(TAG, FUNC_TAG, tableName+" attempts incremented: "+row+" row, attempts = "+attempts);
+                
+                JSONObject object = new JSONObject();
+				try {
+					object.put(c.getString(c.getColumnIndex("name")), c.getString(c.getColumnIndex("value")));
+					parameters.put(index, object);
+					
+				} catch (JSONException e) {
+					Debug.i(TAG, FUNC_TAG, "JSON Encode for parameters error: "+e.toString());
+				}
+				index +=1;
+				c.moveToNext();
+            }
+            c.close();
+            
+            if (parameters.length() > 0) {
+            	try {
 		            JSONObject parametersObject = new JSONObject();
 		            parametersObject.put("parameters", parameters);
 		            data.put(0, parametersObject);
-		            
-		            InputStream is = null;
-		        	
-	                post.put("subjectnumber", subject_number);
-	                post.put("macaddress", DeviceID);
-	                post.put("data", data);
-	                
-	                //HTTP post
-	                try {
-	                    DefaultHttpClient httpclient = new DefaultHttpClient();
-	                    HttpParams httpParameters = new BasicHttpParams();
-	        			HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
-	        			HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
-	        			httpclient.setParams(httpParameters);
-	        			
-	                    String PostString;
-	                    Debug.i(TAG, FUNC_TAG, diasdata+" > remoteMonitoringURIValid=" + remoteMonitoringURIValid + ", remoteMonitoringURI=" + remoteMonitoringURI);
-	                    if (remoteMonitoringURIValid) {
-	                        PostString = new String(remoteMonitoringURI);
-	                        PostString = PostString.concat(key_end);
-	                    }
-	                    else {
-	                        PostString = new String(key);
-	                    }
-	                    HttpPost httppost = new HttpPost(PostString);
-	                    httppost.setEntity(new StringEntity(post.toString()));
-	                    httppost.setHeader("Accept", "application/json");
-	                    httppost.setHeader("Content-type", "application/json");
-	                    HttpResponse response = httpclient.execute(httppost);
-	                    HttpEntity entity = response.getEntity();
-	
-	                    is = entity.getContent();
-	
-	                } catch (Exception e) {
-	                    Debug.i(TAG, FUNC_TAG, "Send_Request_device > 1 > Error in http connection " + e.toString());
-	                    log_action(TAG, "Send_Request_device, Connection error: " + e.toString(), LOG_ACTION_SERIOUS);
-	                }
-	
-	                //convert response to string
-	                try {
-	                	String result = "";
-	                    String status = "";
-	                	
-	                    BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
-	                    StringBuilder sb = new StringBuilder();
-	                    String line = null;
-	                    while ((line = reader.readLine()) != null) {
-	                        sb.append(line + "\n");
-	                    }
-	                    is.close();
-	                    result=sb.toString();
-	                    Debug.i(TAG, FUNC_TAG, "result = "+result);
-	                    status = JSON_Parser_Reception(result);
-	                    
-	                    if (status.equals("Received"))
-	                    {
-	                        ContentValues new_values = new ContentValues();
-	                        new_values.put("received_server", true);
-                        
-	                        int new_row = getContentResolver().update(content_uri, new_values, "received_server = 0 AND send_attempts_server < 20", null);
-		                    Debug.i(TAG, FUNC_TAG, diasdata+" data received: "+new_row+" row");
-		                     
-	                    }
-	                    else if (status.equals("Error")) {
-	                        Debug.i(TAG, FUNC_TAG, status+" in "+diasdata+" data reception by server");
-	                    }
-	                    else {
-	                        Debug.i(TAG, FUNC_TAG, "Unknown error in "+diasdata+" data reception: status = "+status );
-	                    }
-	                }
-	                catch(Exception e) {
-	                    Debug.i(TAG, FUNC_TAG, "JSON Parse Reception "+diasdata+": Error converting result "+e.toString());
-	                    log_action(TAG, "Send_"+diasdata+", Response conversion error: "+e.toString(), LOG_ACTION_SERIOUS);
-	                }
-	
-	                Debug.i("Hello", FUNC_TAG, "Hello "+diasdata+" 2");
-	            }
-	            
-	        } catch (Exception e) {
-	            Debug.e(TAG, FUNC_TAG, FUNC_TAG+" > error=" + e.getMessage());
-	            log_action(TAG, FUNC_TAG+", Error: " + e.getMessage(), LOG_ACTION_SERIOUS);
-	        }
-	        
+            	} catch (JSONException e) {
+					Debug.i(TAG, FUNC_TAG, "JSON Encode for parameters error: "+e.toString());
+				}
+            }
         }
-        else {
-        	Debug.e(TAG, FUNC_TAG, "Send Request Aborted because of null DeviceID");
-        }
-    }
-    
+        
+		return data;
+	}
 	
-	public void Send_Request_timeValue(String subjectnumber, String macaddress, Uri uri, JSONArray profile, String key, String keyEnd)
-	{
-		final String FUNC_TAG = "Send_Request_timeValue";
+	
+	/***
+	 * Send the data bundled as 'data' for the table 'content_uri' to the server through and HTTP POST request.
+	 * 
+	 * @param content_uri, URI of the table data in the content provider. 
+	 * @param data, the bundle of data enclosed with the POST request.
+	 * @return the response from the server, or null if an issue occurred.
+	 */
+	public HttpResponse postRequest(Uri content_uri, JSONArray data) {
 		
-		int returned = 0;
+		final String FUNC_TAG = "postRequest";
+		
+		String tableName = Biometrics.getTableName(content_uri);
+		HttpResponse response = null;
 		
 		JSONObject post = new JSONObject();
-		JSONArray data = new JSONArray();
-		
-		JSONObject profiles = new JSONObject();
-		
-		InputStream is = null;
 		
 		try {
-			profiles.put("profiles", profile);
-			data.put(0, profiles);
-			
-			post.put("subjectnumber", subjectnumber);
-			post.put("macaddress", macaddress);
+			post.put("subjectnumber", subject_number);
+			post.put("macaddress", DeviceID);
 			post.put("data", data);
 			
 			//HTTP post
@@ -749,73 +446,171 @@ public class networkService extends Service {
 				httpclient.setParams(httpParameters);
 				
 				String PostString;
-				Debug.i(TAG, FUNC_TAG, "Send_Request_timeValue > remoteMonitoringURIValid=" + remoteMonitoringURIValid + ", remoteMonitoringURI=" + remoteMonitoringURI);
-				
 				if (remoteMonitoringURIValid) {
 					PostString = new String(remoteMonitoringURI);
-					PostString = PostString.concat(keyEnd);
+					PostString = PostString.concat(getUrlPath(tableName));
 				}
 				else {
-					PostString = new String(key);
+					PostString = new String(getUrlPath(tableName));
 				}
+				Debug.i(TAG, FUNC_TAG, "Table Name: " + tableName + ", URL=" + PostString);
 				
 				HttpPost httppost = new HttpPost(PostString);
 				httppost.setEntity(new StringEntity(post.toString()));
-				HttpResponse response = httpclient.execute(httppost);
-				HttpEntity entity = response.getEntity();
-				is = entity.getContent();
-	
+				response = httpclient.execute(httppost);
+				
 			} catch (Exception e) {
 				Debug.i(TAG, FUNC_TAG, "Error in http connection " + e.toString());
-				log_action(TAG, "Send_Request_timeValue, Connection error: " + e.toString(), LOG_ACTION_SERIOUS);
+				log_action(TAG, FUNC_TAG+", Connection error: " + e.toString(), LOG_ACTION_SERIOUS);
 			}
-			
-			//convert response to string
-            try {
-            	String result = "";
-                String status = "";
-            	
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
-                StringBuilder sb = new StringBuilder();
-                String line = null;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line + "\n");
-                }
-                is.close();
-                result=sb.toString();
-                Debug.i(TAG, FUNC_TAG, "result = "+result);
-                status = JSON_Parser_Reception(result);
-                
-                if (status.equals("Received"))
-                {
-                    Debug.i(TAG, FUNC_TAG, "Profile data received");
-                    
-                    ContentValues new_values = new ContentValues();
-                    new_values.put("received_server", true);
-                    getContentResolver().update(uri, new_values, null, null);
-
-                    returned = 1;
-                }
-                else if (status.equals("Error")) {
-                    Debug.i(TAG, FUNC_TAG, status+" in profile data reception by server");
-                }
-                else {
-                    Debug.i(TAG, FUNC_TAG, "Unknown error in profile data reception: status = "+status );
-                }
-            }
-            catch(Exception e) {
-                Debug.i(TAG, FUNC_TAG, "JSON Parse Reception profile: Error converting result "+e.toString());
-                log_action(TAG, "Send_profile, Response conversion error: "+e.toString(), LOG_ACTION_SERIOUS);
-            }
 		}
 		catch (JSONException e) {
 			Debug.i(TAG, FUNC_TAG, "JSONException when building post content: "+e.getMessage());
 		}
-		//return returned;
+		
+		return response;
 	}
 	
-	public int Send_Request_ping() {
-		final String FUNC_TAG = "Send_Request_ping";
+	
+	/***
+	 * Handles the response from the server after sending data.
+	 * 
+	 * @param content_uri
+	 * @param response
+	 * @return whether the data has been received properly by the server, even partially.
+	 */
+	public boolean handleResponse(Uri content_uri, HttpResponse response) {
+		
+		final String FUNC_TAG = "handleResponse";
+		
+		InputStream is = null;
+		
+		boolean received = false;
+		
+		try {
+			is = response.getEntity().getContent();
+		}
+		catch(IOException e) {
+			Debug.i(TAG, FUNC_TAG, "Error getting response content: "+e.toString());
+			return received;
+		}
+		
+		String tableName = Biometrics.getTableName(content_uri);
+		
+		// Converting response to string
+    	String resultString = "", status = "";
+    	StringBuilder sb = new StringBuilder();
+        String line = null;
+        BufferedReader reader;
+        JSONArray result =null;
+        
+		try {
+			reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
+		} catch (UnsupportedEncodingException e) {
+			Debug.i(TAG, FUNC_TAG, "Error encoding response content: "+e.toString());
+			return received;
+		}
+        
+        try {
+			while ((line = reader.readLine()) != null) {
+			    sb.append(line + "\n");
+			}
+		} catch (IOException e) {
+			Debug.i(TAG, FUNC_TAG, "Error reading buffer of response content: "+e.toString());
+			return received;
+		}
+        try {
+			is.close();
+		} catch (IOException e) {
+			Debug.i(TAG, FUNC_TAG, "Error encoding response content: "+e.toString());
+			return received;
+		}
+        resultString=sb.toString();
+        Debug.i(TAG, FUNC_TAG, "result = "+resultString);
+        
+        // Gets status from parsed response
+        try {
+        	result = new JSONArray(resultString);
+			status = result.getJSONObject(0).getString("Status");
+		} catch (JSONException e) {
+			Debug.i(TAG, FUNC_TAG, "Error parsing response status (JSON): "+e.toString());
+			return received;
+		};
+        Debug.i(TAG, FUNC_TAG, "JSON_Parser_Result = "+status);
+        
+        if (status.equals("Received"))
+        {
+        	if(Arrays.asList(Biometrics.TIME_BASED_DATA_URIS).contains(content_uri))
+        	{
+        		
+	        	JSONArray savedIds = null;
+				try {
+					savedIds = result.getJSONObject(1).getJSONArray("saved_ids");
+					
+					for (int i=0; i<savedIds.length(); i++) {
+		        		String id = savedIds.get(i).toString();
+		        		ContentValues new_values = new ContentValues();
+		                new_values.put("received_server", true);
+		                
+		                // Set "received_server" to false to re-send data when status is not final
+		                // For Insulin ("pending" or "delivering")
+		                if (content_uri == Biometrics.INSULIN_URI) {
+		                	Cursor insulinRow = getContentResolver().query(content_uri, new String[] {"status"}, "_id = "+id, null, null);
+		                	insulinRow.moveToFirst();
+		                	if (insulinRow.getInt(insulinRow.getColumnIndex("status")) == Pump.PENDING || insulinRow.getInt(insulinRow.getColumnIndex("status")) == Pump.DELIVERING) {
+		                		new_values.put("received_server", false);
+		                	}
+		                	insulinRow.close();
+		                }
+		                // For Meal ("pending")
+		//                    if (diasdata == "meal") {
+		//                    	Cursor mealRow = getContentResolver().query(content_uri, new String[] {"meal_status"}, "_id = "+id, null, null);
+		//                    	mealRow.moveToFirst();
+		//                    	if (mealRow.getInt(mealRow.getColumnIndex("meal_status")) == Meal.MEAL_STATUS_PENDING) {
+		//                    		new_values.put("received_server", false);
+		//                    	}
+		//                    	mealRow.close();
+		//                    }
+		                
+		                int new_row = getContentResolver().update(content_uri, new_values, "_id = "+id, null);
+		                Debug.i(TAG, FUNC_TAG, tableName+" data received: "+new_row+" row");
+		        	}
+		        	
+					received = true;
+		        	
+				} catch (JSONException e) {
+					Debug.i(TAG, FUNC_TAG, "Error parsing response 'saved ids' (JSON): "+e.toString());
+					return received;
+				}
+        	}
+        	else if(	Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(content_uri)
+        			 || Arrays.asList(Biometrics.PROFILE_URIS).contains(content_uri)
+        			 || content_uri==Biometrics.PARAM_URI )
+        	{
+        		ContentValues new_values = new ContentValues();
+                new_values.put("received_server", true);
+        		int new_row = getContentResolver().update(content_uri, new_values, null, null);
+                Debug.i(TAG, FUNC_TAG, tableName+" data received: "+new_row+" rows");
+                
+                received = true;
+        	}
+        }
+        else if (status.equals("Error")) {
+            Debug.i(TAG, FUNC_TAG, status+" in "+tableName+" data reception by server");
+        }
+        else {
+            Debug.i(TAG, FUNC_TAG, "Unknown error in "+tableName+" data reception: status = "+status );
+        }
+        
+        return received;
+	}
+	
+	/***
+	 * 
+	 * @return
+	 */
+	public int sendPing() {
+		final String FUNC_TAG = "Send_Ping";
 
 		int output = 0;
 		InputStream is = null;
@@ -838,10 +633,10 @@ public class networkService extends Service {
 			Debug.i(TAG, FUNC_TAG, "Send_Request_ping > remoteMonitoringURIValid=" + remoteMonitoringURIValid + ", remoteMonitoringURI=" + remoteMonitoringURI);
 			if (remoteMonitoringURIValid) {
 				PostString = new String(remoteMonitoringURI);
-				PostString = PostString.concat(KEY_121_PING_END);
+				PostString = PostString.concat(PING_URL_PATH);
 			}
 			else {
-				PostString = new String(KEY_121_PING);
+				PostString = new String(PING_URL_PATH);
 			}
 			HttpPost httppost = new HttpPost(PostString);
 			httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -946,13 +741,6 @@ public class networkService extends Service {
 		final String FUNC_TAG = "onCreate";
 
 		super.onCreate();
-
-		SimpleDateFormat sdfDate = new SimpleDateFormat("MM-dd-yyyy");
-	    Date now = new Date();
-	    String strDate = sdfDate.format(now);
-		String path = "NetworkServiceLogFile_"+strDate+".txt";
-		
-		logFile = path;
 		
 		// Get the unique device identifier (IMEI)
 		TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -987,7 +775,6 @@ public class networkService extends Service {
 		};
 		registerReceiver(ProfileReceiver, new IntentFilter(DiAsSubjectData.PROFILE_CHANGE));
 		
-		last_log_time = 0;
 
 		// Tracking System
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
@@ -997,7 +784,7 @@ public class networkService extends Service {
 		sendBroadcast(i);
 
 		// Startup executors
-		futureDiasdata = systemScheduler.scheduleAtFixedRate(Send_diasdata, 0, SEND_BIOMETRICS_SLEEP_SECS, TimeUnit.SECONDS);
+		futureDiasdata = systemScheduler.scheduleAtFixedRate(SendDiasdata, 0, SEND_BIOMETRICS_SLEEP_SECS, TimeUnit.SECONDS);
 
 		// Set up a Notification for this Service
 		String ns = Context.NOTIFICATION_SERVICE;
@@ -1021,10 +808,9 @@ public class networkService extends Service {
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();
 		
-		smbgObserver = new SmbgObserver(new Handler());
-		getContentResolver().registerContentObserver(Biometrics.SMBG_URI, true, smbgObserver);
 	}
 
+	
 	@Override
 	public void onDestroy() {	   
 		Toast.makeText(this, "Data sending Service Stopped", Toast.LENGTH_LONG).show();
@@ -1035,14 +821,14 @@ public class networkService extends Service {
 		unregisterReceiver(ProfileReceiver);
 		//unregisterReceiver(TickReceiver);
 		wl.release();
-		if(smbgObserver != null)
-			getContentResolver().unregisterContentObserver(smbgObserver);
 	}
 
+	
 	public long getCurrentTimeSeconds() {
 		return System.currentTimeMillis() / 1000;	  // Seconds since 1/1/1970		
 	}
 
+	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		final String FUNC_TAG = "onStartCommand";
@@ -1060,6 +846,11 @@ public class networkService extends Service {
 	}
 	
 	
+	/***
+	 * Checks whether subject data has been initialized.
+	 * Updates the Network Service's subject_number variable when available.
+	 * @return whether subject number is stored in database.
+	 */
 	public boolean isSubjectReady() {
 		
 		String FUNC_TAG = "isSubjectReady";
@@ -1083,14 +874,17 @@ public class networkService extends Service {
 		return result;
 	}
 	
+	
+	/***
+	 * Update the latest Device details table's row with the connectivity info on last hour.
+	 */
 	public void updateConnectivityInfo() {
-		//TODO:
 		final String FUNC_TAG = "updateConnectivityInfo";
 		
 		Debug.i(TAG, FUNC_TAG, "Connectivity data gathered: "+ hourlyPingAttempts +" attempted connections, "+ hourlyPingSuccess +" successful connections on the last hour.");
 		
 		String order_by = "time DESC LIMIT 1";
-        String selection = "received_server = 0 and send_attempts_server < 20";
+        String selection = "received_server = 0 and send_attempts_server < " + (MAX_SENDING_ATTEMPTS - 1);
         
         Cursor c = getContentResolver().query(Biometrics.DEV_DETAILS_URI, new String[]{"_id"}, selection, null, order_by);
         if(c.moveToFirst()) {
@@ -1108,32 +902,6 @@ public class networkService extends Service {
         c.close();
 	}
 
-	public boolean readTvector(Tvector tvector, Uri uri) {
-		final String FUNC_TAG = "readTvector";
-
-		boolean retvalue = false;
-		Cursor c = getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					//Debug.i(TAG, FUNC_TAG, "readTvector: t=" + t + ", v=" + v);
-					tvector.put(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					//Debug.i(TAG, FUNC_TAG, "readTvector: t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_range(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
-	}
-
 	public void log_action(String service, String action, int priority) {
 		if (MESSAGE_LOGGING_ENABLED) {
 			Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
@@ -1145,40 +913,6 @@ public class networkService extends Service {
 		}
 	}
 	
-	public void JSON_Parser_Timestamp (String response){
-		final String FUNC_TAG = "JSON_Parser_Timestamp";
-
-		
-		try{
-			JSONArray jArray = new JSONArray(response);
-			for(int i=0;i<jArray.length();i++){
-                	JSONObject json_data = jArray.getJSONObject(i);
-
-                	lastCGMTime= json_data.getLong("last_cgm");
-                	lastInsulinTime= json_data.getLong("last_insulin");
-            		lastMealTime= json_data.getLong("last_meal");
-            		lastLogTime= json_data.getLong("last_logs");
-            		lastStateEstimateTime= json_data.getLong("last_stateestimate");
-            		lastDeviceDataTime= json_data.getLong("last_devicedata");
-            		
-            		try {
-            			String error = json_data.getString("error");
-            			Debug.i(TAG, FUNC_TAG, "JSON Parsed, but "+error);
-            		} catch (JSONException e) {
-            			Debug.i(TAG, FUNC_TAG, "JSON Parsed OK, "+e.toString());
-            		}
-            		
-                	returnString += "\n\t" + jArray.getJSONObject(i);
-                	
-                	Debug.i(TAG, FUNC_TAG, "JSON Parsed: CGM-"+lastCGMTime+" Insulin-"+lastInsulinTime+" Meal-"+lastMealTime+" Log-"+lastLogTime+" State-"+lastStateEstimateTime+" Devicedata-"+lastDeviceDataTime);
-                    
-			}
-		}
-		catch(JSONException e){
-			Debug.i(TAG, FUNC_TAG, "Error parsing data "+e.toString());
-			log_action(TAG, "JSON_Parser_Timestamp, Error: "+e.toString(), LOG_ACTION_SERIOUS);
-		}
-	}
 	
 	public String JSON_Parser_Reception (String response)
 	{
@@ -1194,47 +928,23 @@ public class networkService extends Service {
 		}
 	}
 	
-	
-	class SmbgObserver extends ContentObserver
-	{
-		private int count;
-		
-		public SmbgObserver(Handler handler)
-		{
-			super(handler);
-			
-			final String FUNC_TAG = "SMBG Observer";
-			Debug.i(TAG, FUNC_TAG, "Constructor");
-			
-			count = 0;
+	/***
+	 * Get the URL path to build the HTTP query for a given URI
+	 * 
+	 * @param uri
+	 * @return
+	 */
+	public String getUrlPath(String uri) {
+		//TODO: Remove those exceptions when the server's webservice is updated with those new values
+		if (uri.equals(Biometrics.DEVICE_DETAILS_TABLE_NAME)) {
+			uri = "devices";
+		}
+		else if (uri.equals(Biometrics.CR_PROFILE_TABLE_NAME) || uri.equals(Biometrics.CF_PROFILE_TABLE_NAME) || uri.equals(Biometrics.BASAL_PROFILE_TABLE_NAME) || uri.equals(Biometrics.SAFETY_PROFILE_TABLE_NAME)) {
+			uri = uri.substring(0, uri.length() - 7);
 		}
 		
-		@Override
-		public void onChange(boolean selfChange)
-		{
-			this.onChange(selfChange, null);
-		}
-		
-		@Override
-		public void onChange(boolean selfChange, Uri uri)
-		{
-			final String FUNC_TAG = "onChange";
-			
-			count++;
-			Debug.i(TAG, FUNC_TAG, "SMBG Observer: "+count);
-			
-			Cursor c = getContentResolver().query(Biometrics.SMBG_URI, null, null, null, "time DESC limit 5");
-			
-			if (c!=null)
-			{
-				if (c.moveToLast())
-				{
-					hasNewSMBG = true;
-					Debug.i(TAG, FUNC_TAG, "HasNewSMBG");
-					//futureSmbg = systemScheduler.schedule(Send_smbg, 10, TimeUnit.SECONDS);
-				}
-			}
-			c.close();
-		}
+		String urlPath = "/diabetesassistant/androidservices/"+ uri +"_transfer.php";
+		return urlPath;
 	}
+	
 }

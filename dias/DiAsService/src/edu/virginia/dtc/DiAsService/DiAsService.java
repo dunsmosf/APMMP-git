@@ -5294,8 +5294,6 @@ public class DiAsService extends Service
 			ContentValues values = new ContentValues();
 		    
 		    long time = getCurrentTimeSeconds();
-		    values.put("start_time", time);
-		    values.put("scheduled_end_time", time);
 		    values.put("actual_end_time", time);
 		    values.put("status_code", TempBasal.TEMP_BASAL_MANUAL_CANCEL);	    
 			Bundle b = new Bundle();
@@ -5319,19 +5317,24 @@ public class DiAsService extends Service
 		final String FUNC_TAG = "temporaryBasalRateActive";
 		boolean retValue = false;
 		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
-       	if(c!=null)
-       	{
-       		if(c.moveToLast()) {
-       			long time = getCurrentTimeSeconds();
-       			temp_basal_start_time = c.getLong(c.getColumnIndex("start_time"));
-       			temp_basal_scheduled_end_time = c.getLong(c.getColumnIndex("scheduled_end_time"));
-       			temp_basal_status_code = c.getInt(c.getColumnIndex("status_code"));
-       			temp_basal_owner = c.getInt(c.getColumnIndex("owner"));
-       			if(time >= temp_basal_start_time && time <= temp_basal_scheduled_end_time && temp_basal_status_code == TempBasal.TEMP_BASAL_RUNNING)
-       				retValue = true;
+		if(c.moveToLast()) {
+   			long time = getCurrentTimeSeconds();
+   			long start_time = c.getLong(c.getColumnIndex("start_time"));
+   			long scheduled_end_time = c.getLong(c.getColumnIndex("scheduled_end_time"));
+   			int status_code = c.getInt(c.getColumnIndex("status_code"));
+   			if(time >= start_time && time <= scheduled_end_time && status_code == TempBasal.TEMP_BASAL_RUNNING)   {     				
+   				retValue = true;
+       			Debug.i(TAG, FUNC_TAG, "Temporary Basal Rate is active.");
        		}
-   			c.close();
+   			else if (time > scheduled_end_time && status_code == TempBasal.TEMP_BASAL_RUNNING) {
+   				ContentValues values = new ContentValues();
+   				values.put("status_code", TempBasal.TEMP_BASAL_DURATION_EXPIRED);
+   				values.put("actual_end_time", time);
+   				getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, null, null);
+   				Debug.i(TAG, FUNC_TAG, "Temporary Basal Rate expired, updating status.");
+   			}
        	}
+       	c.close();
 		return retValue;
 	}
 	
