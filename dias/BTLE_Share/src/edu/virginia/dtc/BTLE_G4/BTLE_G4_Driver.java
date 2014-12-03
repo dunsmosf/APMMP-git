@@ -275,7 +275,22 @@ public class BTLE_G4_Driver extends Service
 	{
 		final String FUNC_TAG = "sendMeter";
 		
+		long time;
+		
 		BTLE_G4_Driver.meter = r.toDetailedString();
+		
+		if(receiver.systemOffsetReady)
+			time = (r.SystemTime.getTime()/1000) + receiver.systemOffset;
+		else
+			time = r.DisplayTime.getTime()/1000;
+		
+		Debug.i(TAG, FUNC_TAG, "Calibration value "+r.Value+" at "+time+" is being entered");
+		
+		Bundle data = new Bundle();
+		data.putInt("cal_value", (int)r.Value);
+		data.putLong("cal_time", time);
+		
+		sendDataMessage(messengerToCgmService, data, DRIVER2CGM_SERVICE_CALIBRATE_ACK, 0, 0);
 	}
 	
 	private void sendEgv(EstimatedGlucoseRecord r)
@@ -352,11 +367,7 @@ public class BTLE_G4_Driver extends Service
 			getContentResolver().update(Biometrics.HARDWARE_CONFIGURATION_URI, dv, null, null);
 		}
 		
-		if (messengerToCgmService == null) 
-		{
-			Debug.i(TAG, FUNC_TAG, "messengerToCgmService null");
-		} 
-		else if(!r.IsDisplayOnly)
+		if(!r.IsDisplayOnly)
 			sendDataMessage(messengerToCgmService, data, DRIVER2CGM_SERVICE_NEW_CGM_DATA, 0, 0);
 	}
 	
