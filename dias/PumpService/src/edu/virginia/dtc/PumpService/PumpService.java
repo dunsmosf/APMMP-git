@@ -944,7 +944,7 @@ public class PumpService extends Service {
 						case State.DIAS_STATE_CLOSED_LOOP:
 						case State.DIAS_STATE_SAFETY_ONLY:
 							//Limits on total bolus allowed parameterized from Pump
-							if((basal_bolus + corr_bolus + meal_bolus) > (2 * PUMP.max_bolus))
+							if((basal_bolus + corr_bolus + meal_bolus) > (PUMP.max_bolus))
 							{
 								log_action(TAG, "Total bolus exceeds maximum of "+PUMP.max_bolus+"U, resetting values to zero!", Debug.LOG_ACTION_WARNING);
 								
@@ -953,7 +953,7 @@ public class PumpService extends Service {
 			      	  			Debug.w(TAG, FUNC_TAG, "BASAL: "+basal_bolus);
 			      	  			Debug.w(TAG, FUNC_TAG, "------------------------");
 								
-								double total = 2 * PUMP.max_bolus;
+								double total = PUMP.max_bolus;
 								
 								if (meal_bolus >= total) 
 			      	  			{		

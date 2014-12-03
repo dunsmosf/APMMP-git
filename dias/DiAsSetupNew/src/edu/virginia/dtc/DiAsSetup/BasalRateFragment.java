@@ -129,11 +129,11 @@ public class BasalRateFragment extends ProfileFragment {
 			public void onFocusChange(View v, boolean hasFocus) {
 				((TextView) v).setTextColor(Color.WHITE);
 				if (hasFocus) {
-					instructions.setText("Enter a basal rate in the range of 0 to 5 U/hour");
+					instructions.setText("Enter a basal rate in the range of 0 to 3 U/hour");
 				} else {
 					if (((TextView) v).getText().toString().length() > 0) {
 						subjectBasalValueValid = false;
-						if (Double.parseDouble(((TextView) v).getText().toString()) >= 0 && Double.parseDouble(((TextView) v).getText().toString()) <= 5) {
+						if (Double.parseDouble(((TextView) v).getText().toString()) >= 0 && Double.parseDouble(((TextView) v).getText().toString()) <= 3) {
 							Debug.i(TAG, FUNC_TAG,"valid subjectBasal=" + ((TextView) v).getText().toString());
 							subjectBasalValue = Double.parseDouble(((TextView) v).getText().toString());
 							subjectBasalValueValid = true;
@@ -152,7 +152,7 @@ public class BasalRateFragment extends ProfileFragment {
 				((TextView) v).setTextColor(Color.WHITE);
 				subjectBasalValueValid = false;
 				if (((TextView) v).getText().toString().length() > 0) {
-					if (Double.parseDouble(v.getText().toString()) >= 0 && Double.parseDouble(v.getText().toString()) <= 5) {
+					if (Double.parseDouble(v.getText().toString()) >= 0 && Double.parseDouble(v.getText().toString()) <= 3) {
 						Debug.i(TAG, FUNC_TAG,"valid subjectBasal=" + v.getText().toString());
 						subjectBasalValue = Double.parseDouble(v.getText().toString());
 						subjectBasalValueValid = true;
