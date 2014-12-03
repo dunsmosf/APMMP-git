@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
+import edu.virginia.dtc.SysMan.Constraints;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.FSM;
@@ -72,8 +73,8 @@ public class MealActivity extends Activity{
 	private double IOB;
 	
 	//TODO: Remove those hard-coded values and use the constraints from SysMan / SSMservice
-	private static final double MEAL_MAX_CONSTRAINT = 18.0;
-	private static final double CORRECTION_MAX_CONSTRAINT = 6.0;
+	private static final double MEAL_MAX_CONSTRAINT = Constraints.MAX_MEAL;
+	private static final double CORRECTION_MAX_CONSTRAINT = Constraints.MAX_CORR;
 	
 	private double latestCR, latestCF;
 	
