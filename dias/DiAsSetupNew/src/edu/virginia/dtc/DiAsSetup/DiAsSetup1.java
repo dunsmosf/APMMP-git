@@ -301,7 +301,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		if(prefs.getBoolean("clear", false))
 		{
 			Debug.w(TAG, FUNC_TAG, "Need to clear local database...");
-			prefs.edit().putBoolean("clear", true).commit();
+			prefs.edit().putBoolean("clear", false).commit();
 			db.clearDb();
 		}
 	}
