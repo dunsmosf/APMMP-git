@@ -369,6 +369,8 @@ public class BTLE_G4_Driver extends Service
 		
 		if(!r.IsDisplayOnly)
 			sendDataMessage(messengerToCgmService, data, DRIVER2CGM_SERVICE_NEW_CGM_DATA, 0, 0);
+		else
+			Debug.e(TAG, FUNC_TAG, "Value is display only!");
 	}
 	
 	/*****************************************************************************************

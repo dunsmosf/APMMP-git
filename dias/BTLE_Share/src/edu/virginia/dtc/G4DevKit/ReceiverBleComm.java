@@ -189,7 +189,7 @@ public class ReceiverBleComm  implements IReceiverComm
 		
 		if(input.length > 18)
 		{
-			
+			Debug.e(TAG, FUNC_TAG, "Not implemented as there are no commands yet greater than 18 bytes!");
 		}
 		else
 		{
