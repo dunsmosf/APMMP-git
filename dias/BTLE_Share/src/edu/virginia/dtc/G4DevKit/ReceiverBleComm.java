@@ -47,7 +47,7 @@ public class ReceiverBleComm  implements IReceiverComm
     private Context service;
     private static String code, mac;
     private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private static ScheduledFuture<?> setNotify, setAuth, rxTimer;
+    private static ScheduledFuture<?> setNotify, setRecon, rxTimer;
     private CountDownLatch rx;
     private long time, beats;
     
@@ -57,12 +57,27 @@ public class ReceiverBleComm  implements IReceiverComm
     
     private void cancelTimers()
     {
+    	final String FUNC_TAG = "cancelTimers";
+    	
+    	Debug.w(TAG, FUNC_TAG, "Cancelling all running timers...");
+    	
+    	if(setRecon != null)
+    		setRecon.cancel(true);
+    	
     	if(setNotify != null)
     		setNotify.cancel(true);
     	
-    	if(setAuth != null)
-    		setAuth.cancel(true);
+    	if(rxTimer != null)
+    		rxTimer.cancel(true);
     }
+    
+    private Runnable recon = new Runnable()
+    {
+    	public void run()
+    	{
+    		reconnect();
+    	}
+    };
     
     private Runnable release = new Runnable()
     {
@@ -103,6 +118,8 @@ public class ReceiverBleComm  implements IReceiverComm
     {
     	public void run()
     	{
+    		Debug.i(TAG, "authenticate", "Setting key...");
+    		
     		String Serial = ReceiverBleComm.code + "000000";
 			byte[] b = null;
 			
@@ -236,6 +253,8 @@ public class ReceiverBleComm  implements IReceiverComm
 	{
 		final String FUNC_TAG = "reconnect";
 		
+		cancelTimers();
+		
 		reconnecting = true;
 		
 		Debug.i(TAG, FUNC_TAG, "Attempting reconnect...");
@@ -277,7 +296,7 @@ public class ReceiverBleComm  implements IReceiverComm
 	            	{
 	            		Debug.e(TAG, FUNC_TAG, "Error connecting...");
 	            		if(reconnecting)
-	            			reconnect();
+	            			setRecon = scheduler.schedule(recon, 15, TimeUnit.SECONDS);
 	            		return;
 	            	}
 	            	
@@ -294,13 +313,14 @@ public class ReceiverBleComm  implements IReceiverComm
 	            	Debug.v(TAG, FUNC_TAG, "Disconnected!");
 	            	
 	            	if(connected)
-	            		reconnect();
+	            		setRecon = scheduler.schedule(recon, 15, TimeUnit.SECONDS);
 	            	
 	            	connected = false;
 	            	break;
 	            case BluetoothProfile.STATE_DISCONNECTING:
 	            	Debug.v(TAG, FUNC_TAG, "Disconnecting!");
 	            	break;
+	            	
             }
         }
 
@@ -326,7 +346,7 @@ public class ReceiverBleComm  implements IReceiverComm
             				Debug.i(TAG, FUNC_TAG, "Authentication characteristic found!");
             				authChar = c;
             				
-            				setAuth = scheduler.schedule(authenticate, 15, TimeUnit.SECONDS);
+            				setNotify = scheduler.schedule(authenticate, 3, TimeUnit.SECONDS);
             			}
             			else if(c.getUuid().equals(HBT_CHAR))
             			{
@@ -345,7 +365,7 @@ public class ReceiverBleComm  implements IReceiverComm
             				Debug.i(TAG, FUNC_TAG, "Client characteristic found!");
             				cltChar = c;
             				
-            				setNotify = scheduler.schedule(client, 10, TimeUnit.SECONDS);
+            				setNotify = scheduler.schedule(client, 1, TimeUnit.SECONDS);
             			}
             		}
             	}
