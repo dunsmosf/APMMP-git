@@ -55,6 +55,15 @@ public class ReceiverBleComm  implements IReceiverComm
     
     private List<Byte> receive = new ArrayList<Byte>();
     
+    private void cancelTimers()
+    {
+    	if(setNotify != null)
+    		setNotify.cancel(true);
+    	
+    	if(setAuth != null)
+    		setAuth.cancel(true);
+    }
+    
     private Runnable release = new Runnable()
     {
     	public void run()
@@ -125,6 +134,8 @@ public class ReceiverBleComm  implements IReceiverComm
 		
 		Debug.i(TAG, FUNC_TAG, "MAC: ("+ReceiverBleComm.mac+") Code: ("+ReceiverBleComm.code+")");
 
+		cancelTimers();
+		
 		new Handler().postDelayed(new Runnable()
 		{
 			public void run() 
@@ -315,14 +326,14 @@ public class ReceiverBleComm  implements IReceiverComm
             				Debug.i(TAG, FUNC_TAG, "Authentication characteristic found!");
             				authChar = c;
             				
-            				setAuth = scheduler.schedule(authenticate, 2, TimeUnit.SECONDS);
+            				setAuth = scheduler.schedule(authenticate, 15, TimeUnit.SECONDS);
             			}
             			else if(c.getUuid().equals(HBT_CHAR))
             			{
             				Debug.i(TAG, FUNC_TAG, "Heartbeat characteristic found!");
             				hrtChar = c;
             				
-            				setNotify = scheduler.schedule(heartbeat, 3, TimeUnit.SECONDS);
+            				setNotify = scheduler.schedule(heartbeat, 5, TimeUnit.SECONDS);
             			}
             			else if(c.getUuid().equals(SRV_CHAR))
             			{
@@ -334,7 +345,7 @@ public class ReceiverBleComm  implements IReceiverComm
             				Debug.i(TAG, FUNC_TAG, "Client characteristic found!");
             				cltChar = c;
             				
-            				setNotify = scheduler.schedule(client, 4, TimeUnit.SECONDS);
+            				setNotify = scheduler.schedule(client, 10, TimeUnit.SECONDS);
             			}
             		}
             	}
