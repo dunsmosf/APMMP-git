@@ -229,6 +229,8 @@ public class SetupDB extends SQLiteOpenHelper
 		
 		SQLiteDatabase db = this.getWritableDatabase();
 		
+		db.delete(table, null, null);
+		
 		int ii;
 		ContentValues content_values = new ContentValues();
 		for (ii = 0; ii < tvector.count(); ii++) 
