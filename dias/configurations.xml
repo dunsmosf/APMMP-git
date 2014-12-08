@@ -1,3 +1,19 @@
-<config name="maf_v2.2.1_Testing">
-
+<config name="maf_v2.3_Testing">
+    <package name="edu.virginia.dtc.biometricsContentProvider" minVersion="1927" maxVersion="2251"> </package>
+    <package name="edu.virginia.dtc.CgmService" minVersion="1662" maxVersion="2159"> </package>
+    <package name="edu.virginia.dtc.DiAsService" minVersion="1772" maxVersion="2159"> </package>
+    <package name="edu.virginia.dtc.DiAsSetup" minVersion="1719" maxVersion="2249"> </package>
+    <package name="edu.virginia.dtc.DiAsUI" minVersion="2263" maxVersion="2263"> </package>
+    <package name="edu.virginia.dtc.networkService" minVersion="1772" maxVersion="2159"> </package>
+    <package name="edu.virginia.dtc.PumpService" minVersion="1703" maxVersion="2249"> </package>
+    <package name="edu.virginia.dtc.supervisor" minVersion="2264" maxVersion="2264"> </package>
+    
+    <package name="edu.virginia.dtc.SSMservice" minVersion="2100" maxVersion="2165"> </package>
+    <package name="edu.virginia.dtc.APCservice" minVersion="2258" maxVersion="2258"> </package>
+    <package name="edu.virginia.dtc.BRMservice" minVersion="1697" maxVersion="1697"> </package>
+    <package name="edu.virginia.dtc.MealActivity" minVersion="2265" maxVersion="2265"> </package>
+    <package name="edu.virginia.dtc.MCMservice" minVersion="1662" maxVersion="1662"> </package>
+    
+    <package name= "edu.virginia.dtc.RocheDriver" minVersion="1662" maxVersion="1662"> </package>
+    <package name="edu.virginia.dtc.BTLE_G4" minVersion="1709" maxVersion="2159"> </package>
 </config>
