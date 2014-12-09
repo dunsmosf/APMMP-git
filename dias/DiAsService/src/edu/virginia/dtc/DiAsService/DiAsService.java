@@ -1959,7 +1959,7 @@ public class DiAsService extends Service
     			break;
     		case DIAS_SERVICE_COMMAND_SET_HYPER_MUTE_DURATION:
     			int muteDuration = intent.getIntExtra("muteDuration", 0);
-    			if((muteDuration > 0) && (muteDuration < maxHyperMuteDuration))
+    			if((muteDuration > 0) && (muteDuration <= maxHyperMuteDuration))
     			{
     				hyperMuteDuration = muteDuration;
     				
