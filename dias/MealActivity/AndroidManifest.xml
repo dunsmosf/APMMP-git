@@ -24,7 +24,7 @@
                 <action android:name="android.intent.action.MAIN"></action> 
             </intent-filter>
         </activity>
-        <meta-data android:name="Version" android:value="$Rev: 2265 $"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $"/>
     </application>
 
 </manifest>

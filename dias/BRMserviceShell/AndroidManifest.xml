@@ -40,7 +40,7 @@
         			 android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         </activity>
         
-		<meta-data android:name="Version" android:value="$Rev: 1697 $"/>
+		<meta-data android:name="Version" android:value="$Rev: 2300 $"/>
         
    </application>
    <uses-permission android:name="android.permission.WAKE_LOCK" />
