@@ -49,7 +49,7 @@
                 <action android:name="Driver.UI.Roche"/>
             </intent-filter>
         </service>
-        <meta-data android:name="Version" android:value="$Rev: 1662 $*"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
     </application>
     
 </manifest>
