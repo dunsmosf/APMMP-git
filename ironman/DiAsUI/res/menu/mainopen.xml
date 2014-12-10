@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+	
+	<item android:titleCondensed="Subject Information" android:title="Subject Information" android:id="@+id/menuStoppedSubjectInformation"></item>
+	<item android:id="@+id/menuDeviceManager" android:titleCondensed="Device Manager" android:title="Device Manager"></item>
+	<item android:id="@+id/menuAddBG" android:titleCondensed="Enter BG" android:title="Enter BG"></item>
+	<item android:id="@+id/menuStoppedSaveDatabase" android:titleCondensed="Copy Database" android:title="Copy Database to SD Card"></item>
+	<item android:id="@+id/menuViewer" android:title="Viewer" android:titleCondensed="Viewer"></item>
+	<item android:id="@+id/menuParameters" android:title="Parameters" android:titleCondensed="Params"></item>
+	
+</menu>

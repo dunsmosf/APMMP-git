@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item android:titleCondensed="Time Region" android:id="@+id/menuPlotsTimeRegion" android:title="Set plot time region"/>
+<!--
+    <item android:id="@+id/menuPlotsPlotSelect" android:title="Select plot to display" android:titleCondensed="Select Plots">
+        <menu>
+            <item android:titleCondensed="Basal" android:id="@+id/menuPlotsSelectInsulin" android:title="Insulin Basal Data"></item>
+            <item android:title="Insulin Bolus Data" android:titleCondensed="Bolus" android:id="@+id/menuPlotsSelectBolus"></item>
+        </menu>
+    </item>
+-->
+    <item android:titleCondensed="Cancel" android:id="@+id/menuPlotsCancel" android:title="Cancel Plots"></item>
+    
+</menu>

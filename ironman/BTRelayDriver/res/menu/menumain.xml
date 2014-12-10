@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/menuLog" android:titleCondensed="Log" android:title="Log"></item><item android:id="@+id/menuPermission" android:titleCondensed="Permission" android:title="Dexcom Permission"></item><item android:id="@+id/menuUSBOn" android:titleCondensed="USB On" android:title="USB On"></item><item android:id="@+id/menuUSBOff" android:titleCondensed="USB Off" android:title="USB Off"></item><item android:id="@+id/menuResetUSB" android:titleCondensed="Reset USB" android:title="Reset USB"></item>
+    <item android:id="@+id/menuRestartService" android:titleCondensed="Restart Service" android:title="Restart G4 Receiver Service"></item>
+    
+    
+    
+    
+    
+
+</menu>
