@@ -43,7 +43,7 @@
                 <action android:name="Driver.UI.Standalone"/>
             </intent-filter>
         </service>
-        <meta-data android:name="Version" android:value="$Rev: 1772 $"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $"/>
         
         <activity android:name="com.lamerman.FileDialog"></activity>
     </application>

@@ -24,7 +24,7 @@
                 <action android:name="DiAs.ConstraintService" />
             </intent-filter>
         </service>
-        <meta-data android:name="Version" android:value="$Rev: 1697 $"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $"/>
     </application>
 
 </manifest>
