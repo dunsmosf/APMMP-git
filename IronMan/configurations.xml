@@ -1,0 +1,6 @@
+<config name="maf_v3.0_Testing">
+    
+    <package name="edu.virginia.dtc.DiAsService"    minVersion="2300"   maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.DiAsUI"         minVersion="2300"   maxVersion="2300"> </package>
+
+</config>

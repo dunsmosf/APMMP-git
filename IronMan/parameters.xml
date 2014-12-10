@@ -1,0 +1,123 @@
+<parameters_list name="parameters">
+    <!--
+     Parameter File to be read by DiAs System
+     
+     Valid types:
+     - int
+     - double
+     - string
+     - long
+     - boolean
+     
+     Format:
+     <parameter name="" value="" type=""> </parameter>
+     -->
+
+    <!--
+     Modes:
+     0 = No OL or CL (Sensor Only and Stopped always available)
+     1 = OL Available
+     2 = CL and Safety Available (If time within BRM schedule use BRM Only)
+     3 = OL, CL and Safety available (If time within BRM schedule use BRM Only)
+     4 = OL is always available, CL with BRM Only available if within Controller segment
+     -->
+    <parameter name="mode" value="3" type="int"> </parameter>
+    
+    <!--
+     Traffic Light Control:
+     0 = Disabled
+     1 = SSM Controlled
+     2 = APC Controlled
+     3 = BRM Controlled
+     -->
+    <parameter name="traffic_lights" value="1" type="int"> </parameter>
+    
+    <!--
+     Blood Glucose display units:
+     0 = mg/dl
+     1 = mmol/L
+     -->
+    <parameter name="blood_glucose_display_units" value="0" type="int"> </parameter>
+    
+    <!--
+     MealActivity Bolus Calculation Mode:
+     0 = MealActivity calculates bolus in all modes
+     1 = MealActivity calculates bolus in Pump mode; MCMservice calculates bolus in CL, Safety modes
+     2 = MCMservice calculates boluses in all modes
+     -->
+    <parameter name="meal_activity_bolus_calculation_mode" value="0" type="int"> </parameter>
+    
+    <!--
+     Exercise detection mode (sets the exercise button automatically on and off
+     0 = none
+     1 = ExerciseService
+     -->
+    <parameter name="exercise_detection_mode" value="0" type="int"> </parameter>
+    
+    <parameter name="bolus_redeliver_threshold_units" value="1.0" type="double"> </parameter>
+    <parameter name="bolus_notify_threshold_units" value="1.0" type="double"> </parameter>
+    <parameter name="bolus_missed_threshold" value="4" type="int"> </parameter>
+    <parameter name="brm_sets_floor" value="false" type="boolean"> </parameter>
+    
+    <parameter name="acc_enabled" value="false" type="boolean"> </parameter>
+    <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
+    <parameter name="gps_interval" value="60000" type="long"> </parameter>
+    
+    <parameter name="apc_enabled" value="true" type="boolean"> </parameter>
+    <parameter name="brm_enabled" value="true" type="boolean"> </parameter>
+    
+    <parameter name="tbr_enabled" value="true" type="boolean"> </parameter>
+    <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
+    <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>
+    <parameter name="audible_alarms" value="true" type="boolean"> </parameter>
+    <parameter name="audible_alarms_threshold" value="0" type="int"> </parameter>
+    <parameter name="vibrate_alarms" value="true" type="boolean"> </parameter>
+    <parameter name="night_screen_enabled" value="false" type="boolean"> </parameter>
+    <parameter name="dwm_address_default" value="https://dwm.med.virginia.edu/staging" type="string"> </parameter>
+    <parameter name="dwm_address_2" value="https://dias.med.virginia.edu/staging" type="string"> </parameter>
+    <parameter name="dwm_address_3" value="https://dwm.med.virginia.edu" type="string"> </parameter>
+    <parameter name="backup_password" value="diabetes" type="string"> </parameter>
+    <parameter name="bolus_interceptor_enabled" value="true" type="boolean"> </parameter>
+    
+    <parameter name="center" value="DTC" type="string"> </parameter>
+    <parameter name="protocol" value="TST01" type="string"> </parameter>
+    
+    <parameter name="cgm_history_hrs" value="8" type="int"> </parameter>
+    
+    <!-- Determines if Logcat sends data to the SD card (DO NOT leave this true in production)-->
+    <parameter name="logcatToSd" value="false" type="boolean"> </parameter>
+    
+    <!--
+     Hypo Alarm handling:
+     BG value thresholds define duration to mute the Hypo Alarm after its first trigger.
+     The definition follows this rule:
+     if treatment:
+     mute duration = "hypo_mute_treated"
+     if no treatment:
+     if no BG value:
+     mute duration = "hypo_mute_no_bg"
+     if BG value < "bg_threshold_1":
+     mute duration = "hypo_mute_low_bg"
+     if "bg_threshold_1" <= BG value < "bg_threshold_2":
+     mute duration = "hypo_mute_middle_bg"
+     if "bg_threshold_2" <= BG value:
+     mute duration = "hypo_mute_high_bg"
+     -->
+    <parameter name="bg_threshold_1" value="70" type="int"> </parameter>
+    <parameter name="bg_threshold_2" value="80" type="int"> </parameter>
+    
+    <parameter name="hypo_mute_treated" value="15" type="int"> </parameter>
+    <parameter name="hypo_mute_no_bg" value="5" type="int"> </parameter>
+    <parameter name="hypo_mute_low_bg" value="5" type="int"> </parameter>
+    <parameter name="hypo_mute_middle_bg" value="15" type="int"> </parameter>
+    <parameter name="hypo_mute_high_bg" value="30" type="int"> </parameter>
+    
+    <parameter name="connection_scheduling" value="false" type="boolean"> </parameter>
+    <parameter name="enableIO" value="false" type="boolean"> </parameter>
+    <parameter name="speedupEnabled" value="false" type="boolean"> </parameter>
+  
+    <parameter name="temporaryBasalRateEnabled" value="false" type="boolean"> </parameter>
+    
+    <parameter name="collectBatteryStats" value="true" type="boolean"> </parameter>
+    <parameter name="collectBatteryStatsInterval" value="15" type="int"> </parameter>
+</parameters_list>
