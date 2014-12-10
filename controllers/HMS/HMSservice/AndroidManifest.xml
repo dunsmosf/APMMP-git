@@ -24,7 +24,7 @@
                 <action android:name="DiAs.APCservice" />
             </intent-filter>
 		</service>
-		<meta-data android:name="Version" android:value="$Rev: 1665 $*"/>
+		<meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
 	</application>
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>
