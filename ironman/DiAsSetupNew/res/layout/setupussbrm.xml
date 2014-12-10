@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical" xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout
+        android:id="@+id/linearBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical" >
+
+        <LinearLayout
+            android:id="@+id/linearBarText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/textViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:text="Title"
+                android:textAppearance="?android:attr/textAppearanceLarge" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/textViewInstructions"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:text="Instructions"
+                android:textSize="20sp" >
+            </TextView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearMid"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" >
+
+        <LinearLayout
+            android:id="@+id/linearMidInput"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/safetyStartTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <LinearLayout
+                android:id="@+id/linearInputRow1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight=".75" >
+
+                <EditText
+                    android:id="@+id/editTextStartHour"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:focusable="true"
+                    android:hint="Hr"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:nextFocusDown="@+id/editTextStartMinute"
+                    android:numeric="integer"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" >
+                </EditText>
+
+                <EditText
+                    android:id="@+id/editTextStartMinute"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ems="10"
+                    android:focusable="true"
+                    android:hint="Min"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:nextFocusDown="@+id/editTextEndHour"
+                    android:nextFocusForward="@+id/editTextEndHour"
+                    android:nextFocusLeft="@+id/editTextEndHour"
+                    android:nextFocusRight="@+id/editTextEndHour"
+                    android:numeric="integer"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" >
+
+                    <requestFocus />
+                </EditText>
+
+                <TextView
+                    android:id="@+id/textViewTime"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight=".75"
+                    android:text="HH:MM" >
+                </TextView>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/safetyEndTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <LinearLayout
+                android:id="@+id/LinearLayout01"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight=".75" >
+
+                <EditText
+                    android:id="@+id/editTextEndHour"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:focusable="true"
+                    android:hint="Hr"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:nextFocusDown="@+id/editTextEndMinute"
+                    android:nextFocusForward="@+id/editTextEndMinute"
+                    android:nextFocusLeft="@+id/editTextEndMinute"
+                    android:nextFocusRight="@+id/editTextEndMinute"
+                    android:numeric="integer"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/editTextEndMinute"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ems="10"
+                    android:focusable="true"
+                    android:hint="Min"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:nextFocusDown="@+id/buttonPlus"
+                    android:nextFocusForward="@+id/buttonPlus"
+                    android:nextFocusLeft="@+id/buttonPlus"
+                    android:nextFocusRight="@+id/buttonPlus"
+                    android:numeric="integer"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/TextView01"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight=".75"
+                    android:text="HH:MM" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/frameLeftFiller1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.5" >
+            </FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/linearMidProfiles"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="2" >
+
+            <LinearLayout
+                android:id="@+id/profileLeftColumn"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical" >
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller3"
+                    android:layout_width="fill_parent"
+                    android:layout_height="20sp"
+                    android:layout_weight="0.30" >
+                </FrameLayout>
+                
+                <Button
+                    android:id="@+id/buttonPlus"
+                    android:layout_width="60sp"
+                    android:layout_height="50sp"
+                    android:layout_weight="0.5"
+                    android:background="@drawable/android_plus_button"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false"
+                    android:longClickable="false"
+                    android:nextFocusDown="@+id/buttonMinus"
+                    android:onClick="clickReceiver"
+                    android:padding="10dip" >
+                </Button>
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller5"
+                    android:layout_width="fill_parent"
+                    android:layout_height="28sp"
+                    android:layout_weight="0.30" >
+                </FrameLayout>
+                
+                <Button
+                    android:id="@+id/buttonMinus"
+                    android:layout_width="60sp"
+                    android:layout_height="50sp"
+                    android:layout_weight="0.5"
+                    android:background="@drawable/android_minus_button"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false"
+                    android:longClickable="false"
+                    android:nextFocusDown="@+id/editTextCFTimeHour"
+                    android:onClick="clickReceiver"
+                    android:padding="10dip" >
+
+                </Button>
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller1"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1.5" >
+                </FrameLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/scrollViewLinear"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:orientation="vertical" >
+                
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller3"
+                    android:layout_width="fill_parent"
+                    android:layout_height="25sp"
+                    android:layout_weight="0.30" >
+                </FrameLayout>
+                
+                <ScrollView
+                    android:id="@+id/profileScrollView"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_weight="5" >
+
+                    <LinearLayout
+                        android:id="@+id/profileLinear"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:orientation="vertical" >
+                   </LinearLayout>
+                </ScrollView>
+            </LinearLayout>
+            
+            <LinearLayout
+                android:id="@+id/profileRightColumn"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:orientation="vertical" >
+
+                <Button
+                    android:id="@+id/buttonClear"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/android_generic_button"
+                    android:onClick="clickReceiver"
+                    android:padding="10dip"
+                    android:text="Clear"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="#000000" />
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller2"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="2.5" >
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.virginia.dtc.DexcomBTRelayDriver"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="9" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
+    <uses-feature android:name="android.hardware.usb.host"/>
+    
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    
+	<permission android:name="edu.read"></permission>
+    <permission android:name="edu.write"></permission>
+    <uses-permission android:name="edu.read"></uses-permission>
+    <uses-permission android:name="edu.write"></uses-permission>
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"></uses-permission>  
+	<uses-permission android:name="android.permission.UPDATE_DEVICE_STATS"></uses-permission>  
+	<uses-permission android:name="android.permission.CHANGE_WIFI_STATE"></uses-permission>
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+      
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:logo="@drawable/ic_launcher"
+        android:label="@string/app_name" android:theme="@android:style/Theme.Holo">
+        
+        <meta-data android:name="driver_pump" android:value="false"/>
+        <meta-data android:name="driver_cgm" android:value="true"/>
+        <meta-data android:name="driver_name" android:value="DexcomBTRelay"/>
+        <meta-data android:name="driver_UI" android:value="edu.virginia.dtc.DexcomBTRelayDriver.DexcomBTRelayDriverUI"/>
+        <meta-data android:name="driver_service" android:value="edu.virginia.dtc.DexcomBTRelayDriver.DexcomBTRelayDriver"/>
+        <meta-data android:name="supports_speedup" android:value="false"/>
+        <meta-data android:name="supports_multi" android:value="false"/>
+
+        <activity android:label="Dexcom Relay Driver"
+                  android:configChanges="orientation|keyboardHidden" 
+                  android:name="edu.virginia.dtc.DexcomBTRelayDriver.DexcomBTRelayDriverUI"  
+                  android:screenOrientation="sensorLandscape">
+            <intent-filter> 
+                <action android:name="android.intent.action.MAIN"></action> 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+        </activity>
+        
+        <receiver android:name="edu.virginia.dtc.DexcomBTRelayDriver.BootReceiver"  
+        		android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+    			<intent-filter>  
+        			<action android:name="android.intent.action.BOOT_COMPLETED" />  
+                	<category android:name="android.intent.category.HOME" />
+    			</intent-filter>  
+		</receiver>
+
+        <service 
+       		android:icon="@drawable/ic_launcher"
+            android:name="DexcomBTRelayDriver" 
+            android:exported="true" 
+            android:enabled="true" >
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_DETACHED"
+                android:resource="@xml/device_filter" />
+            <intent-filter>
+                <action android:name="Driver.Cgm.DexcomBTRelay"/>
+                <action android:name="Driver.Pump.DexcomBTRelay"/>
+                <action android:name="Driver.UI.DexcomBTRelay"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+                <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />
+            </intent-filter>
+        </service>
+        <service
+            android:name="com.dexcom.G4DevKit.ReceiverUpdateService"
+            android:exported="false" >
+        </service>      
+        <meta-data android:name="Version" android:value="$Rev: 1662 $*"/>
+    </application>    
+</manifest>

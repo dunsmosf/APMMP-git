@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      package="edu.virginia.dtc.networkService"
+      android:versionCode="1"
+      android:versionName="1.0">
+      
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+<permission android:name="edu.read"/>
+<uses-permission android:name="edu.read"/>
+<uses-permission android:name="android.permission.BATTERY_STATS"></uses-permission>
+<permission android:name="edu.write"></permission>
+<uses-permission android:name="edu.write"></uses-permission>
+<uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"></uses-permission>
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<uses-sdk android:minSdkVersion="14" android:targetSdkVersion="16"/>
+    <application android:icon="@drawable/icon" android:label="@string/app_name">
+        <service android:name="networkService" android:exported="true" android:enabled="true">
+            <intent-filter>
+                <action android:name="DiAs.NetworkService" />
+            </intent-filter>
+        </service>
+        <meta-data android:name="Version" android:value="$Rev: 1772 $*"/>
+    </application>
+</manifest>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/confirmationMsg1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="4.0"
+		android:textSize="18sp"
+        android:text="TextView" />
+    
+    <TextView
+        android:id="@+id/confirmationMsg2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="4.0"
+		android:textSize="18sp"
+        android:text="TextView" />
+    
+	<EditText
+	android:id="@+id/bolusTotal"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:layout_weight="4.0"
+	android:ems="10"
+	android:enabled="false"
+	android:focusable="false"
+	android:focusableInTouchMode="false"
+	android:gravity="center_horizontal"
+	android:inputType="none"
+	android:textColor="#FFFF66"
+	android:textSize="18sp"
+	android:textStyle="bold" />
+    
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    	android:layout_width="match_parent"
+    	android:layout_height="wrap_content"
+    	android:orientation="horizontal" >
+         
+    	<Button android:layout_width="wrap_content" android:layout_height="wrap_content" 
+        	android:textSize="14sp" android:id="@+id/buttonCancel" android:text="Cancel" android:onClick="cancelBolus"/>
+    	<Button android:layout_width="wrap_content" android:layout_height="wrap_content" 
+        	android:textSize="14sp" android:id="@+id/buttonDecrease" android:text="Decrease" android:onClick="decreaseBolus"/>
+    	<Button android:layout_width="wrap_content" android:layout_height="wrap_content" 
+        	android:textSize="14sp" android:id="@+id/buttonIncrease" android:text="Increase" android:onClick="increaseBolus"/> 
+    	<Button android:layout_width="wrap_content" android:layout_height="wrap_content" 
+        	android:textSize="14sp" android:id="@+id/buttonInject" android:text=" Inject " android:onClick="injectBolus"/> 
+	</LinearLayout>
+	
+    <TextView
+        android:id="@+id/confirmationMsg3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+		android:textSize="18sp"
+        android:layout_weight="4.0"
+        android:text="TextView" />
+		
+</LinearLayout> 

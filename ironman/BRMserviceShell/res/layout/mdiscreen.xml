@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:id="@+id/alarmLayout"
+         android:layout_width="fill_parent"
+         android:layout_height="fill_parent"
+         android:gravity="center"
+         android:orientation="vertical" >
+
+         <LinearLayout
+             android:layout_width="241dp"
+             android:layout_height="187dp"
+             android:gravity="center"
+             android:orientation="vertical" >
+
+             <TextView
+                 android:id="@+id/textView1"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:text="Insulin Injections"
+                 android:textAppearance="?android:attr/textAppearanceLarge" />
+
+             <TextView
+                 android:id="@+id/textView2"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:text="\nPlease enter the amount of insulin in units which you have MANUALLY injected (NOT using the DiAs system) within the past 2 hours:"
+                 android:textAppearance="?android:attr/textAppearanceSmall" />
+
+             <EditText
+        		android:id="@+id/insulin_injected"
+        		android:inputType="numberDecimal"
+        		android:layout_width="match_parent"
+        		android:layout_height="wrap_content"
+        		android:layout_marginTop="16dp"
+        		android:layout_marginLeft="4dp"
+        		android:layout_marginRight="4dp"
+        		android:layout_marginBottom="4dp"
+				android:numeric="decimal"
+        		android:hint="@string/units_of_insulin" />
+         </LinearLayout>
+
+         <LinearLayout
+             android:layout_width="match_parent"
+             android:layout_height="116dp"
+             android:gravity="center"
+             android:orientation="horizontal" >
+<!-- 
+             <Button
+                 android:id="@+id/Cancel"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="2"
+                 android:onClick="cancelClick"
+                 android:text="Cancel" />
+-->             
+             <Button
+                 android:id="@+id/OK"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="2"
+                 android:onClick="okClick"
+                 android:text="Enter" />
+
+             </LinearLayout>
+
+     </LinearLayout>
