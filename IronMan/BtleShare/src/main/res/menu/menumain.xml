@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/menuLog" android:titleCondensed="Log" android:title="Log"></item>
+    <item android:id="@+id/menuAddCGM" android:titleCondensed="Add CGM" android:title="Add CGM Device"></item>
+    
+    
+    
+    
+    
+
+</menu>

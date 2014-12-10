@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Roche Driver</string>
+    
+    <string name="titleDiscovery">Roche Setup</string>
+    <string name="titleLog">History</string>
+    <string name="titleSetup">System Setup</string>
+    <string name="titleRt">RT</string>
+
+</resources>
