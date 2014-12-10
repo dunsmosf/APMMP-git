@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="distributionType" value="LOCAL" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleHome" value="$APPLICATION_HOME_DIR$/gradle/gradle-2.2.1" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/BtleG4" />
+            <option value="$PROJECT_DIR$/BtleShare" />
+            <option value="$PROJECT_DIR$/BtleTandem" />
+            <option value="$PROJECT_DIR$/Jarvis" />
+            <option value="$PROJECT_DIR$/RocheDriver" />
+            <option value="$PROJECT_DIR$/SkyNet" />
+            <option value="$PROJECT_DIR$/Ultron" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
+

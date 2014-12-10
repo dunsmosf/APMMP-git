@@ -1,0 +1,49 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+<!--     <item -->
+<!--         android:id="@+id/menuRMURI" -->
+<!--         android:icon="@drawable/remotemonitoring" -->
+<!--         android:showAsAction="ifRoom" -->
+<!--         android:title="Remote Monitoring URI" -->
+<!--         android:titleCondensed="RM URI"/> -->
+    <item
+        android:id="@+id/menuPassword"
+        android:icon="@drawable/password"
+        android:showAsAction="always"
+        android:title="Change Password"
+        android:titleCondensed="Password">
+    </item>
+    
+    <item
+        android:id="@+id/menuTime"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:showAsAction="never"
+        android:title="Set Time"
+        android:titleCondensed="Time">
+    </item>
+
+    <item
+        android:id="@+id/menuBt"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:showAsAction="never"
+        android:title="BT"
+        android:titleCondensed="BT">
+    </item>
+    
+    <item
+        android:id="@+id/menuWifi"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:showAsAction="never"
+        android:title="WiFi"
+        android:titleCondensed="WiFi">
+    </item>
+
+    <item
+        android:id="@+id/menuUrl"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:showAsAction="never"
+        android:title="Monitoring Server URL"
+        android:titleCondensed="Server URL">
+    </item>
+
+</menu>

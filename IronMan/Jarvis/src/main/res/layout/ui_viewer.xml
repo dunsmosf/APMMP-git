@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:id="@+id/viewerLayout"
+         android:layout_width="wrap_content"
+         android:layout_height="match_parent"
+         android:gravity="center_vertical|center_horizontal"
+         android:orientation="vertical"
+         android:weightSum="3" >
+
+         <Spinner
+             android:id="@+id/spinner1"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content" />
+
+         <ListView
+             android:id="@+id/listView1"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content" >
+         </ListView>
+
+     </LinearLayout>

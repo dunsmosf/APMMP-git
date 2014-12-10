@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/linearBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical" >
+
+        <LinearLayout
+            android:id="@+id/linearBarText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/textViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Title"
+                android:textAppearance="?android:attr/textAppearanceLarge" >
+            </TextView>
+
+            <TextView
+                android:id="@+id/textViewInstructions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:text="Instructions"
+                android:textSize="20sp" >
+
+            </TextView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearMid"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" >
+
+        <LinearLayout
+            android:id="@+id/linearMidInput"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:orientation="vertical" >
+
+            <LinearLayout
+                android:id="@+id/linearInputRow1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight=".7" >
+
+                <EditText
+                    android:id="@+id/editTextHour"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:focusable="true"
+                    android:hint="Hr"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:nextFocusDown="@+id/editTextMinute"
+                    android:nextFocusForward="@+id/editTextMinute"
+                    android:nextFocusLeft="@+id/editTextMinute"
+                    android:nextFocusRight="@+id/editTextMinute"
+                    android:numeric="integer"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" >
+                </EditText>
+
+                <EditText
+                    android:id="@+id/editTextMinute"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ems="10"
+                    android:focusable="true"
+                    android:hint="Min"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:nextFocusDown="@+id/editTextValue"
+                    android:nextFocusForward="@+id/editTextValue"
+                    android:nextFocusLeft="@+id/editTextValue"
+                    android:nextFocusRight="@+id/editTextValue"
+                    android:numeric="integer"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" >
+
+                    <requestFocus />
+                </EditText>
+
+                <TextView
+                    android:id="@+id/textViewTime"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.5"
+                    android:text="HH:MM" >
+                </TextView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/linearInputRow2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
+
+                <EditText
+                    android:id="@+id/editTextValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:focusable="true"
+                    android:hint="Value"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="numberDecimal"
+                    android:numeric="decimal"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" >
+                </EditText>
+
+                <TextView
+                    android:id="@+id/textViewUnits"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="right"
+                    android:layout_weight="1.5"
+                    android:gravity="center_vertical"
+                    android:text="Short (units)" >
+                </TextView>
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/frameLeftFiller1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.5" >
+            </FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/linearMidProfiles"
+            android:layout_width="0dp"
+            android:layout_height="fill_parent"
+            android:layout_weight="2" >
+
+            <LinearLayout
+                android:id="@+id/profileLeftColumn"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical" >
+
+                <Button
+                    android:id="@+id/buttonPlus"
+                    android:layout_width="60sp"
+                    android:layout_height="30sp"
+                    android:layout_weight="0.3"
+                    android:background="@drawable/android_plus_button"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false"
+                    android:onClick="clickReceiver"
+                    android:padding="10dip" >
+                </Button>
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller3"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0sp"
+                    android:layout_weight="0.30" >
+                </FrameLayout>
+                
+                <Button
+                    android:id="@+id/buttonMinus"
+                    android:layout_width="60sp"
+                    android:layout_height="30sp"
+                    android:layout_weight="0.3"
+                    android:background="@drawable/android_minus_button"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false"
+                    android:onClick="clickReceiver"
+                    android:padding="10dip" >
+
+                </Button>
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller1"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1.5" >
+                </FrameLayout>
+            </LinearLayout>
+
+            <ScrollView
+                android:id="@+id/profileScrollView"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="3" >
+
+                <LinearLayout
+                    android:id="@+id/profileLinear"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical" >
+                </LinearLayout>
+            </ScrollView>
+
+            <LinearLayout
+                android:id="@+id/profileRightColumn"
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="1.7"
+                android:orientation="vertical" >
+
+                <Button
+                    android:id="@+id/buttonClear"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/android_generic_button"
+                    android:onClick="clickReceiver"
+                    android:padding="10dip"
+                    android:text="Clear"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="#000000" />
+
+                <FrameLayout
+                    android:id="@+id/frameProfileFiller2"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="2.0" >
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
