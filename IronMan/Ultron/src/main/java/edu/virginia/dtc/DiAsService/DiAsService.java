@@ -79,7 +79,7 @@ public class DiAsService extends Service
 	// CONSTANTS
 	//********************************************************************************************************
 	
-    public static final String IO_TEST_TAG = "DiAsServiceIO";
+    public static final String IO_TEST_TAG = "DiAsService";
 	public final String TAG = "DiAsService";
 	
 	// DiAs State Variable and Definitions - state for the system as a whole

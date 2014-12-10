@@ -17,6 +17,7 @@ public class Cgm extends Object{
 	public long time;
 	
 	public int trend;
+
 	public double value;
 	public int cal_value;
 	public int state;
@@ -33,7 +34,6 @@ public class Cgm extends Object{
 		last_valid_CGM_time = -1;
 		last_valid_calib_time = -1;
 		time = 0;
-
 		trend = 0;		
 		value = 0;
 		status = "Registered";
