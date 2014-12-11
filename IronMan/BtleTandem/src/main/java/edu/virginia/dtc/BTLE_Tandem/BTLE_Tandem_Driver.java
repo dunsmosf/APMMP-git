@@ -182,11 +182,6 @@ public class BTLE_Tandem_Driver extends Service{
 	
 	private static final long SCAN_PERIOD = 2000;
 	private static boolean recon = false;
-	
-	private FsmObserver fsmObserver;
-	private int request, prev_request;
-	private boolean waking = false, breaking = false;
-	
 
 	private Runnable reconnect = new Runnable()
 	{
@@ -410,17 +405,8 @@ public class BTLE_Tandem_Driver extends Service{
 	            	connState = BluetoothProfile.STATE_DISCONNECTED;
 	                
 	                Debug.w(TAG, FUNC_TAG, "Disconnected from GATT server!");
-	                
-	                if(breaking)
-	                {
-	                	breaking = false;
-	                	Debug.e(TAG, FUNC_TAG, "Closing Gatt connection...");
-	                	
-	                	btleGatt.close();
-						btleGatt = null;
-	                }
-	                else
-	                	reconnectProcess();
+
+	                reconnectProcess();
 	            	break;
 	            case BluetoothProfile.STATE_DISCONNECTING: 
 	            	btleStatus = "Disconnecting"; 
@@ -482,12 +468,6 @@ public class BTLE_Tandem_Driver extends Service{
 				
 				final byte[] buffer = tandem.new SetTimeDate().Build(c.get(Calendar.YEAR), c.get(Calendar.MONTH)+1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND));
 				final String name = SetTimeDate.TYPE;
-				
-				if(waking)
-				{
-					waking = false;
-					updateDevState(FSM.DEV_WAKE);
-				}
 				
 				handler.postDelayed(new Runnable()
                 {
@@ -580,9 +560,6 @@ public class BTLE_Tandem_Driver extends Service{
 		btleManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
 		btleAdapter = btleManager.getAdapter();
 		
-		fsmObserver = new FsmObserver(new Handler());
-		getContentResolver().registerContentObserver(Biometrics.STATE_URI, true, fsmObserver);
-		
 		startTransmitThread();
 		
 		if(btleAdapter == null || !btleAdapter.isEnabled())
@@ -661,9 +638,6 @@ public class BTLE_Tandem_Driver extends Service{
 				}
 			}
 		}
-		
-		if(fsmObserver != null)
-			getContentResolver().unregisterContentObserver(fsmObserver);
 	}
 	
 	@Override
@@ -1151,19 +1125,6 @@ public class BTLE_Tandem_Driver extends Service{
 					
 					break;
 				case BTLE_Tandem_UI.UI2DRIVER_SERVICE:
-//					Debug.i(TAG, FUNC_TAG, "Calling connect again, overtop of the existing!");
-//					btleGatt = dev.connectGatt(me, false, gattCallback);
-					
-					if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-					{
-						if(btleGatt != null)
-						{
-							breaking = true;
-							btleGatt.disconnect(); //btleGatt.discoverServices();
-						}
-					}
-					else
-						Debug.i(TAG, FUNC_TAG, "Connection scheduling is not enabled!");
 					break;
 				case BTLE_Tandem_UI.UI2DRIVER_ERASE:
 					saveDevice("", false);
@@ -1729,79 +1690,8 @@ public class BTLE_Tandem_Driver extends Service{
 	
 	public void updateDevState(int state)
 	{
-		ContentValues cv = new ContentValues();
-		cv.put("dev_resp", state);
-		getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-	}
-	
-	class FsmObserver extends ContentObserver
-    {
-    	private int count;
-    	
-		public FsmObserver(Handler handler) 
-		{
-			super(handler);
-			
-			final String FUNC_TAG = "FSM Observer";
-    		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		
-    		count = 0;
-		}
-		
-		@Override
-		public void onChange(boolean selfChange) 
-		{
-			this.onChange(selfChange, null);
-		}		
 
-		public void onChange(boolean selfChange, Uri uri) 
-		{
-			final String FUNC_TAG = "FSM onChange";
-    	   
-    	   	count++;
-    	   	Debug.i(TAG, FUNC_TAG, "FSM Observer: "+count);
-    	   
-    	   	Cursor c = getContentResolver().query(Biometrics.STATE_URI, null, null, null, null);
-    	   	if(c != null)
-    	   	{
-    	   		if(c.moveToLast())
-    	   		{
-    	   			prev_request = request;
-    	   			request = c.getInt(c.getColumnIndex("dev_req"));
-    	   			
-    	   			Debug.i(TAG, FUNC_TAG, "_____REQUEST: "+FSM.devStateToString(request));
-    	   			Debug.i(TAG, FUNC_TAG, "PREV_REQUEST: "+FSM.devStateToString(prev_request));
-    	   			
-    	   			
-    	   			if(prev_request != request)
-    	   			{
-    	   				if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-    	   				{
-	    	   				if(request == FSM.DEV_WAKE)
-	    	   				{
-		   						Debug.e(TAG, FUNC_TAG, "Waking device...");
-		   						waking = true;
-		   						btleGatt = dev.connectGatt(me, false, gattCallback);
-	    	   				}
-	    	   				else if(request == FSM.DEV_DISCON)
-	    	   				{
-	    	   					if(btleGatt != null)
-	    	   					{
-	   								Debug.e(TAG, FUNC_TAG, "Breaking device...");
-	    	   						
-	    	   						breaking = true;
-	    							btleGatt.disconnect(); 	//btleGatt.discoverServices();
-	    		                	
-	    		                	updateDevState(FSM.DEV_DISCON);
-	    	   					}
-	    	   				}
-    	   				}
-    	   			}
-    	   		}
-    	   	}
-    	   	c.close();
-		}
-    }
+	}
 	
 	public class listDevice
 	{

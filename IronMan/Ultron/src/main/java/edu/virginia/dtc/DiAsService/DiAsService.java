@@ -3626,58 +3626,6 @@ public class DiAsService extends Service
 		}
     }
     
-    public void changeTbrState(int state)
-    {
-    	final String FUNC_TAG = "changeTbrState";
-    	
-    	Debug.i(TAG, FUNC_TAG, "Writing Tbr state to table: "+FSM.callStateToString(state));
-    	
-    	ContentValues cv = new ContentValues();
-    	cv.put("tbr_state", state);
-    	getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-    }
-    
-    public void changeAsyncState(int state)
-    {
-    	final String FUNC_TAG = "changeAsyncState";
-    	
-    	Debug.i(TAG, FUNC_TAG, "Writing Async state to table: "+FSM.callStateToString(state));
-    	
-    	ContentValues cv = new ContentValues();
-    	cv.put("async_state", state);
-    	getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-    }
-    
-    public void changeSyncState(int state)
-    {
-    	final String FUNC_TAG = "changeSyncState";
-    	
-    	Debug.i(TAG, FUNC_TAG, "Writing Sync state to table: "+FSM.callStateToString(state));
-    	
-    	ContentValues cv = new ContentValues();
-    	cv.put("sync_state", state);
-    	getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-    }
-    
-    public void changeDevState(int state)
-    {
-    	final String FUNC_TAG = "changeDevState";
-    	
-    	Debug.i(TAG, FUNC_TAG, "Writing Dev state to table: "+state);
-    	
-    	ContentValues cv = new ContentValues();
-    	cv.put("dev_req", state);
-    	getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-    }
-    
-    private void clearDev()
-    {
-    	ContentValues cv = new ContentValues();
-    	cv.put("dev_req", FSM.DEV_NA);
-    	cv.put("dev_resp", FSM.DEV_NA);
-    	getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-    }
-    
     private void sendTbrCommand(boolean turnOn)
     {
     	final String FUNC_TAG = "sendTbrCommand";
