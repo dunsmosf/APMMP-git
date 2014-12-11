@@ -11,12 +11,11 @@
 package edu.virginia.dtc.CgmService;
 
 import edu.virginia.dtc.DiAsService.R;
-import edu.virginia.dtc.Supervisor.Supervisor;
+import edu.virginia.dtc.Supervisor.SupervisorActivity;
 import edu.virginia.dtc.Supervisor.SupervisorService;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.State;
 
 import android.app.Notification;
@@ -238,7 +237,7 @@ public class CgmService extends Service {
         }
         else
         {
-            time = Supervisor.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
+            time = SupervisorActivity.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
         }
         c.close();
 
@@ -278,7 +277,7 @@ public class CgmService extends Service {
         }
         else
         {
-            time = Supervisor.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
+            time = SupervisorActivity.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
         }
         c.close();
 

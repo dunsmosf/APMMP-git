@@ -124,7 +124,7 @@
         <!-- SUPERVISOR - START ====================================================== -->
 
         <activity
-            android:name="edu.virginia.dtc.Supervisor.Supervisor"
+            android:name="edu.virginia.dtc.Supervisor.SupervisorActivity"
             android:label="@string/app_name"
             android:screenOrientation="sensorLandscape" >
             <intent-filter>

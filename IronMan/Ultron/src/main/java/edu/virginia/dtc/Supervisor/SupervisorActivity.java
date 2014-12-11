@@ -29,7 +29,7 @@ import edu.virginia.dtc.Supervisor.ConfigurationManager.Pack;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 
-public class Supervisor extends FragmentActivity
+public class SupervisorActivity extends FragmentActivity
 {
 	private static final String TAG = "Supervisor";
 
