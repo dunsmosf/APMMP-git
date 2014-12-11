@@ -687,16 +687,7 @@ public class DiAsService extends Service
 					TimeZone tz = TimeZone.getDefault();
 					int UTC_offset_secs = tz.getOffset(getCurrentTimeSeconds()*1000)/1000;
 					int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
-					// Log the response from the APC
-					log_action(TAG, "APCservice > c="+String.format("%.2f", Apc.correction)+", diff_rate="+String.format("%.2f", Apc.diff_rate)+
-							", cr="+String.format("%.2f", Apc.credit)+", sp="+String.format("%.2f", Apc.spend), Debug.LOG_DEBUG);
 
-//					log_action(TAG, "APC="+Apc.correction, Debug.LOG_ACTION_INFORMATION);
-//					log_action(TAG, "APC out 1 > APC_TYPE="+APC_TYPE, Debug.LOG_ACTION_INFORMATION);
-//					log_action(TAG, "APC out 2 > creq="+Apc.credit+", sreq="+Apc.spend, Debug.LOG_ACTION_INFORMATION);
-//    				log_action(TAG, "APC out 3 > diff_rate="+Apc.diff_rate+", timeNowMins="+timeNowMins, Debug.LOG_ACTION_INFORMATION);
-//    				log_action(TAG, "APC out 4 > extendedBolus="+Apc.extended+", extendedBolusMealInsulin="+Apc.ext_meal+", extendedBolusCorrInsulin="+Apc.ext_correction, Debug.LOG_ACTION_INFORMATION);
-    				
         			Debug.i(TAG, FUNC_TAG, "APC_PROCESSING_STATE_NORMAL > bolusCorrection="+Apc.correction+
         					", differential_basal_rate="+Apc.diff_rate+", creditRequest="+Apc.credit+", spendRequest="+Apc.spend+
         					", new_differential_rate="+new_differential_rate+", lastRCMCalculationTime="+Apc.last_calc_time+
@@ -934,11 +925,6 @@ public class DiAsService extends Service
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_BRM_RESPONSE, Event.makeJsonString(b), Event.SET_LOG);
         			}
-        			
-					// Log the response from the BRMservice
-					log_action(TAG, "BRMservice > c="+String.format("%.2f", Brm.correction)+", diff_rate="+String.format("%.2f", Brm.diff_rate)+
-							", new_diff_rate="+new_differential_rate+
-							", cr="+String.format("%.2f", Brm.credit)+", sp="+String.format("%.2f", Brm.spend), Debug.LOG_DEBUG);
 
 					changeSyncState(FSM.BRM_RESPONSE);
 					break;
@@ -1313,15 +1299,13 @@ public class DiAsService extends Service
  	// ******************************************************************************************************************************
     
 	@Override
-    public void onCreate() {
+    public void onCreate()
+    {
 		final String FUNC_TAG = "onCreate";
 		
 		super.onCreate();
-		
+
 		initialized = false;
-		
-        Debug.i(TAG, FUNC_TAG, "");
-        log_action(TAG, "onCreate", Debug.LOG_DEBUG);
         
         ASYNC = new Machine(FSM.MACHINE_ASYNC);
         SYNC = new Machine(FSM.MACHINE_SYNC);
@@ -1600,23 +1584,7 @@ public class DiAsService extends Service
 				
 				Debug.i(TAG, FUNC_TAG, "Supervisor timer tick > timeNowMins="+timeNowMins+", tz="+tz+", UTC_offset_secs="+UTC_offset_secs);
 				Debug.i(TAG, FUNC_TAG, "Safety Only Enabled="+brmEnabled);
-/*				
-				if ( brmEnabled && inBrmRange(timeNowMins)) 
-				{
-        			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP) 
-        			{
-        				changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-        				Meal meal = new Meal(getApplicationContext());
-        				meal.markAllMealsTreated();
-        			}
-				}
-				else if (DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) 
-				{
-					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-    				Meal meal = new Meal(getApplicationContext());
-    				meal.markAllMealsTreated();
-				}
-*/ 			
+
     			if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY && DIAS_STATE != State.DIAS_STATE_STOPPED) {
     				if (!checkProfiles()) {
         				changeDiasState(State.DIAS_STATE_STOPPED);
@@ -1731,7 +1699,8 @@ public class DiAsService extends Service
         registerReceiver(AlgTickReceiver, new IntentFilter("edu.virginia.dtc.intent.action.SUPERVISOR_CONTROL_ALGORITHM_TICK"));
 
         
-    	BroadcastReceiver dialogReceiver = new BroadcastReceiver(){
+    	BroadcastReceiver dialogReceiver = new BroadcastReceiver()
+        {
 			public void onReceive(Context context, Intent intent) 
 			{
 				int status = intent.getIntExtra("status", MDI_ACTIVITY_STATUS_TIMEOUT);
@@ -1946,11 +1915,10 @@ public class DiAsService extends Service
     @Override
 	public void onDestroy() {
 		final String FUNC_TAG = "onDestroy";
-		Debug.i(TAG, FUNC_TAG, "");
-        log_action(TAG, "onDestroy", Debug.LOG_DEBUG);
         
         unregisterReceiver(AlgTickReceiver);
         unregisterReceiver(TimerTickReceiver);
+
         if(ConnectivityReceiver != null)
         	unregisterReceiver(ConnectivityReceiver);
         
@@ -4136,14 +4104,6 @@ public class DiAsService extends Service
 		paramBundle.putInt("DIAS_STATE", DIAS_STATE);
 		ssmMessage.setData(paramBundle);
 
-		// Log message to SSMservice
-		log_action(TAG, "> SSMservice: cmd=SAFETY_SERVICE_CMD_CALCULATE_STATE"+
-				", calFlagTime="+calFlagTime+
-				", hypoFlagTime="+hypoFlagTime+
-				", currentlyExercising="+currentlyExercising+
-				", DIAS_STATE="+DIAS_STATE, Debug.LOG_DEBUG);
-
-		
     	return ssmMessage;
     }
     
@@ -4405,18 +4365,6 @@ public class DiAsService extends Service
     					);
     		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 		}
-		
-		// Log message to SSMservice
-		log_action(TAG, "> SSMservice: cmd=SAFETY_SERVICE_CMD_REQUEST_BOLUS"+
-				", bolus_meal="+String.format("%.2f", bolus_meal)+
-				", bolus_corr="+String.format("%.2f", bolus_correction)+
-				", diff_rate="+String.format("%.2f", differential_basal_rate)+
-				", credit="+String.format("%.2f", credit_request)+
-				", spend="+String.format("%.2f", spend_request)+
-				", asynch="+asynchronous+
-				", calFlagTime="+calFlagTime+
-				", hypoFlagTime="+hypoFlagTime+
-				", currentlyExercising="+currentlyExercising, Debug.LOG_DEBUG);
 
 		try {
 			Debug.i(TAG, FUNC_TAG, "sendInsulinRequestToSafetySystem > bolus_meal="+bolus_meal+", bolus_correction="+bolus_correction+", " +
@@ -5128,15 +5076,6 @@ public class DiAsService extends Service
 			//I'm sick of this...
 			//Debug.i(TAG, FUNC_TAG, "getCurrentTimeSeconds > returning System Time="+SystemTime);
 			return SystemTime;
-	}
-	
-	public void log_action(String service, String action, int priority) {
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", service);
-        i.putExtra("Status", action);
-        i.putExtra("priority", priority);
-        i.putExtra("time", (long)getCurrentTimeSeconds());
-        sendBroadcast(i);
 	}
 	
 	public boolean inBrmRange(int timeNowMins) 
