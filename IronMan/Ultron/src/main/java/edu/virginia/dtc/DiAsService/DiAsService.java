@@ -3983,7 +3983,6 @@ public class DiAsService extends Service
 	    	case FSM.IDLE:
 	    		break;
 	    	case FSM.START:
-	    		Debug.start();
 	    		if(ASYNC.isBusy() || TBR.isBusy())
 	    		{
 	    			Debug.i(TAG, FUNC_TAG, "Skipping SYNC loop for now...");
@@ -4108,7 +4107,6 @@ public class DiAsService extends Service
 	    			Debug.i(TAG, FUNC_TAG, "SSM is busy with an asynchronous call!");
 	    		break;
 	    	case FSM.SSM_RESPONSE:
-	    		Debug.stop(TAG, FUNC_TAG, "From Start to SSM Response");
 	    		//Wait for response from SSM Service Connection
 	    		break;
 	    	case FSM.PUMP_RESPONSE:

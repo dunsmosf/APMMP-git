@@ -22,7 +22,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-public class MDI_Activity extends Activity{
+public class MdiActivity extends Activity{
 	
 	public static final String TAG = "MDI_Activity";
 	public static final boolean DEBUG = false;

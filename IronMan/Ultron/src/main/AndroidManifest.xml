@@ -61,15 +61,13 @@
 
         <activity android:label="Alarm Screen"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:name="edu.virginia.dtc.DiAsService.MDI_Activity"
+            android:name=".MdiActivity"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/alarmScreenTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"></action>
             </intent-filter>
         </activity>
-
-        <activity android:name="Alerts" android:theme="@android:style/Theme.Translucent"></activity>
 
         <activity android:label="Alert Screen"
             android:configChanges="orientation|keyboardHidden|screenSize"

@@ -12,6 +12,7 @@ package edu.virginia.dtc.CgmService;
 
 import edu.virginia.dtc.DiAsService.R;
 import edu.virginia.dtc.Supervisor.Supervisor;
+import edu.virginia.dtc.Supervisor.SupervisorService;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
@@ -237,7 +238,7 @@ public class CgmService extends Service {
         }
         else
         {
-            time = Supervisor.getSystemSeconds() - Supervisor.IterationTime;
+            time = Supervisor.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
         }
         c.close();
 
@@ -277,7 +278,7 @@ public class CgmService extends Service {
         }
         else
         {
-            time = Supervisor.getSystemSeconds() - Supervisor.IterationTime;
+            time = Supervisor.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
         }
         c.close();
 
