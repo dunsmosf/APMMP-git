@@ -69,80 +69,11 @@ public class Meal {
 //		return false;
 //	}
 	
-	
+	//TODO: delete this...
 	public boolean markAllMealsTreated() {
 		final String FUNC_TAG = "markAllMealsTreated";
 		
 		boolean return_value = false;
-		int treated_int = 0;
-		int active_int = 0;
-		int approved_int = 0;
-		int extended_bolus_int = 0;
-        try {
-			// Fetch meal data
-			Cursor creq=context.getContentResolver().query(MEAL_URI, null, null, null, null);
-			if (creq.moveToFirst()) {
-				do{
-					// Retrieve the current meal bolus entry
-					_id = creq.getInt(creq.getColumnIndex("_id"));
-					time = creq.getInt(creq.getColumnIndex("time"));
-					time_announce = creq.getInt(creq.getColumnIndex("time_announce"));
-					meal_size_grams = creq.getInt(creq.getColumnIndex("meal_size_grams"));
-					SMBG = creq.getInt(creq.getColumnIndex("SMBG"));
-					meal_screen_bolus = creq.getDouble(creq.getColumnIndex("meal_screen_bolus"));
-					type = creq.getInt(creq.getColumnIndex("type"));
-					size = creq.getInt(creq.getColumnIndex("size"));
-					extended_bolus_duration_seconds = creq.getInt(creq.getColumnIndex("extended_bolus_duration_seconds"));
-					meal_screen_meal_bolus = creq.getDouble(creq.getColumnIndex("meal_screen_meal_bolus"));
-					meal_screen_corr_bolus = creq.getDouble(creq.getColumnIndex("meal_screen_corr_bolus"));
-					meal_screen_smbg_bolus = creq.getDouble(creq.getColumnIndex("meal_screen_smbg_bolus"));
-					extended_bolus_insulin_rem = creq.getDouble(creq.getColumnIndex("extended_bolus_insulin_rem"));
-					treated_int = creq.getInt(creq.getColumnIndex("treated"));
-					if (treated_int == 0)
-						treated=false;
-					else
-						treated=true;
-					active_int = creq.getInt(creq.getColumnIndex("active"));
-					if (active_int == 0)
-						active=false;
-					else
-						active=true;
-					approved_int = creq.getInt(creq.getColumnIndex("approved"));
-					if (approved_int == 0)
-						approved=false;
-					else
-						approved=true;
-					extended_bolus_int = creq.getInt(creq.getColumnIndex("extended_bolus"));
-					if (extended_bolus_int == 0)
-						extended_bolus=false;
-					else
-						extended_bolus=true;
-					// If active or approved then fire off an Alert
-					if ((active || approved) && extended_bolus_insulin_rem > 0.05) {
-						dump();
-                        Intent trIntent = new Intent("android.intent.action.MAIN");
-                        trIntent.setClass(context, Alerts.class);
-                        trIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);        			
-                        Bundle params = new Bundle();
-                        params.putDouble("undelivered_insulin", extended_bolus_insulin_rem);
-                        params.putBoolean("extended_bolus", extended_bolus);
-                        trIntent.putExtras(params);
-                        context.startActivity(trIntent);        	     
-					}
-					
-					// Set the treated field true and update
-					treated = true;
-					active=false;
-					approved=false;
-					update();
-					return_value = true;
-				} while (creq.moveToNext());
-			}
-			creq.close();
-        }
-        catch (Exception e) {
-        	Debug.e(TAG, FUNC_TAG, "Error "+ e.getMessage());
-        }
         return return_value;
 	}
 

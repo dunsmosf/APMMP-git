@@ -36,8 +36,6 @@ public class Supervisor extends FragmentActivity
 {
 	private static final String TAG = "Supervisor";
 
-    public static final long IterationTime = 300;
-
 	// DiAsService Commands
 	public static final int DIAS_SERVICE_COMMAND_NULL = 0;
 	public static final int DIAS_SERVICE_COMMAND_INIT = 1;
