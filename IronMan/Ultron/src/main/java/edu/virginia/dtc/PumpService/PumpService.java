@@ -1,12 +1,3 @@
-//*******************************************************************
-//*  PumpService.java
-// *  Copyright 2011-2012 by the Center for Diabetes Technology
-// *  University of Virginia
-// * 
-// *  Created by Patrick Keith-Hynes, Najib Ben Brahim, 
-// *  and Benton Mize
-// ******************************************************************
-
 package edu.virginia.dtc.PumpService;
 
 import android.app.Notification;
@@ -18,13 +9,11 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.DeadObjectException;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -53,14 +42,13 @@ import edu.virginia.dtc.DiAsService.R;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.State;
 import edu.virginia.dtc.SysMan.Tvector;
 
-public class PumpService extends Service {
-	
+public class PumpService extends Service
+{
     // Debugging
     private static final String TAG = "PumpService";
     private static final String VERSION_NUMBER = "1.10";
@@ -79,8 +67,6 @@ public class PumpService extends Service {
     
     private PowerManager pm;
     private PowerManager.WakeLock wl;
-    
-	public StateData state_data;
 	
 	private double current_delivered_U = 0.0;
 	
@@ -263,8 +249,6 @@ public class PumpService extends Service {
         
         Debug.i(TAG, FUNC_TAG, "onCreate");
         log_action(TAG, "onCreate", Debug.LOG_DEBUG);
-     
-		state_data = new StateData();
 		
         // Set up a Notification for this Service
         String ns = Context.NOTIFICATION_SERVICE;
@@ -1033,15 +1017,7 @@ public class PumpService extends Service {
 					deliverBolus(asynchronous, pre_authorized, bolus_max, basal_bolus, meal_bolus, corr_bolus);
 					break;
 				case Pump.PUMP_SERVICE_CMD_SET_BASAL_RATE:
-					if (PUMP.state == Pump.PUMP_STATE_IDLE || PUMP.state == Pump.PUMP_STATE_COMPLETE) 
-					{
-						state_data.basal_rate = paramBundle.getDouble("basal_rate", -1.0);
-						Debug.i(TAG, FUNC_TAG, "PUMP_SERVICE_CMD_SET_RATE > basal_rate="+state_data.basal_rate);		//The basal rate that should be set in the pump is stored in state_data.basal_rate
-					}
-					else 
-					{
-						Debug.i(TAG, FUNC_TAG, "PUMP_SERVICE_CMD_SET_RATE > Error: Not ready for command, PUMP_STATE="+PUMP.state);
-					}
+
 					break;
 				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS:
 					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS");
