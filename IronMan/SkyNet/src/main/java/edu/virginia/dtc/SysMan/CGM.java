@@ -4,6 +4,11 @@ import java.text.DecimalFormat;
 
 public class CGM {
 
+    //SMBG States
+    public static final int HYPO = 0;
+    public static final int CALIBRATION = 1;
+    public static final int FINGERSTICK = 2;
+
 	//CGM States
 	public static final int CGM_NORMAL = 0;
 	public static final int CGM_DATA_ERROR = 1;

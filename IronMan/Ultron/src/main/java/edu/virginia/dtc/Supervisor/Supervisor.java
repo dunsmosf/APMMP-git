@@ -49,9 +49,12 @@ import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Params;
 
-public class Supervisor extends FragmentActivity {
+public class Supervisor extends FragmentActivity
+{
 	private static final String TAG = "Supervisor";
-	
+
+    public static final long IterationTime = 300;
+
 	// DiAsService Commands
 	public static final int DIAS_SERVICE_COMMAND_NULL = 0;
 	public static final int DIAS_SERVICE_COMMAND_INIT = 1;
@@ -61,7 +64,8 @@ public class Supervisor extends FragmentActivity {
 	
 	private static ConfigurationManager configurationManager;
 	private boolean validConfigurationExists = false;
-	
+
+    private static long SystemTime;
 	
 	// Viewpager stuff
 	SectionsPagerAdapter mSectionsPagerAdapter;
@@ -69,7 +73,17 @@ public class Supervisor extends FragmentActivity {
 	public static final int COLOR_VALID = Color.rgb(0, 200, 0);
 	public static final int COLOR_INVALID = Color.rgb(255, 20, 20);
 	public static final int COLOR_DEFAULT = Color.BLACK;
-	
+
+    public static long getSystemSeconds()
+    {
+        return System.currentTimeMillis()/1000;
+    }
+
+    public static long getSystemMilliseconds()
+    {
+        return System.currentTimeMillis();
+    }
+
     @Override
     public void onStop()
     {
