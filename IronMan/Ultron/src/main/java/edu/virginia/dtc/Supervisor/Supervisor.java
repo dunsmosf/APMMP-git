@@ -1,20 +1,3 @@
-//*********************************************************************************************************************
-//  Copyright 2011 by the University of Virginia
-//	All Rights Reserved
-//
-//  Created by Patrick Keith-Hynes
-//  Center for Diabetes Technology
-//  University of Virginia
-//*********************************************************************************************************************
-//
-//  DiAs Android Project 
-//
-//  Supervisor - Created by Patrick Keith-Hynes on 4/20/2011
-//
-//  University of Virginia - Center for Diabetes Technology
-//
-//  DMR version modified by Benton Mize
-
 package edu.virginia.dtc.Supervisor;
 
 import android.content.ComponentName;
@@ -381,29 +364,6 @@ public class Supervisor extends FragmentActivity
 		
 		c.close();
 	}
-
-//    public void killServices()
-//    {
-//    	final String FUNC_TAG = "killServices";
-//    	
-//    	Debug.d(TAG, FUNC_TAG, "Stopping services for config mode");
-//    	
-//    	//Stop DiAs Service
-//		stopService(new Intent().setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService"));
-//		
-//		//Stop Services
-//		stopService(new Intent("DiAs.APCservice"));
-//		stopService(new Intent("DiAs.SSMservice"));
-//		stopService(new Intent("DiAs.BRMservice"));
-//		
-//		//stopService(new Intent().setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService"));
-//		//stopService(new Intent().setClassName("edu.virginia.dtc.CgmService", "edu.virginia.dtc.CgmService.CgmService"));
-//    }
-
-	public long getCurrentTimeSeconds()
-	{
-		return (long)(System.currentTimeMillis()/1000);	  // Seconds since 1/1/1970		
-	}
 	
 	public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
@@ -431,13 +391,15 @@ public class Supervisor extends FragmentActivity
 		}
 	}
 
-	public static class ConfigurationFragment extends Fragment {
+	public static class ConfigurationFragment extends Fragment
+    {
 		public static final String TAG = "ConfigurationFragment";
 		
 		public static final String CONFIG_ID = "config_id";
 		public int configID;
 
-		public ConfigurationFragment() {
+		public ConfigurationFragment()
+        {
 		}
 
 		@Override
