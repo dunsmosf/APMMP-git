@@ -3,7 +3,7 @@ package edu.virginia.dtc.SysMan;
 import java.util.ArrayList;
 import java.util.List;
 
-
+//TODO: fix permissions
 public class Permissions 
 {
 	private static final String TAG = "Permissions";
@@ -11,46 +11,37 @@ public class Permissions
 	public static String[] applications = 
 	{
 		//Main Applications
-		"edu.virginia.dtc.biometricsContentProvider",		//0
-		"edu.virginia.dtc.CgmService", 						//1
-		"edu.virginia.dtc.PumpService", 					//2
-		"edu.virginia.dtc.DiAsSetup", 						//3
-		"edu.virginia.dtc.DiAsService", 					//4
-		"edu.virginia.dtc.DiAsUI", 							//5
-		"edu.virginia.dtc.networkService", 					//6
-		"edu.virginia.dtc.supervisor", 						//7
-		"edu.virginia.dtc.ConstraintService",				//8
-		"edu.virginia.dtc.ExerciseService",					//9
+		"edu.virginia.dtc.DiAsService", 					//0
+		"edu.virginia.dtc.DiAsUI", 							//1
+		"edu.virginia.dtc.ConstraintService",				//2
+		"edu.virginia.dtc.ExerciseService",					//3
 			
 		//Shell services
-		"edu.virginia.dtc.APCserviceShell",					//10
-		"edu.virginia.dtc.BRMserviceShell", 				//11
-		"edu.virginia.dtc.SSMserviceShell",					//12
+		"edu.virginia.dtc.APCserviceShell",					//4
+		"edu.virginia.dtc.BRMserviceShell", 				//5
+		"edu.virginia.dtc.SSMserviceShell",					//6
 		
 		//Services
-		"edu.virginia.dtc.APCservice",						//13
-		"edu.virginia.dtc.BRMservice",						//14
-		"edu.virginia.dtc.MCMservice",						//15
-		"edu.virginia.dtc.MealActivity",					//16
-		"edu.virginia.dtc.SSMservice",						//17
+		"edu.virginia.dtc.APCservice",						//7
+		"edu.virginia.dtc.BRMservice",						//8
+		"edu.virginia.dtc.MCMservice",						//9
+		"edu.virginia.dtc.MealActivity",					//10
+		"edu.virginia.dtc.SSMservice",						//11
    
 		//Simulation driver
-		"edu.virginia.dtc.standaloneDriver",				//18
-		
-		//Pump drivers
-		"edu.virginia.dtc.TandemDriver",					//19
-		"edu.virginia.dtc.BTLE_Tandem",						//20
-		"edu.virginia.dtc.RocheDriver",						//21
+		"edu.virginia.dtc.standaloneDriver",				//12
+
+        //Pump Drivers
+		"edu.virginia.dtc.BTLE_Tandem",						//13
+		"edu.virginia.dtc.RocheDriver",						//14
    
 		//CGM drivers
-		"edu.virginia.dtc.USBDexcomLocalDriver",			//22
-		"edu.virginia.dtc.DexcomBTRelayDriver",				//23
-		"edu.virginia.dtc.BTLE_G4",							//24
+		"edu.virginia.dtc.BTLE_G4",							//15
 					
 		//Misc. drivers
-		"edu.virginia.dtc.GlassDriver",						//25	
-		"edu.virginia.dtc.HR_Driver",						//26
-		"edu.virginia.dtc.Bioharness_Driver"				//27
+		"edu.virginia.dtc.GlassDriver",						//16
+		"edu.virginia.dtc.HR_Driver",						//17
+		"edu.virginia.dtc.Bioharness_Driver"				//18
 	};
 	
 	public static class appPerm
@@ -147,132 +138,21 @@ public class Permissions
 	    	case Biometrics.HARDWARE_CONFIGURATION_TABLE:		return new perm(table, 	true, 	true, 	true, 	false);
 	    	case Biometrics.PUMP_DETAILS_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
 	    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
-	    	case Biometrics.STATE_TABLE:						return new perm(table,	true, 	true, 	true, 	false);
 	    	default:											return new perm(table,	true,	false,	false,	false);
 		}
 	}
 	
 	public static perm getPermissions(String a, int table)
    {
-		if(a.equalsIgnoreCase(applications[0]))						//Content Provider
+        if(a.equalsIgnoreCase(applications[0]))				        //DiAs Service
 		{
 			return new perm(table, true, true, true, true);
 		}
-		else if(a.equalsIgnoreCase(applications[1]))				//CGM Service
-		{
-			switch(table)
-			{														//						Query	Update	Insert	Delete
-				case Biometrics.ALL_URI:							return new perm(table,	false,	false,	false,	false);
-				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
-				
-		   		case Biometrics.CGM_TABLE:							return new perm(table,	true,	false,	true,	false);
-		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.SMBG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
-			}
-		}
-		else if(a.equalsIgnoreCase(applications[2]))				//Pump Service
-		{
-			switch(table)
-			{														//						Query	Update	Insert	Delete
-				case Biometrics.ALL_URI:							return new perm(table,	false,	false,	false,	false);
-				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
-				
-		   		case Biometrics.INSULIN_TABLE:						return new perm(table, 	true, 	true, 	true, 	false);
-		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.PUMP_DETAILS_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
-		    	case Biometrics.SERVICE_OUTPUTS_TABLE:				return new perm(table,  true,   false,	true,	false);
-			}
-		}
-		else if(a.equalsIgnoreCase(applications[3]))				//DiAs Setup
-		{
-			switch(table)
-			{														//						Query	Update	Insert	Delete
-				case Biometrics.ALL_URI:							return new perm(table,	false,	false,	false,	false);
-				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	true);
-				
-		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		   		case Biometrics.SUBJECT_DATA_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
-		   		case Biometrics.CF_PROFILE_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
-		   		case Biometrics.CR_PROFILE_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
-		   		case Biometrics.BASAL_PROFILE_TABLE:				return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.HARDWARE_CONFIGURATION_TABLE:		return new perm(table, 	true, 	true, 	true, 	true);
-		    	case Biometrics.PASSWORD_TABLE:						return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.SAFETY_PROFILE_TABLE:				return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
-		    	case Biometrics.SERVER_TABLE:						return new perm(table,	true, 	true, 	false, 	false);
-		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	false, 	false, 	false, 	false);
-			}
-		}
-		else if(a.equalsIgnoreCase(applications[4]))				//DiAs Service
-		{
-			return new perm(table, true, true, true, true);
-		}
-		else if(a.equalsIgnoreCase(applications[5]))				//DiAs UI
-		{
-			return new perm(table, true, true, true, true);
-		}
-		else if(a.equalsIgnoreCase(applications[6]))				//Network Service
-		{
-			switch(table)
-			{														//						Query	Update	Insert	Delete
-				case Biometrics.ALL_URI:							return new perm(table,	false,	true,	false,	false);
-				case Biometrics.INFO_URI:							return new perm(table,	false,	true,	false,	false);
-				
-		   		case Biometrics.CGM_TABLE:							return new perm(table,	true,	true,	false,	false);
-		   		case Biometrics.INSULIN_TABLE:						return new perm(table, 	true, 	true, 	false, 	false);
-		   		case Biometrics.STATE_ESTIMATE_TABLE:				return new perm(table, 	true, 	true, 	false, 	false);
-		   		case Biometrics.MEAL_TABLE:							return new perm(table, 	true, 	true, 	false, 	false);
-		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	true, 	true, 	false);
-		   		case Biometrics.SUBJECT_DATA_TABLE:					return new perm(table, 	true, 	true, 	false, 	false);
-		   		case Biometrics.CF_PROFILE_TABLE:					return new perm(table, 	true, 	true, 	false, 	false);
-		   		case Biometrics.CR_PROFILE_TABLE:					return new perm(table, 	true, 	true, 	false, 	false);
-		   		case Biometrics.BASAL_PROFILE_TABLE:				return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.HARDWARE_CONFIGURATION_TABLE:		return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.USER_TABLE_1:						return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.USER_TABLE_2:						return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.INSULIN_CREDIT_TABLE:				return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.SMBG_TABLE:							return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.HMS_STATE_ESTIMATE_TABLE:			return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.PASSWORD_TABLE:						return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.CGM_DETAILS_TABLE:					return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.PUMP_DETAILS_TABLE:					return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.SAFETY_PROFILE_TABLE:				return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.DEVICE_DETAILS_TABLE:				return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.CONSTRAINTS_TABLE:					return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.GPS_TABLE:							return new perm(table, 	false, 	true, 	false, 	false);
-		    	case Biometrics.EXERCISE_SENSOR_TABLE:				return new perm(table, 	false, 	true, 	false, 	false);
-		    	case Biometrics.ACCELEROMETER_TABLE:				return new perm(table, 	false, 	true, 	false, 	false);
-		    	case Biometrics.USER_TABLE_3:						return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.USER_TABLE_4:						return new perm(table, 	true, 	true, 	false, 	false);
-		    	case Biometrics.SYSTEM_TABLE:						return new perm(table,	true,	true, 	false,	false);
-		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	true, 	true,	false);
-		    	case Biometrics.PARAMETER_TABLE:					return new perm(table,	true, 	true, 	false, 	false);
-		    	case Biometrics.SERVER_TABLE:						return new perm(table,	true, 	true, 	false, 	false);
-		    	case Biometrics.TEMP_BASAL_TABLE:					return new perm(table,	true, 	true, 	false, 	false);
-		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	true, 	true, 	false, 	false);
-			}
-		}
-		else if(a.equalsIgnoreCase(applications[7]))				//Supervisor
-		{
-			switch(table)
-			{														//						Query	Update	Insert	Delete
-				case Biometrics.ALL_URI:							return new perm(table,	false,	false,	false,	false);
-				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
-				
-		   		case Biometrics.CGM_TABLE:							return new perm(table,	true,	false,	false,	false);
-		    	case Biometrics.HARDWARE_CONFIGURATION_TABLE:		return new perm(table, 	true, 	true, 	true, 	true);
-		    	case Biometrics.GPS_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.ACCELEROMETER_TABLE:				return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.SYSTEM_TABLE:						return new perm(table,	true,	false, 	false,	false);
-		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
-		    	case Biometrics.PARAMETER_TABLE:					return new perm(table,	true, 	false, 	true, 	true);
-		    	case Biometrics.SERVER_TABLE:						return new perm(table,	true, 	true, 	true, 	false);
-		    	case Biometrics.TIME_TABLE:							return new perm(table,	true, 	true, 	true, 	false);
-			}
-		}
-		else if(a.equalsIgnoreCase(applications[8]))				//Constraint Service
+		else if(a.equalsIgnoreCase(applications[1]))				//DiAs UI
+        {
+            return new perm(table, true, true, true, true);
+        }
+		else if(a.equalsIgnoreCase(applications[2]))				//Constraint Service
 		{
 			switch(table)
 			{														//						Query	Update	Insert	Delete
@@ -280,12 +160,11 @@ public class Permissions
 				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
 				
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.USER_TABLE_1:						return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.CONSTRAINTS_TABLE:					return new perm(table, 	true, 	true, 	true, 	true);
 		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
 			}
 		}
-		else if(a.equalsIgnoreCase(applications[9]))				//Exercise Service
+		else if(a.equalsIgnoreCase(applications[3]))				//Exercise Service
 		{
 			switch(table)
 			{														//						Query	Update	Insert	Delete
@@ -304,8 +183,8 @@ public class Permissions
 		//**************************************************************************************************************//
 		//**************************************************************************************************************//
 		
-		else if(a.equalsIgnoreCase(applications[12]) || 			//SSM Service
-				a.equalsIgnoreCase(applications[17]))				//SSM Service Shell
+		else if(a.equalsIgnoreCase(applications[4]) || 			    //SSM Service
+				a.equalsIgnoreCase(applications[5]))				//SSM Service Shell
 		{
 			switch(table)
 			{														//						Query	Update	Insert	Delete
@@ -316,12 +195,8 @@ public class Permissions
 		   		case Biometrics.STATE_ESTIMATE_TABLE:				return new perm(table, 	true, 	true, 	true, 	false);
 		   		case Biometrics.MEAL_TABLE:							return new perm(table, 	true, 	true, 	false, 	false);
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.USER_TABLE_1:						return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.USER_TABLE_2:						return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.INSULIN_CREDIT_TABLE:				return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.CONSTRAINTS_TABLE:					return new perm(table, 	true, 	true, 	true, 	true);
-		    	case Biometrics.USER_TABLE_3:						return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.USER_TABLE_4:						return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
 		    	case Biometrics.TEMP_BASAL_TABLE:					return new perm(table,	true, 	true, 	true, 	false);
 		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	true, 	true, 	true, 	false);
@@ -341,10 +216,6 @@ public class Permissions
 		   		case Biometrics.INSULIN_TABLE:						return new perm(table, 	true, 	true, 	true, 	false);
 		   		case Biometrics.MEAL_TABLE:							return new perm(table, 	true, 	true, 	false, 	false);
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.USER_TABLE_1:						return new perm(table, 	true, 	true, 	true, 	true);
-		    	case Biometrics.HMS_STATE_ESTIMATE_TABLE:			return new perm(table, 	true, 	true, 	true, 	true);
-		    	case Biometrics.USER_TABLE_3:						return new perm(table, 	true, 	true, 	true, 	true);
-		    	case Biometrics.USER_TABLE_4:						return new perm(table, 	true, 	true, 	true, 	true);
 		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
 		    	case Biometrics.TEMP_BASAL_TABLE:					return new perm(table,	true, 	true, 	true, 	false);
 		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	true, 	true, 	true, 	false);
@@ -360,8 +231,6 @@ public class Permissions
 				
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
 		    	case Biometrics.PUMP_DETAILS_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.USER_TABLE_3:						return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.USER_TABLE_4:						return new perm(table, 	true, 	false, 	true, 	false);
 		    	case Biometrics.SYSTEM_TABLE:						return new perm(table,	true,	false, 	false,	false);
 		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
 		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	true, 	true, 	true, 	false);
@@ -376,8 +245,6 @@ public class Permissions
 				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
 				
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
-		    	case Biometrics.USER_TABLE_1:						return new perm(table, 	true, 	true, 	true, 	false);
-		    	case Biometrics.USER_TABLE_4:						return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
 		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	true, 	true, 	true, 	false);
 			}

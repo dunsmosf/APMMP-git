@@ -204,13 +204,6 @@ public class Driver {
 		return instance;
 	}
 	
-	public void updateDevState(int state)
-	{
-		ContentValues cv = new ContentValues();
-		cv.put("dev_resp", state);
-		serv.getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-	}
-	
 	public void updatePumpState(int state)
 	{
 		final String FUNC_TAG = "updatePumpState";

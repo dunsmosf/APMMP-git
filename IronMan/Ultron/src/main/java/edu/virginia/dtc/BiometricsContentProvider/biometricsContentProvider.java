@@ -313,7 +313,6 @@ public class biometricsContentProvider extends ContentProvider {
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.INSULIN_TABLE_NAME);
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.INSULIN_CREDIT_TABLE_NAME);
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.STATE_ESTIMATE_TABLE_NAME);
-			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.HMS_STATE_ESTIMATE_TABLE_NAME);
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.MEAL_TABLE_NAME);
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.SMBG_TABLE_NAME);
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.LOG_TABLE_NAME);
@@ -321,23 +320,17 @@ public class biometricsContentProvider extends ContentProvider {
 			db.execSQL("DROP TABLE IF EXISTS cfprofile");
 			db.execSQL("DROP TABLE IF EXISTS crprofile");
 			db.execSQL("DROP TABLE IF EXISTS basalprofile");
-			db.execSQL("DROP TABLE IF EXISTS user1");
-			db.execSQL("DROP TABLE IF EXISTS user2");
 			db.execSQL("DROP TABLE IF EXISTS password");
 			db.execSQL("DROP TABLE IF EXISTS devicedetails");
 			db.execSQL("DROP TABLE IF EXISTS constraints");
 			db.execSQL("DROP TABLE IF EXISTS gps");
 			db.execSQL("DROP TABLE IF EXISTS exercise_sensor");
 			db.execSQL("DROP TABLE IF EXISTS acc");
-			db.execSQL("DROP TABLE IF EXISTS user3");
-			db.execSQL("DROP TABLE IF EXISTS user4");
 			db.execSQL("DROP TABLE IF EXISTS system");
 			db.execSQL("DROP TABLE IF EXISTS events");
 			db.execSQL("DROP TABLE IF EXISTS params");
 			db.execSQL("DROP TABLE IF EXISTS server_url");
 			db.execSQL("DROP TABLE IF EXISTS temporary_basal_rate");
-			db.execSQL("DROP TABLE IF EXISTS state");
-			db.execSQL("DROP TABLE IF EXISTS time");
 			db.execSQL("DROP TABLE IF EXISTS exercise_state");
 			db.execSQL("DROP TABLE IF EXISTS controller_parameters");
 			db.execSQL("DROP TABLE IF EXISTS "+Biometrics.SERVICE_OUTPUTS_TABLE_NAME);
@@ -439,72 +432,11 @@ public class biometricsContentProvider extends ContentProvider {
         
         return (biometricDB == null)? false:true;
     }
-    
+
 	@Override
-    public String getType(Uri uri) {
-		final String FUNC_TAG = "getType";
-		
-		Debug.i(TAG, FUNC_TAG, "uri="+uri);
-		switch (uriMatcher.match(uri))
-		{
-           	//---get data from a particular timestamp---
-			case Biometrics.USER_TABLE_1:
-				return "vnd.android.cursor.item/vnd.virginia.dtc.user1";
-			case Biometrics.USER_TABLE_2:
-				return "vnd.android.cursor.item/vnd.virginia.dtc.user2";
-			case Biometrics.HARDWARE_CONFIGURATION_TABLE:
-				return "vnd.android.cursor.item/vnd.virginia.dtc.hardwareconfiguration";
-			case Biometrics.CGM_TABLE:
-				return "vnd.android.cursor.item/vnd.virginia.dtc.cgm";
-			case Biometrics.INSULIN_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.insulin";
-			case Biometrics.INSULIN_CREDIT_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.insulincredit";
-			case Biometrics.STATE_ESTIMATE_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.stateestimate";
-			case Biometrics.HMS_STATE_ESTIMATE_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.hmsstateestimate";
-			case Biometrics.MEAL_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.meal";
-			case Biometrics.SMBG_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.smbg";
-            case Biometrics.LOG_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.log";
-			case Biometrics.SUBJECT_DATA_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.subjectdata";
-			case Biometrics.CF_PROFILE_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.cfprofile";
-			case Biometrics.CR_PROFILE_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.crprofile";
-			case Biometrics.BASAL_PROFILE_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.basalprofile";
-			case Biometrics.DEVICE_DETAILS_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.devicedetails";
-			case Biometrics.SAFETY_PROFILE_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.safetyprofile";
-			case Biometrics.PASSWORD_TABLE:
-                return "vnd.android.cursor.item/vnd.virginia.dtc.password";
-			case Biometrics.USER_TABLE_3:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.user3";
-	 		case Biometrics.USER_TABLE_4:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.user4";
-	 		case Biometrics.SYSTEM_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.system";
-	 		case Biometrics.EVENT_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.events";
-	 		case Biometrics.PARAMETER_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.params";
-	 		case Biometrics.SERVER_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.server_url";
-	 		case Biometrics.TEMP_BASAL_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.temporary_basal_rate";
-	 		case Biometrics.STATE_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.state";
-	 		case Biometrics.TIME_TABLE:
-	 			return "vnd.android.cursor.item/vnd.virginia.dtc.time";
-			default:
-				throw new IllegalArgumentException("Unsupported URI: " + uri);
-		}
+    public String getType(Uri uri)
+    {
+	    return null;
 	}
 	
 	/*********************************************************
@@ -546,7 +478,7 @@ public class biometricsContentProvider extends ContentProvider {
         
 		return c;
     }
-    
+
     /*********************************************************
      * Update Command
      *********************************************************/
