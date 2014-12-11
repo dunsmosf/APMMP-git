@@ -5,7 +5,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -17,10 +16,9 @@ import android.view.View;
 import android.view.Window;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import edu.virginia.dtc.DiAsService.R;
+
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.Event;
 
 public class StartupActivity extends FragmentActivity {
 
@@ -40,8 +38,6 @@ public class StartupActivity extends FragmentActivity {
 	public void onCreate(Bundle savedInstanceState)
 	{
 		final String FUNC_TAG = "onCreate";
-	
-		Debug.i(TAG, FUNC_TAG, "OnCreate");
 		
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -227,12 +223,6 @@ public class StartupActivity extends FragmentActivity {
 	/************************************************************************************
 	* Auxillary Functions
 	************************************************************************************/
-   	
-    public long getCurrentTimeSeconds()
-    {
-		long currentTimeSeconds = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970 in UTC
-		return currentTimeSeconds;
-	}
     
     @Override
     public void onBackPressed() {

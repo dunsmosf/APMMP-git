@@ -3070,7 +3070,6 @@ public class DiAsService extends Service
 		int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
 		
 		int oldState = DIAS_STATE;
-		Meal meal = new Meal(getApplicationContext());
 		
 		//If we transition modes then we clear the recovery flag
 		if(clickType != DIAS_UI_CLICK_NULL)
@@ -3080,50 +3079,40 @@ public class DiAsService extends Service
 			case State.DIAS_STATE_STOPPED:
 				if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (cgmReady() && clickType == DIAS_UI_START_SENSOR_ONLY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_OPEN_LOOP:
 				if (!(pumpReady() /*&& batteryReady()*/)) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
 				{
 					if(cgmReady())
 					{
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-						meal.markAllMealsTreated();
 					}
 					else
 					{
 						changeDiasState(State.DIAS_STATE_STOPPED);
-						meal.markAllMealsTreated();
 					}
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_CLOSED_LOOP:
@@ -3132,85 +3121,68 @@ public class DiAsService extends Service
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
 					else
 						changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
 				{
 					if(cgmReady())
 					{
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-						meal.markAllMealsTreated();
 					}
 					else
 					{
 						changeDiasState(State.DIAS_STATE_STOPPED);
-						meal.markAllMealsTreated();
 					}
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_SENSOR_ONLY:
 				if ( !(cgmReady())) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_SAFETY_ONLY:
 				if (!(pumpReady())) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
 				{
 					if(cgmReady())
 					{
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-						meal.markAllMealsTreated();
 					}
 					else
 					{
 						changeDiasState(State.DIAS_STATE_STOPPED);
-						meal.markAllMealsTreated();
 					}
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 		}
