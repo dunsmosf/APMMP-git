@@ -302,9 +302,6 @@ public class DiAsService extends Service
 	
 	private Machine ASYNC, SYNC, TBR, DEV;
 	
-	private Thread logThread;
-	private boolean logStop, logRunning;
-	
 	private static DiAsSubjectData subject_data;
 	
 	private Runnable wait = new Runnable()
@@ -1777,16 +1774,6 @@ public class DiAsService extends Service
 			}
 		};
 		registerReceiver(BatteryStatsReceiver, new IntentFilter("com.android.customBatteryStats.Broadcast"));
-		
-		
-		logRunning = logStop = false;
-		if(Params.getBoolean(getContentResolver(), "logcatToSd", false))
-		{
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is enabled!");
-			startLogThread();
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is disabled!");
 	}
 	
     @Override
@@ -1984,21 +1971,7 @@ public class DiAsService extends Service
         
         if(fsmObserver != null)
         	getContentResolver().unregisterContentObserver(fsmObserver);
-        
-        logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
+
 		//Clear icons on destruction
 		Intent removeIconsIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON_REMOVE_ALL");
 		sendBroadcast(removeIconsIntent);
@@ -4588,57 +4561,6 @@ public class DiAsService extends Service
 	// ******************************************************************************************************************************
 	// MISC FUNCTIONS
 	// ******************************************************************************************************************************
-
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/diasServiceLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
-		}
-	}
 	
 	public void initialize_exercise_state ()
 	{
