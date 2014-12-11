@@ -35,34 +35,7 @@ public class Debug {
         log.putExtra("time", System.currentTimeMillis()/1000);
         context.sendBroadcast(log);
 	}
-	
-	private static long start, stop, lap;
 
-	public static void start()
-	{
-		start = System.nanoTime();
-	}
-	
-	public static void lap(String tag, String function, String message)
-	{
-		lap = System.nanoTime();
-		
-		long result = lap - start;
-		start = lap;
-		
-		message = function + delimiter + "Comp Time: "+(result)+"ns "+(result/1000000)+"ms "+(result/1000000000)+"s"+" > "+message;
-		log(Log.DEBUG, tag, message, null);
-	}
-	
-	public static void stop(String tag, String function, String message)
-	{
-		stop = System.nanoTime();
-		long result = stop - start;
-		
-		message = function + delimiter + "Comp Time: "+(result)+"ns "+(result/1000000)+"ms "+(result/1000000000)+"s"+" > "+message;
-		log(Log.DEBUG, tag, message, null);
-	}
-	
 	public static void d(String tag, String function, String message)
 	{
 		message = function + delimiter + message;

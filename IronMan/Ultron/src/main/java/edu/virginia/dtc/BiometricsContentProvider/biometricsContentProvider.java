@@ -1,11 +1,3 @@
-//*********************************************************************************************************************
-//  Copyright 2011-2012 by the University of Virginia
-//	All Rights Reserved
-//
-//  Created by Patrick Keith-Hynes
-//  Center for Diabetes Technology
-//  University of Virginia
-//*********************************************************************************************************************
 package edu.virginia.dtc.BiometricsContentProvider;
 
 import java.io.BufferedOutputStream;
@@ -45,8 +37,6 @@ import edu.virginia.dtc.SysMan.Permissions;
 import edu.virginia.dtc.SysMan.Permissions.appPerm;
 import edu.virginia.dtc.SysMan.Permissions.perm;
 
-//TODO: fix the saveDatabase function to test whether SD Card exists (b/c it doesn't on the Galaxy Nexus)
-
 public class biometricsContentProvider extends ContentProvider {
 	public static final String TAG = "biometricsContentProvider";
     
@@ -62,7 +52,7 @@ public class biometricsContentProvider extends ContentProvider {
     private static final String DATABASE_NAME_ARCHIVE = "archived";
     private static final int DATABASE_VERSION = 1;
     
-    private static final int QUERY_TIME_LIMIT = 24; //Hours
+    private static final int QUERY_TIME_LIMIT = 24;
     
     private static final String DATABASE_TABLE_CGM_CREATE =
     "create table " + Biometrics.CGM_TABLE_NAME +
@@ -139,20 +129,6 @@ public class biometricsContentProvider extends ContentProvider {
     + "running_pump text, running_cgm text, running_misc text, last_state int, ask_at_startup int,"
     + "send_attempts_server int, received_server boolean);";
     
-    private static final String DATABASE_USER_TABLE_1_CREATE =
-    "create table " + Biometrics.USER_TABLE_1_NAME +
-    " (_id integer primary key autoincrement, "
-    + "time long, l0 long, l1 long, d0 double not null, d1 double, d2 double, d3 double, d4 double, d5 double, d6 double, d7 double, d8 double, d9 double, " +
-    "d10 double, d11 double, d12 double, d13 double, d14 double, d15 double, "
-    + "send_attempts_server int, received_server boolean);";
-    
-    private static final String DATABASE_USER_TABLE_2_CREATE =
-    "create table " + Biometrics.USER_TABLE_2_NAME +
-    " (_id integer primary key autoincrement, "
-    + "time long, l0 long, l1 long, d0 double not null, d1 double, d2 double, d3 double, d4 double, d5 double, d6 double, d7 double, d8 double, d9 double, " +
-    "d10 double, d11 double, d12 double, d13 double, d14 double, d15 double, "
-    + "send_attempts_server int, received_server boolean);";
-    
     private static final String DATABASE_TABLE_INSULIN_CREDIT_CREATE =
     "create table " + Biometrics.INSULIN_CREDIT_TABLE_NAME +
     " (_id integer primary key autoincrement, "
@@ -162,18 +138,7 @@ public class biometricsContentProvider extends ContentProvider {
     private static final String DATABASE_TABLE_SMBG_CREATE =
     "create table " + Biometrics.SMBG_TABLE_NAME +
     " (_id integer primary key autoincrement, "
-    + "time long not null, smbg double not null, isCalibration boolean not null,"
-    + "isHypo boolean not null, didTreat boolean, carbs int,"
-    + "send_attempts_server int, received_server boolean);";
-    
-    private static final String DATABASE_TABLE_HMS_STATE_ESTIMATE_CREATE =
-    "create table " + Biometrics.HMS_STATE_ESTIMATE_TABLE_NAME +
-    " (_id integer primary key autoincrement, "
-    + "IOB double, Gpred double, Gpred_correction double," +
-    "Gpred_bolus double, Xi00 double, Xi01 double, Xi02 double, Xi03 double, Xi04 double, " +
-    "Xi05 double, Xi06 double, Xi07 double, brakes_coeff double, bolus_amount double," +
-    "time long not null, MealBolusA double, MealBolusArem double, CORRA double, IOBrem double, d double, hmin double, Hmax double," +
-    "correction_in_units double, creditRequest double, spendRequest double, differential_basal_rate double, "
+    + "time long not null, smbg double not null, type int not null, didTreat boolean, carbs int,"
     + "send_attempts_server int, received_server boolean);";
     
     private static final String DATABASE_TABLE_PASSWORD_CREATE =
@@ -234,20 +199,6 @@ public class biometricsContentProvider extends ContentProvider {
     "create table " + Biometrics.ACCELEROMETER_TABLE_NAME +
     " (_id integer primary key autoincrement, " +
     " time long, x float, y float, z float, "
-    + "send_attempts_server int, received_server boolean);";
-    
-    private static final String DATABASE_USER_TABLE_3_CREATE =
-    "create table " + Biometrics.USER_TABLE_3_NAME +
-    " (_id integer primary key autoincrement, "
-    + "time long, l0 long, l1 long, d0 double not null, d1 double, d2 double, d3 double, d4 double, d5 double, d6 double, d7 double, d8 double, d9 double, " +
-    "d10 double, d11 double, d12 double, d13 double, d14 double, d15 double, "
-    + "send_attempts_server int, received_server boolean);";
-    
-    private static final String DATABASE_USER_TABLE_4_CREATE =
-    "create table " + Biometrics.USER_TABLE_4_NAME +
-    " (_id integer primary key autoincrement, "
-    + "time long, l0 long, l1 long, d0 double not null, d1 double, d2 double, d3 double, d4 double, d5 double, d6 double, d7 double, d8 double, d9 double, " +
-    "d10 double, d11 double, d12 double, d13 double, d14 double, d15 double, "
     + "send_attempts_server int, received_server boolean);";
     
     private static final String DATABASE_SYSTEM_TABLE_CREATE =
@@ -340,7 +291,6 @@ public class biometricsContentProvider extends ContentProvider {
             db.execSQL(DATABASE_TABLE_INSULIN_CREATE );							// Create insulin table
             db.execSQL(DATABASE_TABLE_INSULIN_CREDIT_CREATE );					// Create insulin credit pool table
             db.execSQL(DATABASE_TABLE_STATE_ESTIMATE_CREATE);					// Create state estimate table
-            db.execSQL(DATABASE_TABLE_HMS_STATE_ESTIMATE_CREATE);				// Create HMS state estimate table
             db.execSQL(DATABASE_TABLE_MEAL_CREATE);								// Create meal table
             db.execSQL(DATABASE_TABLE_SMBG_CREATE);								// Create smbg table
             db.execSQL(DATABASE_TABLE_LOG_CREATE);								// Create log table
@@ -349,8 +299,6 @@ public class biometricsContentProvider extends ContentProvider {
             db.execSQL(DATABASE_TABLE_CR_PROFILE_CREATE);						// Create cr profile data table
             db.execSQL(DATABASE_TABLE_BASAL_PROFILE_CREATE);					// Create basal profile data table
             db.execSQL(DATABASE_TABLE_SAFETY_PROFILE_CREATE);					// Create safety profile data table
-            db.execSQL(DATABASE_USER_TABLE_1_CREATE);							// Create user table 1
-            db.execSQL(DATABASE_USER_TABLE_2_CREATE);							// Create user table 2
             db.execSQL(DATABASE_TABLE_PASSWORD_CREATE);							// Create password table
             db.execSQL(DATABASE_TABLE_CGM_DETAILS_CREATE);						// Create cgmdetails table
             db.execSQL(DATABASE_TABLE_PUMP_DETAILS_CREATE);						// Create pumpdetails table
@@ -359,8 +307,6 @@ public class biometricsContentProvider extends ContentProvider {
             db.execSQL(DATABASE_TABLE_GPS_CREATE);								// Create the gps data table
             db.execSQL(DATABASE_TABLE_EXERCISE_SENSOR_CREATE);					// Create the exercise sensor table
             db.execSQL(DATABASE_TABLE_ACC_CREATE);								// Create the accelerometer data table
-            db.execSQL(DATABASE_USER_TABLE_3_CREATE);							// Create user table 3
-            db.execSQL(DATABASE_USER_TABLE_4_CREATE);							// Create user table 4
             db.execSQL(DATABASE_SYSTEM_TABLE_CREATE);							// Create system table
             db.execSQL(DATABASE_EVENT_TABLE_CREATE);							// Create event table
             db.execSQL(DATABASE_PARAMETER_TABLE_CREATE);						// Create parameter table
@@ -787,15 +733,12 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL("DROP TABLE IF EXISTS time");
 		db.execSQL("DROP TABLE IF EXISTS exercise_state");
 		db.execSQL("DROP TABLE IF EXISTS controller_parameters");
-		
-		db.execSQL(DATABASE_USER_TABLE_1_CREATE);								// Create user table 1
-		db.execSQL(DATABASE_USER_TABLE_2_CREATE);								// Create user table 2
+
 		db.execSQL(DATABASE_TABLE_HARDWARE_CONFIGURATION_CREATE );				// Create hardwareconfiguration table
 		db.execSQL(DATABASE_TABLE_CGM_CREATE );								// Create cgm table
 		db.execSQL(DATABASE_TABLE_INSULIN_CREATE );							// Create insulin table
 		db.execSQL(DATABASE_TABLE_INSULIN_CREDIT_CREATE );						// Create insulin credit pool table
 		db.execSQL(DATABASE_TABLE_STATE_ESTIMATE_CREATE);						// Create state estimate table
-		db.execSQL(DATABASE_TABLE_HMS_STATE_ESTIMATE_CREATE);					// Create HMS state estimate table
 		db.execSQL(DATABASE_TABLE_MEAL_CREATE);								// Create meal table
 		db.execSQL(DATABASE_TABLE_SMBG_CREATE);								// Create smbg table
 		db.execSQL(DATABASE_TABLE_LOG_CREATE);									// Create log table
@@ -812,8 +755,6 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL(DATABASE_TABLE_GPS_CREATE);
 		db.execSQL(DATABASE_TABLE_EXERCISE_SENSOR_CREATE);
 		db.execSQL(DATABASE_TABLE_ACC_CREATE);
-		db.execSQL(DATABASE_USER_TABLE_3_CREATE);
-		db.execSQL(DATABASE_USER_TABLE_4_CREATE);
 		db.execSQL(DATABASE_SYSTEM_TABLE_CREATE);
 		db.execSQL(DATABASE_EVENT_TABLE_CREATE);
 		db.execSQL(DATABASE_PARAMETER_TABLE_CREATE);
@@ -852,14 +793,11 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL("DROP TABLE IF EXISTS time");
 		db.execSQL("DROP TABLE IF EXISTS exercise_state");
 		db.execSQL("DROP TABLE IF EXISTS controller_parameters");
-		
-		db.execSQL(DATABASE_USER_TABLE_1_CREATE);								// Create user table 1
-		db.execSQL(DATABASE_USER_TABLE_2_CREATE);								// Create user table 2
+
 		db.execSQL(DATABASE_TABLE_CGM_CREATE );								// Create cgm table
 		db.execSQL(DATABASE_TABLE_INSULIN_CREATE );							// Create insulin table
 		db.execSQL(DATABASE_TABLE_INSULIN_CREDIT_CREATE );						// Create insulin credit pool table
 		db.execSQL(DATABASE_TABLE_STATE_ESTIMATE_CREATE);						// Create state estimate table
-		db.execSQL(DATABASE_TABLE_HMS_STATE_ESTIMATE_CREATE);					// Create HMS state estimate table
 		db.execSQL(DATABASE_TABLE_MEAL_CREATE);								// Create meal table
 		db.execSQL(DATABASE_TABLE_SMBG_CREATE);								// Create smbg table
 		db.execSQL(DATABASE_TABLE_LOG_CREATE);									// Create log table
@@ -868,8 +806,6 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL(DATABASE_TABLE_GPS_CREATE);
 		db.execSQL(DATABASE_TABLE_EXERCISE_SENSOR_CREATE);
 		db.execSQL(DATABASE_TABLE_ACC_CREATE);
-		db.execSQL(DATABASE_USER_TABLE_3_CREATE);
-		db.execSQL(DATABASE_USER_TABLE_4_CREATE);
 		db.execSQL(DATABASE_SYSTEM_TABLE_CREATE);
 		db.execSQL(DATABASE_EVENT_TABLE_CREATE);
 		db.execSQL(DATABASE_TABLE_TIME_CREATE);
