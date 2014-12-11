@@ -237,19 +237,6 @@ public class biometricsContentProvider extends ContentProvider {
     + "(start_time long, scheduled_end_time long, actual_end_time long, percent_of_profile_basal_rate int, status_code int, owner int,"
     + "send_attempts_server int, received_server boolean);";
     
-    private static final String DATABASE_TABLE_STATE_CREATE =
-    "create table " + Biometrics.STATE_TABLE_NAME
-    + "(_id integer primary key autoincrement,"
-    + "sync_state int, async_state int, tbr_state,"
-    + "dev_req int, dev_resp int,"
-    + "send_attempts_server int, received_server boolean);";
-    
-    private static final String DATABASE_TABLE_TIME_CREATE =
-    "create table " + Biometrics.TIME_TABLE_NAME
-    + "(_id integer primary key autoincrement,"
-    + "simTime long,"
-    + "send_attempts_server int, received_server boolean);";
-    
     private static final String DATABASE_TABLE_EXERCISE_STATE_CREATE =
     "create table " + Biometrics.EXERCISE_STATE_TABLE_NAME
     + "(_id integer primary key autoincrement,"
@@ -312,8 +299,6 @@ public class biometricsContentProvider extends ContentProvider {
             db.execSQL(DATABASE_PARAMETER_TABLE_CREATE);						// Create parameter table
             db.execSQL(DATABASE_TABLE_SERVER_CREATE);							// Create server_url table
             db.execSQL(DATABASE_TABLE_TEMPORARY_BASAL_CREATE);					// Create temporary_basal_rate table
-            db.execSQL(DATABASE_TABLE_STATE_CREATE);							// Create state table
-            db.execSQL(DATABASE_TABLE_TIME_CREATE);								// Create time table
             db.execSQL(DATABASE_TABLE_EXERCISE_STATE_CREATE);					// Create the exercise state table
             db.execSQL(DATABASE_TABLE_CONTROLLER_PARAMETERS_CREATE);			// Create the controller parameters table
             db.execSQL(DATABASE_TABLE_SERVICE_OUTPUTS);							
@@ -760,8 +745,6 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL(DATABASE_PARAMETER_TABLE_CREATE);
 		db.execSQL(DATABASE_TABLE_SERVER_CREATE);
 		db.execSQL(DATABASE_TABLE_TEMPORARY_BASAL_CREATE);
-		db.execSQL(DATABASE_TABLE_STATE_CREATE);
-		db.execSQL(DATABASE_TABLE_TIME_CREATE);
 		db.execSQL(DATABASE_TABLE_EXERCISE_STATE_CREATE);
 		db.execSQL(DATABASE_TABLE_CONTROLLER_PARAMETERS_CREATE);
 	}
@@ -808,7 +791,6 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL(DATABASE_TABLE_ACC_CREATE);
 		db.execSQL(DATABASE_SYSTEM_TABLE_CREATE);
 		db.execSQL(DATABASE_EVENT_TABLE_CREATE);
-		db.execSQL(DATABASE_TABLE_TIME_CREATE);
 		db.execSQL(DATABASE_TABLE_EXERCISE_STATE_CREATE);
 		db.execSQL(DATABASE_TABLE_CONTROLLER_PARAMETERS_CREATE);
 	}

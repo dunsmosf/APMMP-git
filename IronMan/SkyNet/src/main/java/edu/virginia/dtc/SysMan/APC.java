@@ -1,9 +1,6 @@
 package edu.virginia.dtc.SysMan;
 
 public class APC {
-
-	public static final int APC_TYPE_HMS 	= 1;
-	public static final int APC_TYPE_RCM 	= 2;
 	
 	public static final int MODE_NONE_INSTALLED 	= 0;
 	public static final int MODE_APC_INSTALLED 		= 1;
