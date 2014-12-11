@@ -1,12 +1,10 @@
 package edu.virginia.dtc.Supervisor;
 
 import android.content.ComponentName;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -23,14 +21,13 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import edu.virginia.dtc.DiAsService.R;
 import edu.virginia.dtc.Supervisor.ConfigurationManager.Config;
 import edu.virginia.dtc.Supervisor.ConfigurationManager.InstalledApp;
 import edu.virginia.dtc.Supervisor.ConfigurationManager.Pack;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.DiAsSubjectData;
-import edu.virginia.dtc.SysMan.Params;
 
 public class Supervisor extends FragmentActivity
 {
@@ -77,8 +74,6 @@ public class Supervisor extends FragmentActivity
     public void onCreate(Bundle savedInstanceState) 
     {
     	final String FUNC_TAG = "onCreate";
-    	
-    	Debug.i(TAG, FUNC_TAG, "onCreate");
     	
         super.onCreate(savedInstanceState);
         setContentView(R.layout.super_main);
@@ -161,15 +156,15 @@ public class Supervisor extends FragmentActivity
     }
     
     @Override
-    public void onPause(){
+    public void onPause()
+    {
     	super.onPause();
     }
     
     @Override
-    public void onResume(){
+    public void onResume()
+    {
     	super.onResume();
-    	
-    	Debug.i(TAG, "onResume", "");
     	
     	init();
     	
@@ -180,10 +175,9 @@ public class Supervisor extends FragmentActivity
     }
     
     @Override
-    public void onStart(){
+    public void onStart()
+    {
     	super.onStart();
-    	
-    	Debug.i(TAG, "onStart", "");
     }
     
     public void init()
@@ -199,28 +193,37 @@ public class Supervisor extends FragmentActivity
         Debug.i(TAG, FUNC_TAG, "CONFIG: "+validConfigurationExists+" PARAMS: "+validParametersExist);
         
         invalidateOptionsMenu();
-		if (!configurationManager.configs.isEmpty()) {
+
+		if (!configurationManager.configs.isEmpty())
+        {
 			int pagerTitleColor = configurationManager.configs.get(0).allPackagesValid ? COLOR_VALID : COLOR_INVALID;
 			((PagerTitleStrip) findViewById(R.id.pager_title_strip)).setBackgroundColor(pagerTitleColor);
 		}
+
 		if (!validParametersExist) {
 			int titleColor = COLOR_INVALID;
 			((TextView) findViewById(R.id.currentText)).setBackgroundColor(titleColor);
 			((TextView) findViewById(R.id.currentText)).setText("Invalid or missing parameters.Check the 'parameters.xml' file.");
 		}
 		
-		if (validConfigurationExists) {
-			if(validParametersExist) {
+		if (validConfigurationExists)
+        {
+			if(validParametersExist)
+            {
 				startDiAsServices();
 			}
-			else {
+			else
+            {
 				Toast.makeText(this.getBaseContext(), "No parameters in database, system not starting. Check the 'parameters.xml' file.", Toast.LENGTH_LONG).show();
 			}
-		} else {
+		}
+        else
+        {
         }
     }
     
-	private void startDiAsServices() {
+	private void startDiAsServices()
+    {
     	final String FUNC_TAG = "startDiAsServices";
     	
 		Intent startApp;
@@ -363,7 +366,8 @@ public class Supervisor extends FragmentActivity
 		c.close();
 	}
 	
-	public class SectionsPagerAdapter extends FragmentPagerAdapter {
+	public class SectionsPagerAdapter extends FragmentPagerAdapter
+    {
 
 		public SectionsPagerAdapter(FragmentManager fm) {
 			super(fm);
