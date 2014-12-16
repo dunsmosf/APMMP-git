@@ -8,6 +8,7 @@
       <module fileurl="file://$PROJECT_DIR$/IronMan.iml" filepath="$PROJECT_DIR$/IronMan.iml" />
       <module fileurl="file://$PROJECT_DIR$/Jarvis/Jarvis.iml" filepath="$PROJECT_DIR$/Jarvis/Jarvis.iml" />
       <module fileurl="file://$PROJECT_DIR$/RocheDriver/RocheDriver.iml" filepath="$PROJECT_DIR$/RocheDriver/RocheDriver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SimulationDriver/SimulationDriver.iml" filepath="$PROJECT_DIR$/SimulationDriver/SimulationDriver.iml" />
       <module fileurl="file://$PROJECT_DIR$/SkyNet/SkyNet.iml" filepath="$PROJECT_DIR$/SkyNet/SkyNet.iml" />
       <module fileurl="file://$PROJECT_DIR$/Ultron/Ultron.iml" filepath="$PROJECT_DIR$/Ultron/Ultron.iml" />
     </modules>

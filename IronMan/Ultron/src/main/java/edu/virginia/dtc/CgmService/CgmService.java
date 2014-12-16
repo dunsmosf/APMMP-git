@@ -38,9 +38,6 @@ import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.RemoteException;
 
-/**
- * This is the main Activity that displays the current chat session.
- */
 public class CgmService extends Service {	
 	
 	// CGM Service commands
@@ -237,7 +234,7 @@ public class CgmService extends Service {
         }
         else
         {
-            time = SupervisorActivity.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
+            time = SupervisorService.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
         }
         c.close();
 
@@ -277,7 +274,7 @@ public class CgmService extends Service {
         }
         else
         {
-            time = SupervisorActivity.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
+            time = SupervisorService.getSystemSeconds() - SupervisorService.IterationTimeSeconds;
         }
         c.close();
 

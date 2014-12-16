@@ -71,24 +71,8 @@ public class networkService extends Service {
 //	private static final boolean LOGGING = false;
 	private static final boolean MESSAGE_LOGGING_ENABLED = false;
 	private static final int LOG_ACTION_SERIOUS = 5;
-	public static final String PREFS_NAME = "HardwareSettingsFile";
-
-	// DIAS_STATE values
-	public static final int DIAS_STATE_STOPPED = 0;
-	public static final int DIAS_STATE_OPEN_LOOP = 1;
-	public static final int DIAS_STATE_CLOSED_LOOP = 2;
-	public static final int DIAS_STATE_SAFETY_ONLY = 3;
-	public static final int DIAS_STATE_SENSOR_ONLY = 4;
-
-	// logical definitions for iDex CGM values
-	private static final int IDEX_CGM_NO_ANTENNA = 2;
 
 	public static final String REMOTE_MONITORING_URI = "";
-//	public static final String REMOTE_MONITORING_URI = "https://dwm.med.virginia.edu";
-//	public static final String REMOTE_MONITORING_URI = "https://jplace.legtux.org";
-//	public static final String REMOTE_MONITORING_URI = "https://dias.med.virginia.edu/test_diaswebmonitoring/web/app.php";
-//	public static final String REMOTE_MONITORING_URI = "https://staging.ap-monitoring.com";
-//	public static final String REMOTE_MONITORING_URI = "https://192.168.2.3";
 
 	public static final String KEY_121_CGM = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/cgm_transfer.php";
 	public static final String KEY_121_INSULIN = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/insulin_transfer.php";
@@ -98,10 +82,7 @@ public class networkService extends Service {
 	public static final String KEY_121_SMBG = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/smbg_transfer.php";
 	public static final String KEY_121_EVENT = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/event_transfer.php";
 	public static final String KEY_121_SYSTEM = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/system_transfer.php";
-	public static final String KEY_121_USER_3 = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/user3_transfer.php";
-	public static final String KEY_121_USER_4 = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/user4_transfer.php";
 	public static final String KEY_121_PARAMS = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/params_transfer.php";
-	public static final String KEY_121_RECOVERY = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/init_recovery.php";
 	
 	public static final String KEY_121_CGM_END = "/diabetesassistant/androidservices/cgm_transfer.php";
 	public static final String KEY_121_INSULIN_END = "/diabetesassistant/androidservices/insulin_transfer.php";
@@ -111,10 +92,7 @@ public class networkService extends Service {
 	public static final String KEY_121_SMBG_END = "/diabetesassistant/androidservices/smbg_transfer.php";
 	public static final String KEY_121_EVENT_END = "/diabetesassistant/androidservices/event_transfer.php";
 	public static final String KEY_121_SYSTEM_END = "/diabetesassistant/androidservices/system_transfer.php";
-	public static final String KEY_121_USER_3_END = "/diabetesassistant/androidservices/user3_transfer.php";
-	public static final String KEY_121_USER_4_END = "/diabetesassistant/androidservices/user4_transfer.php";
 	public static final String KEY_121_PARAMS_END = "/diabetesassistant/androidservices/params_transfer.php";
-	public static final String KEY_121_RECOVERY_END = "/diabetesassistant/androidservices/init_recovery.php";
 	
 	public static final String KEY_121_SUBJECTDATA = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/subjectdata_transfer.php";
 	public static final String KEY_121_CF = REMOTE_MONITORING_URI + "/diabetesassistant/androidservices/cf_transfer.php";
@@ -260,10 +238,6 @@ public class networkService extends Service {
 				Send_Request("event", KEY_121_EVENT, KEY_121_EVENT_END, Biometrics.EVENT_URI, EVENT_PARAMS);
 				
 				Send_Request("system", KEY_121_SYSTEM, KEY_121_SYSTEM_END, Biometrics.SYSTEM_URI, SYSTEM_PARAMS);
-				
-				Send_Request("user3", KEY_121_USER_3, KEY_121_USER_3_END, Biometrics.USER_TABLE_3_URI, USER_3_PARAMS);
-				
-				Send_Request("user4", KEY_121_USER_4, KEY_121_USER_4_END, Biometrics.USER_TABLE_4_URI, USER_4_PARAMS);
 				
 				Send_Request_Params(KEY_121_PARAMS, KEY_121_PARAMS_END, Biometrics.PARAM_URI, PARAMS_PARAMS);
 				
@@ -882,17 +856,17 @@ public class networkService extends Service {
         // Set up icons indicating state of DWM connectivity
         Intent rmIconIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
 		rmIconIntent.putExtra("id", REMOTE_MONITORING_ICON_ID);
-		rmIconIntent.putExtra("resourcePackage", "edu.virginia.dtc.networkService");	
+		rmIconIntent.putExtra("resourcePackage", "edu.virginia.dtc.DiAsService");
 		rmIconIntent.putExtra("resourceID", R.drawable.remote_monitoring_cloud);
 		
 		Intent weakRmIconIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
 		weakRmIconIntent.putExtra("id", WEAK_REMOTE_MONITORING_ICON_ID);
-		weakRmIconIntent.putExtra("resourcePackage", "edu.virginia.dtc.networkService");	
+		weakRmIconIntent.putExtra("resourcePackage", "edu.virginia.dtc.DiAsService");
 		weakRmIconIntent.putExtra("resourceID", R.drawable.weak_remote_monitoring_cloud);
 		
 		Intent noRmIconIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
 		noRmIconIntent.putExtra("id", NO_REMOTE_MONITORING_ICON_ID);
-		noRmIconIntent.putExtra("resourcePackage", "edu.virginia.dtc.networkService");	
+		noRmIconIntent.putExtra("resourcePackage", "edu.virginia.dtc.DiAsService");
 		noRmIconIntent.putExtra("resourceID", R.drawable.no_remote_monitoring_cloud);
 		
         if (output > 0) {

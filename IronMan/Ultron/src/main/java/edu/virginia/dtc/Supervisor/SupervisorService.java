@@ -29,7 +29,7 @@ public class SupervisorService extends Service
 	private PowerManager.WakeLock wl;
 	private long tickCounter;
 	private boolean batteryCollectionStarted = false;
-	
+
     public Handler handler;
 	public static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	public static ScheduledFuture<?> timer;
@@ -57,6 +57,16 @@ public class SupervisorService extends Service
     		tickCounter++;
 		}	
 	};
+
+    public static long getSystemSeconds()
+    {
+        return System.currentTimeMillis()/1000;
+    }
+
+    public static long getSystemMilliseconds()
+    {
+        return System.currentTimeMillis();
+    }
 
     //TODO: check time stuff, i've removed it for now
 	@Override

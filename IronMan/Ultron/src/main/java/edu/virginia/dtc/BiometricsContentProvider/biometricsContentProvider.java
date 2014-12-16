@@ -1,23 +1,11 @@
 package edu.virginia.dtc.BiometricsContentProvider;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.CursorIndexOutOfBoundsException;
@@ -30,6 +18,18 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Environment;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
@@ -252,7 +252,8 @@ public class biometricsContentProvider extends ContentProvider {
     private static final String DATABASE_TABLE_SERVICE_OUTPUTS =
     "create table " + Biometrics.SERVICE_OUTPUTS_TABLE_NAME
     + "(_id integer primary key autoincrement,"
-    + "time long not null, type int, cycle long, output text, "
+    + "time long not null, cycle long, source int, destination int, "
+    + "machine int, type int, message int, data text, "
     + "send_attempts_server int, received_server boolean);";
     
     private static class DatabaseHelper extends SQLiteOpenHelper
@@ -272,7 +273,6 @@ public class biometricsContentProvider extends ContentProvider {
         {
             final String FUNC_TAG = "onCreate";
 		  	
-            Debug.i(TAG, FUNC_TAG, "DATABASE_TABLE_CGM_CREATE");
             db.execSQL(DATABASE_TABLE_HARDWARE_CONFIGURATION_CREATE );			// Create hardware configuration table
             db.execSQL(DATABASE_TABLE_CGM_CREATE );								// Create cgm table
             db.execSQL(DATABASE_TABLE_INSULIN_CREATE );							// Create insulin table

@@ -1,8 +1,5 @@
 from subprocess import *
 
-#CHANGE THE SHELL COMMANDS HERE
-#Obviously if you use platform-specific commands like windows/unix commands it won't work on everything
-#But any adb commands should work
 SHELL_COMMANDS = r"""
 
 :: Configuration and parameters
@@ -24,7 +21,7 @@ adb install "Jarvis/build/outputs/apk/Jarvis-debug.apk"
 
 :: Drivers
 ::----------------------------------
-
+adb install "SimulationDriver/build/outputs/apk/SimulationDriver-debug.apk"
 
 """
 

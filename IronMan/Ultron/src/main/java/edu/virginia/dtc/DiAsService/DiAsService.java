@@ -1,25 +1,5 @@
 package edu.virginia.dtc.DiAsService;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -29,7 +9,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -43,11 +22,9 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
@@ -56,8 +33,21 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
-import edu.virginia.dtc.DiAsService.R;
-import edu.virginia.dtc.SysMan.APC;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
@@ -134,20 +124,6 @@ public class DiAsService extends Service
 	public static final int MDI_ACTIVITY_STATUS_TIMEOUT = -1;
 
 	public int SSM_STATE;
-	
-	// APCservice commands
-	public static final int APC_SERVICE_CMD_NULL = 0;
-	public static final int APC_SERVICE_CMD_START_SERVICE = 1;
-	public static final int APC_SERVICE_CMD_REGISTER_CLIENT = 2;
-	public static final int APC_SERVICE_CMD_CALCULATE_STATE = 3;
-	
-    // APCservice return values
-    public static final int APC_PROCESSING_STATE_NORMAL = 10;
-    public static final int APC_PROCESSING_STATE_ERROR = -11;
-    public static final int APC_CONFIGURATION_PARAMETERS = 12;		// APController parameter status return
-
-    // APController type
-    private int APC_MODE;
 
 	//********************************************************************************************************
 	// VARIABLES
@@ -167,12 +143,9 @@ public class DiAsService extends Service
 	private double nextSimulatedPumpValue = 0.0;								// Used to handle simulated pump input from a file
 	private int Timer_Ticks_Per_Control_Tick = 1;								// Multiple of SupervisorService algorithm ticks that is counted to before calling APController
 	private long Supervisor_Tick_Free_Running_Counter = 0;						// A free running counter incremented on each Supervisor Algorithm Tick
-	private int Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = 3;
 	
 	// BRM hour parameters from Subject Information
 	private boolean brmEnabled = true;
-
-	public double EPSILON = 0.000001;						// Effectively zero for doubles
 	
 	// Power management
 	private PowerManager pm;
@@ -212,11 +185,10 @@ public class DiAsService extends Service
 	// State from Safety System
 	public int hypoLight = Safety.UNKNOWN_LIGHT;
 	public int hyperLight = Safety.UNKNOWN_LIGHT;
-	private boolean isMealBolus = false;
-	public double brakes_coeff = 1.0;
-	public double latestIOB;
-	public boolean IOBvalid = true;
-	public boolean CRvalid = false;
+
+	public boolean isMealBolus = false;
+    public double brakesCoefficient = 1.0;
+    public double latestIob;
 	
 	// Last four CGM data points stored for slope calculation
 	private Tvector Tvec_cgm1;
@@ -236,34 +208,8 @@ public class DiAsService extends Service
 	public int hypoMuteDuration; // Duration, in minutes, of the hypo alarm muting
 	public final int maxHypoMuteDuration = 60; // Maximum duration, in minutes, of the hypo alarm muting (security value, has priority on the 'parameters.xml' values)
 	
-	private Controller Apc, Brm, Mcm;
-	
 	private double cgm_min_value;
 	private double cgm_max_value;
-		
-	// Connection to the SSM
-    private ServiceConnection mSSMConnection;
-    final Messenger mSSMMessenger = new Messenger(new IncomingSSMHandler());
-    Messenger mSSM = null;	
-    boolean mSSMBound;			
-
-	// Connection to the APC    
-    private ServiceConnection mAPCConnection;
-    final Messenger mAPCMessenger = new Messenger(new IncomingAPCHandler());
-    Messenger mAPC = null;				
-    boolean mAPCBound, APC_ready;	
-    
-	// Connection to the BRM    
-    private ServiceConnection mBRMConnection;
-    final Messenger mBRMMessenger = new Messenger(new IncomingBRMHandler());
-    private Messenger mBRM = null;		
-    private boolean mBRMBound;		
-    
-    // Connection to the MCM
-    private ServiceConnection mMCMConnection;			
-    final Messenger mMCMMessenger = new Messenger(new IncomingMCMHandler());
-    private Messenger mMCM = null;		
-    private boolean mMCMBound, MCM_ready;
 
     private CellularRssiListener cellRssi;
 	private TelephonyManager telMan;
@@ -281,12 +227,10 @@ public class DiAsService extends Service
 	private InsulinObserver insulinObserver;
 	private EventObserver eventObserver;
 	private StateObserver stateObserver;
-	private FsmObserver fsmObserver;
 	private TempBasalObserver tempBasalObserver;
 	private ExerciseStateObserver exerciseStateObserver;
 	
 	// Handling of loss of CGM data
-	
 	private final int CGM_WARN_DELAY_MINS = 12;
 	
 	private boolean basalPaused = false;
@@ -300,1000 +244,10 @@ public class DiAsService extends Service
 	private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 	private static ScheduledFuture<?> timeoutTimer, waitTimer;
 	
-	private Machine ASYNC, SYNC, TBR, DEV;
-	
 	private static DiAsSubjectData subject_data;
-	
-	private Runnable wait = new Runnable()
-	{
-		final String FUNC_TAG = "wait";
-		
-		public void run()
-		{
-			if(ASYNC.state == FSM.WAIT)
-			{
-				if(SYNC.isBusy() || TBR.isBusy())
-				{
-					Debug.i(TAG, FUNC_TAG, "Still waiting for other FSMs to finish...");
-				}
-				else
-				{
-					Debug.i(TAG, FUNC_TAG, "Changing state to start...");
-					changeAsyncState(FSM.START);
-				}
-			}
-		}
-	};
-	
-	private Runnable timeout = new Runnable()
-	{
-		final String FUNC_TAG = "timeout";
-		
-		public void run()
-		{
-			Debug.i(TAG, FUNC_TAG, "Timeout for devices firing!");
-			
-			if(ASYNC.state == FSM.WAKE_RESPONSE)
-			{
-				Debug.i(TAG, FUNC_TAG, "ASYNC FSM returning to idle...");
-				changeAsyncState(FSM.IDLE);
-				reportMcmUi(false);
-			}
-			
-			if(SYNC.state == FSM.WAKE_RESPONSE)
-			{
-				Debug.i(TAG, FUNC_TAG, "SYNC FSM returning to idle...");
-				changeSyncState(FSM.IDLE);
-			}
-			
-			if(TBR.state == FSM.WAKE_RESPONSE)
-			{
-				Debug.i(TAG, FUNC_TAG, "TBR FSM returning to idle...");
-				changeTbrState(FSM.IDLE);
-			}
-			
-			clearDev();
-		}
-	};
-	
-	//*******************************************************************************************************************************
-	//	 ___ ___ __  __   ___              _        
-	//	/ __/ __|  \/  | / __| ___ _ ___ _(_)__ ___ 
-	//	\__ \__ \ |\/| | \__ \/ -_) '_\ V / / _/ -_)
-	//	|___/___/_|  |_| |___/\___|_|  \_/|_\__\___|
-	//
-	//*******************************************************************************************************************************
-	
-    class IncomingSSMHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) 
-        {
-        	final String FUNC_TAG = "IncomingSSMHandler";
-        	
-        	Bundle responseBundle;
-        	
-            switch (msg.what) {
-        		case Safety.SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE:
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "SSMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-                						"SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE");
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-        			}        			
-    				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE, DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);            				
-        			break;
-        		case Safety.SAFETY_SERVICE_STATE_CALCULATE_RESPONSE:
-        			Debug.i(TAG, FUNC_TAG, "Safety Service Calculate Response!");
-        			
-        			if(SYNC.state == FSM.SSM_CALC_CALL)
-        			{
-        				changeSyncState(FSM.SSM_CALC_RESPONSE);
-        			}
-        			if(ASYNC.state == FSM.SSM_CALC_CALL)
-        			{
-        				changeAsyncState(FSM.SSM_CALC_RESPONSE);
-        			}
-        			break;
-        		case Safety.SAFETY_SERVICE_STATE_NORMAL:
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL, DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);
-        			if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_UPDATE) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_UPDATE");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVER_BASAL) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVER_BASAL");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_GET_STATUS) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_GET_STATUS");
-        				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-        			}
-        			else {
-        				Debug.i(TAG, FUNC_TAG, "Error > DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);            				
-        			}
-        			
-					responseBundle = msg.getData();
-	       	        writeTrafficLights(Safety.TRAFFIC_LIGHT_CONTROL_SSMSERVICE, responseBundle.getInt("stoplight", Safety.UNKNOWN_LIGHT), responseBundle.getInt("stoplight2", Safety.UNKNOWN_LIGHT));
-					
-					isMealBolus = responseBundle.getBoolean("isMealBolus", false);
-					brakes_coeff = responseBundle.getDouble("brakes_coeff", 1.0);
-					latestIOB = responseBundle.getDouble("IOB", 0.0);
-					IOBvalid = true;
-					CRvalid = true;
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > IOB="+latestIOB+", brakes_coeff="+brakes_coeff);
-        			
-        			updateSystem(null);		// Store latestIOB in the system table
-        			
-        			// Log the parameters for IO testing
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "SSMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"SAFETY_SERVICE_STATE_NORMAL"+", "+
-                						"stoplight="+hypoLight+", "+
-                						"stoplight2="+hyperLight+", "+
-                						"brakes_coeff="+brakes_coeff+", "+
-                						"IOB="+latestIOB
-                				);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-        			}
 
-					Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > latestIOB="+latestIOB+"stoplight="+hypoLight+", stoplight2="+hyperLight);
-        			SSM_STATE = msg.what;
-        			
-        			////Check Hypo Alarm
-        			checkForHypo(); //-> Also included in the 1 minute tick
-        			
-        			//Check for CGM -> switch to Open Loop and pause basal injection
-        			updateBasalPauseStatus();
-        			
-        			//Check Hyper Alarm
-        			checkForHyper();
-        			
-        			Debug.i(TAG, FUNC_TAG, "Synchronous State: "+FSM.callStateToString(SYNC.state));
-        			
-        			if(SYNC.state != FSM.IDLE)
-        			{
-    					changeSyncState(FSM.SSM_RESPONSE);
-        			}
-        			
-        			if(ASYNC.state == FSM.MCM_REQUEST)
-        			{
-        				changeAsyncState(FSM.SSM_RESPONSE);
-        			}
-        			break;
-        		case Safety.SAFETY_SERVICE_STATE_PUMP_ERROR:
-					responseBundle = msg.getData();
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "SSMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"SAFETY_SERVICE_STATE_PUMP_ERROR"
-                				);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-//        				log_IO(IO_TEST_TAG, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-//        				log_IO(IO_TEST_TAG, "< SAFETY_SERVICE_STATE_PUMP_ERROR");
-        			}        			
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_PUMP_ERROR");
-        			if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS) {
-        				Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS");
-        				updateStatusMealBolusFailed();
-        			}
-    				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-        			SSM_STATE = Safety.SAFETY_SERVICE_STATE_NORMAL;
-        			break;
-        		case Safety.SAFETY_SERVICE_STATE_BUSY:
-					responseBundle = msg.getData();
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "SSMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"SAFETY_SERVICE_STATE_BUSY"
-                				);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-//        				log_IO(IO_TEST_TAG, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-//        				log_IO(IO_TEST_TAG, "< SAFETY_SERVICE_STATE_BUSY");
-        			}        			
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_BUSY");
-    				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-        			SSM_STATE = Safety.SAFETY_SERVICE_STATE_NORMAL;
-        			break;
-        		case Safety.SAFETY_SERVICE_STATE_INVALID_COMMAND:
-					responseBundle = msg.getData();
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "SSMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"SAFETY_SERVICE_STATE_INVALID_COMMAND"
-                				);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-        			}        			
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_INVALID_COMMAND");
-    				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-        			SSM_STATE = msg.what;
-        			break;
-	        	default:
-            		Bundle b = new Bundle();
-            		b.putString(	"description", "SSMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-    								"UNKNOWN_MESSAGE="+msg.what
-            				);
-            		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
-	        		super.handleMessage(msg);
-            }
-            
-            updateDiasService(DIAS_UI_CLICK_NULL);			// Update DIAS_STATE
-        }
-    }
-    
-    public void startSSM()
-    {
-        mSSMConnection = new ServiceConnection() {
-        	final String FUNC_TAG = "mSafetyServiceConnection";
-        	
-            public void onServiceConnected(ComponentName className, IBinder service) {
-                // This is called when the connection with the service has been
-                // established, giving us the object we can use to
-                // interact with the service.  We are communicating with the
-                // service using a Messenger, so here we get a client-side
-                // representation of that from the raw IBinder object.
-                Debug.i(TAG, FUNC_TAG, "onServiceConnected Safety Service");
-                mSSM = new Messenger(service);
-                mSSMBound = true;
-                Debug.i(TAG, FUNC_TAG, "SafetyServiceStart");
+    private Controllers controllers;
 
-                try {
-            		// Send a register-client message to the service with the client message handler in replyTo
-            		Message msg = Message.obtain(null, Safety.SAFETY_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
-            		msg.replyTo = mSSMMessenger;
-            		mSSM.send(msg);
-					// Log the parameters for IO testing
-					if (true) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "(DiAsService) >> SSMservice, IO_TEST"+", "+FUNC_TAG+", "+
-        								"SAFETY_SERVICE_CMD_REGISTER_CLIENT"
-                				);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-            		// Send an initialize message to the service
-            		msg = Message.obtain(null, Safety.SAFETY_SERVICE_CMD_START_SERVICE, 0, 0);
-            		Bundle paramBundle = new Bundle();
-            		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-            		msg.replyTo = mSSMMessenger;
-            		msg.setData(paramBundle);
-            		mSSM.send(msg);
-
-					// Log the parameters for IO testing
-					if (true) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "(DiAsService) >> SSMservice, IO_TEST"+", "+FUNC_TAG+", "+
-        								"SAFETY_SERVICE_CMD_START_SERVICE"+", "+
-        								"simulatedTime="+paramBundle.getLong("simulatedTime")
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-                }
-                catch (RemoteException e) {
-            		e.printStackTrace();
-                }
-           }
-
-           public void onServiceDisconnected(ComponentName className) {
-        	   // This is called when the connection with the service has been
-        	   // unexpectedly disconnected -- that is, its process crashed.
-        	   Debug.i(TAG, FUNC_TAG, "onServiceDisconnected");
-        	   mSSM = null;
-        	   mSSMBound = false;
-        	   
-        	   Debug.e(TAG, FUNC_TAG, "The SSM service connection was killed attempting to restart...");
-        	   startSSM();
-           }
-        };
-        
-        // Bind to the Safety Service
-        Intent intent = new Intent("DiAs.SSMservice");
-        bindService(intent, mSSMConnection, Context.BIND_AUTO_CREATE);
-    }
-    
-    public boolean getSSMMessenger(Message m) {
-		if(mSSMBound)
-		{
-			try {
-				mSSM.send(m);
-				return true;
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-		}
-		else
-		{
-			Intent intent1 = new Intent("DiAs.SSMService");
-	        bindService(intent1, mSSMConnection, Context.BIND_AUTO_CREATE);  
-	        return false;
-		}
-		
-		return false;
-	}
-    
-    //*******************************************************************************************************************************
-	//    _   ___  ___   ___              _        
-	//   /_\ | _ \/ __| / __| ___ _ ___ _(_)__ ___ 
-	//  / _ \|  _/ (__  \__ \/ -_) '_\ V / / _/ -_)
-	// /_/ \_\_|  \___| |___/\___|_|  \_/|_\__\___|
-	//                                             
-    //*******************************************************************************************************************************
-    
-    class IncomingAPCHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-        	final String FUNC_TAG = "IncomingAPCHandler";
-        	
-        	Bundle APCBundle;
-        	
-            switch (msg.what) {
-        		case APC_PROCESSING_STATE_NORMAL:
-            		if (DIAS_SERVICE_STATE !=  DIAS_SERVICE_STATE_AWAITING_APC_RESPONSE) {
-            			Debug.i(TAG, FUNC_TAG, "Returned from APC > Error > DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);
-            		}
-        			// Fetch the APC recommended insulin therapy
-					APCBundle = msg.getData();
-					double APC_IOB = APCBundle.getDouble("IOB", 0.0);
-					Apc.doesBolus = APCBundle.getBoolean("doesBolus", false);
-					Apc.doesCredit = APCBundle.getBoolean("doesCredit", false);
-					Apc.doesRate = APCBundle.getBoolean("doesRate", false);
-					Apc.correction = APCBundle.getDouble("recommended_bolus");
-					Apc.credit = APCBundle.getDouble("creditRequest", 0.0);
-					Apc.spend = APCBundle.getDouble("spendRequest", 0.0);
-					boolean new_differential_rate = APCBundle.getBoolean("new_differential_rate", false);
-					if (new_differential_rate) {
-    					Apc.diff_rate = APCBundle.getDouble("differential_basal_rate", 0.0);
-						Apc.last_calc_time = getCurrentTimeSeconds();
-					}
-					if (APC_MODE == APC.MODE_APC_INSTALLED) {			// If we have Apc but no Brm then Apc sets diff_rate
-    					Apc.diff_rate = APCBundle.getDouble("differential_basal_rate", 0.0);
-						Apc.last_calc_time = getCurrentTimeSeconds();
-						Apc.doesRate = true;
-					}
-					Apc.extended = APCBundle.getBoolean("extendedBolus");
-					boolean asynchronous = APCBundle.getBoolean("asynchronous");
-					Apc.ext_meal = APCBundle.getDouble("extendedBolusMealInsulin");
-					Apc.ext_correction = APCBundle.getDouble("extendedBolusCorrInsulin");
-					
-    		    	int traffic_light = Params.getInt(getContentResolver(), "traffic_lights", 0);
-					writeTrafficLights(Safety.TRAFFIC_LIGHT_CONTROL_APCSERVICE, APCBundle.getInt("stoplight", Safety.UNKNOWN_LIGHT), APCBundle.getInt("stoplight2", Safety.UNKNOWN_LIGHT));
-					
-        			// Log the parameters for IO testing
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "APC >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_PROCESSING_STATE_NORMAL"+", "+
-        								"APC_IOB="+APC_IOB+", "+
-    									"doesBolus="+Apc.doesBolus+", "+
-    									"doesCredit="+Apc.doesCredit+", "+
-    									"doesRate="+Apc.doesRate+", "+
-        								"bolusCorrection="+Apc.correction+", "+
-        								"creditRequest="+Apc.credit+", "+
-        								"spendRequest="+Apc.spend+", "+
-        								"new_differential_rate="+new_differential_rate+", "+
-        								"differential_basal_rate="+Apc.diff_rate+", "+
-        								"extendedBolus="+Apc.extended+", "+
-        								"asynchronous="+asynchronous+", "+
-        								"extendedBolusMealInsulin="+Apc.ext_meal+", "+
-        								"extendedBolusCorrInsulin="+Apc.ext_correction
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-        			}      			
-					// Get the offset in minutes into the current day in the current time zone (based on cell phone time zone setting)
-					TimeZone tz = TimeZone.getDefault();
-					int UTC_offset_secs = tz.getOffset(getCurrentTimeSeconds()*1000)/1000;
-					int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
-
-        			Debug.i(TAG, FUNC_TAG, "APC_PROCESSING_STATE_NORMAL > bolusCorrection="+Apc.correction+
-        					", differential_basal_rate="+Apc.diff_rate+", creditRequest="+Apc.credit+", spendRequest="+Apc.spend+
-        					", new_differential_rate="+new_differential_rate+", lastRCMCalculationTime="+Apc.last_calc_time+
-        					", timeNowMins="+timeNowMins);
-        								
-                	APC_ready = true;
-                	
-                	changeSyncState(FSM.APC_RESPONSE);
-        			break;
-        		case APC_PROCESSING_STATE_ERROR:
-	           		DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-	    			Debug.i(TAG, FUNC_TAG, "APC_PROCESSING_STATE_ERROR");
-	            	APC_ready = true;
-	    			break;
-	           	case APC_CONFIGURATION_PARAMETERS:
-					APCBundle = msg.getData();
-					Timer_Ticks_Per_Control_Tick = APCBundle.getInt("Timer_Ticks_Per_Control_Tick", 1);
-					Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = APCBundle.getInt("Timer_Ticks_To_Next_Meal_From_Last_Rate_Change", 3);
-					Supervisor_Tick_Free_Running_Counter = 0;
-        			// Log the parameters for IO testing
-        			if (true) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "APC >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_CONFIGURATION_PARAMETERS"+
-        								"Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick+", "+
-        								"Timer_Ticks_To_Next_Meal_From_Last_Rate_Change="+Apc.correction+", "+
-        								"creditRequest="+Timer_Ticks_To_Next_Meal_From_Last_Rate_Change
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-        			}        			
-					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick);
-					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_To_Next_Meal_From_Last_Rate_Change="+Timer_Ticks_To_Next_Meal_From_Last_Rate_Change);
-	            	APC_ready = true;
-	           		break;
-	        	default:
-					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
-        			if (true) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "APC >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"UNKNOWN_MESSAGE="+msg.what
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-        			}
-	        		super.handleMessage(msg);
-	        		break;
-            }
-            
-            updateDiasService(DIAS_UI_CLICK_NULL);			// Update DIAS_STATE
-        }
-    }
-
-    public void startAPC()
-    {
-    	mAPCConnection = new ServiceConnection() {
-        	final String FUNC_TAG = "mAPCConnection";
-        	
-            public void onServiceConnected(ComponentName className, IBinder service) {
-                // This is called when the connection with the APC has been
-                // established, giving us the object we can use to
-                // interact with the APC service.  We are communicating with the
-                // APC service using a Messenger, so here we get a client-side
-                // representation of that from the raw IBinder object.
-                Debug.i(TAG, FUNC_TAG, "onServiceConnected APC");
-                mAPC = new Messenger(service);
-                mAPCBound = true;
-                Apc.bound = true;
-                Debug.i(TAG, FUNC_TAG, "APC Start");
-
-                try {
-            		// Send a register-client message to the APC service with the client message handler in replyTo
-                	Debug.i(TAG, FUNC_TAG, "Attempt to register with APC");
-            		Message msg1 = Message.obtain(null, APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
-            		if (true) {
-            			msg1.arg1 = 1;	// 1 == true (C conventions)
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "(DiAsService) >> APC, IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_SERVICE_CMD_REGISTER_CLIENT"
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-            		} else {
-            			msg1.arg1 = 0;	// 0 == false
-            		}
-            		msg1.replyTo = mAPCMessenger;
-            		mAPC.send(msg1);
-            		
-            		// Send an initialize message to the service
-            		msg1 = Message.obtain(null, APC_SERVICE_CMD_START_SERVICE, 0, 0);
-            		Bundle paramBundle = new Bundle();
-            		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
-            		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-            		putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
-            		putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
-            		putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
-            		putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
-            		paramBundle.putDouble("TDI", subject_data.subjectTDI);
-            		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-            		
-            		if (true) {
-            			msg1.arg1 = 1;	// 1 == true (C conventions)
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "(DiAsService) >> APC, IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_SERVICE_CMD_START_SERVICE"+", "+
-        								"IOB_curve_duration_hours="+subject_data.subjectAIT+", "+
-        								"pump_cycle_time_seconds="+pump_cycle_time_seconds+", "+
-        								"simulatedTime="+getCurrentTimeSeconds()
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-            		}
-            		
-            		msg1.replyTo = mAPCMessenger;
-            		msg1.setData(paramBundle);
-            		mAPC.send(msg1);
-            		APC_ready = false;
-            		
-            		Debug.i(TAG, FUNC_TAG, "Pump cycle time: "+pump_cycle_time_seconds+" IOB_curve"+subject_data.subjectAIT);
-                }
-                catch (RemoteException e) {
-                	e.printStackTrace();
-                }
-                
-                switch(APC_MODE)
-                {
-	                case APC.MODE_NONE_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_INSTALLED;
-	                	break;
-	                case APC.MODE_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_BRM_INSTALLED;
-	                	break;
-                }
-                
-                Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
-           }
-            
-           public void onServiceDisconnected(ComponentName className) {
-        	   // This is called when the connection with the APC service has been unexpectedly disconnected -- that is, its process crashed
-        	   Debug.i(TAG, FUNC_TAG, "onServiceDisconnected APC");
-        	   mAPC = null;
-        	   mAPCBound = false;
-        	   Apc.bound = false;
-        	   
-        	   Debug.e(TAG, FUNC_TAG, "The APC service connection was killed attempting to restart...");
-        	   startAPC();
-        	   
-        	   switch(APC_MODE)
-               {
-	                case APC.MODE_APC_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_BRM_INSTALLED;
-	                	break;
-	                case APC.MODE_APC_INSTALLED:
-	                	APC_MODE = APC.MODE_NONE_INSTALLED;
-	                	break;
-               }
-        	   
-        	   Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
-           }
-        };
-        
-        // Bind to the APC Service or other AP Controller module
-        Intent intent1 = new Intent("DiAs.APCservice");
-        bindService(intent1, mAPCConnection, Context.BIND_AUTO_CREATE);     
-    }
-    
-    public boolean getAPCMessenger(Message m) {
-		if (mAPCBound)
-		{
-			try {
-				mAPC.send(m);
-				return true;
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-		}
-		else 
-		{
-	        Intent intent1 = new Intent("DiAs.APCservice");
-	        bindService(intent1, mAPCConnection, Context.BIND_AUTO_CREATE);
-	        return false;
-	    }
-		
-		return false;
-	}
-    
-    //*******************************************************************************************************************************
-	//   ___ ___ __  __   ___              _        
-	//  | _ ) _ \  \/  | / __| ___ _ ___ _(_)__ ___ 
-	//  | _ \   / |\/| | \__ \/ -_) '_\ V / / _/ -_)
-	//  |___/_|_\_|  |_| |___/\___|_|  \_/|_\__\___|
-	//                                                
-    //*******************************************************************************************************************************
-    
-    class IncomingBRMHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-        	final String FUNC_TAG = "IncomingBRMHandler";
-        	
-        	Bundle BRMBundle = msg.getData();
-        	
-            switch (msg.what) {
-        		case APC_PROCESSING_STATE_NORMAL:
-        			Brm.doesBolus = BRMBundle.getBoolean("doesBolus", false);
-					Brm.doesCredit = BRMBundle.getBoolean("doesCredit", false);
-					Brm.doesRate = BRMBundle.getBoolean("doesRate", false);
-					
-					boolean new_differential_rate = BRMBundle.getBoolean("new_differential_rate", false);
-
-					if (new_differential_rate) 
-					{
-    					Brm.diff_rate = BRMBundle.getDouble("differential_basal_rate", 0.0);
-						Brm.last_calc_time = getCurrentTimeSeconds();
-					}
-					if (APC_MODE == APC.MODE_BRM_INSTALLED) {			// If we have Brm but no Apc then Brm sets diff_rate
-						Brm.diff_rate = BRMBundle.getDouble("differential_basal_rate", 0.0);
-						Brm.last_calc_time = getCurrentTimeSeconds();
-						Brm.doesRate = true;
-					}
-					
-					Debug.i(TAG, FUNC_TAG, "BRM output - DiffRate: "+Brm.diff_rate+" lastCalcTime: "+Brm.last_calc_time);
-					
-    		    	int traffic_light = Params.getInt(getContentResolver(), "traffic_lights", 0);
-					writeTrafficLights(Safety.TRAFFIC_LIGHT_CONTROL_BRMSERVICE, BRMBundle.getInt("stoplight", Safety.UNKNOWN_LIGHT), BRMBundle.getInt("stoplight2", Safety.UNKNOWN_LIGHT));
-					
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-    	        		// Store BRM_RESPONSE Event
-    	        		Bundle b = new Bundle();
-                		b.putString(	"description", "BRMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_PROCESSING_STATE_NORMAL"+", "+
-    									"doesBolus="+Brm.doesBolus+", "+
-    									"doesCredit="+Brm.doesCredit+", "+
-    									"doesRate="+Brm.doesRate+", "+
-        								"bolusCorrection="+Brm.correction+", "+
-        								"creditRequest="+Brm.credit+", "+
-        								"spendRequest="+Brm.spend+", "+
-        								"new_differential_rate="+new_differential_rate+", "+
-        								"differential_basal_rate="+Brm.diff_rate
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_BRM_RESPONSE, Event.makeJsonString(b), Event.SET_LOG);
-        			}
-
-					changeSyncState(FSM.BRM_RESPONSE);
-					break;
-	        	default:
-					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
-        			if (true) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "BRM >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"UNKNOWN_MESSAGE="+msg.what
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-        			}
-	        		super.handleMessage(msg);
-	        		break;
-            }
-        }
-    }
-    
-    public void startBRM()
-    {
-    	mBRMConnection = new ServiceConnection() {
-        	final String FUNC_TAG = "mBRMConnection";
-        	
-            public void onServiceConnected(ComponentName className, IBinder service) {
-                Debug.i(TAG, FUNC_TAG, "onServiceConnected BRM");
-                mBRM = new Messenger(service);
-                mBRMBound = true;
-                Brm.bound = true;
-                Debug.i(TAG, FUNC_TAG, "BRM Start");
-                
-                try {
-            		// Send a register-client message to the APC service with the client message handler in replyTo
-                	Debug.i(TAG, FUNC_TAG, "Attempt to register with BRM");
-            		Message msg1 = Message.obtain(null, APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
-            		if (true) {
-            			msg1.arg1 = 1;	// 1 == true (C conventions)
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "(DiAsService) >> BRMservice, IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_SERVICE_CMD_REGISTER_CLIENT"
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-            		} else {
-            			msg1.arg1 = 0;	// 0 == false
-            		}
-            		msg1.replyTo = mBRMMessenger;
-            		mBRM.send(msg1);
-            		
-            		// Send an initialize message to the service
-            		msg1 = Message.obtain(null, APC_SERVICE_CMD_START_SERVICE, 0, 0);
-            		Bundle paramBundle = new Bundle();
-            		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
-            		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-            		putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
-            		putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
-            		putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
-            		putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
-            		paramBundle.putDouble("TDI", subject_data.subjectTDI);
-            		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-            		
-            		if (true) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "(DiAsService) >> BRMservice, IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_SERVICE_CMD_START_SERVICE"+", "+
-        								"IOB_curve_duration_hours="+subject_data.subjectAIT+", "+
-        								"pump_cycle_time_seconds="+pump_cycle_time_seconds+", "+
-        								"simulatedTime="+getCurrentTimeSeconds()
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-            		}
-            		
-            		msg1.replyTo = mBRMMessenger;
-            		msg1.setData(paramBundle);
-            		mBRM.send(msg1);
-            		
-            		Debug.i(TAG, FUNC_TAG, "Pump cycle time: "+pump_cycle_time_seconds+" IOB_curve"+subject_data.subjectAIT);
-                }
-                catch (RemoteException e) {
-                	e.printStackTrace();
-                }
-                
-                switch(APC_MODE)
-                {
-	                case APC.MODE_NONE_INSTALLED:
-	                	APC_MODE = APC.MODE_BRM_INSTALLED;
-	                	break;
-	                case APC.MODE_APC_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_BRM_INSTALLED;
-	                	break;
-                }
-                
-                Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
-           }
-            
-           public void onServiceDisconnected(ComponentName className) {
-        	   // This is called when the connection with the BRM service has been unexpectedly disconnected -- that is, its process crashed
-        	   Debug.i(TAG, FUNC_TAG, "onServiceDisconnected BRM");
-        	   mBRM = null;
-        	   mBRMBound = false;
-        	   Brm.bound = false;
-        	   
-        	   Debug.e(TAG, FUNC_TAG, "The BRM service connection was killed attempting to restart...");
-        	   startBRM();
-        	   
-        	   switch(APC_MODE)
-               {
-	                case APC.MODE_APC_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_INSTALLED;
-	                	break;
-	                case APC.MODE_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_NONE_INSTALLED;
-	                	break;
-               }
-        	   
-        	   Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
-           }
-        };
-        
-        // Bind to the BRM Service or other BRM module
-        Intent intentBRM = new Intent("DiAs.BRMservice");
-        bindService(intentBRM, mBRMConnection, Context.BIND_AUTO_CREATE); 
-    }
-    
-    public boolean getBRMMessenger(Message m) {
-		if (mBRMBound)
-		{
-			try {
-				mBRM.send(m);
-				return true;
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-		}
-		else 
-		{
-	        Intent intent1 = new Intent("DiAs.BRMService");
-	        bindService(intent1, mBRMConnection, Context.BIND_AUTO_CREATE);  
-	        return false;
-	    }		
-		
-		return false;
-	}
-    
-    //*******************************************************************************************************************************
-	//   __  __  ___ __  __   ___              _        
-	//  |  \/  |/ __|  \/  | / __| ___ _ ___ _(_)__ ___ 
-	//  | |\/| | (__| |\/| | \__ \/ -_) '_\ V / / _/ -_)
-	//  |_|  |_|\___|_|  |_| |___/\___|_|  \_/|_\__\___|
-	//                                                    
-    //*******************************************************************************************************************************
-    
-    class IncomingMCMHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-        	final String FUNC_TAG = "IncomingMCMHandler";
-        	
-        	Bundle MCMBundle = msg.getData();
-        	
-            switch (msg.what) 
-            {
-	            case edu.virginia.dtc.SysMan.Meal.MCM_UI:
-	            	if(msg.getData().getBoolean("end",false))
-	            	{
-	            		changeAsyncState(FSM.MCM_CANCEL);
-	            	}
-	            	break;
-            	case edu.virginia.dtc.SysMan.Meal.MCM_STARTED:
-            		Debug.i(TAG, FUNC_TAG, "Meal Screen opened!");
-            		changeAsyncState(FSM.START);
-            		break;
-	            case edu.virginia.dtc.SysMan.Meal.MCM_SEND_BOLUS:
-	            	Mcm.doesBolus = MCMBundle.getBoolean("doesBolus", false);
-	            	Mcm.doesCredit = MCMBundle.getBoolean("doesCredit", false);
-	            	
-	            	double max = -1;
-	            	
-	            	Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, new String[]{"max_bolus_U"}, null, null, null);
-	            	if(c != null && c.moveToFirst())
-	            	{
-	            		max = c.getDouble(c.getColumnIndex("max_bolus_U"));
-	            	}
-	            	else
-	            	{
-	            		Debug.e(TAG, FUNC_TAG, "Unable to get maximum bolus parameter, exiting...");
-	            		return;
-	            	}
-	            	
-	            	if(max < 0)
-	            	{
-	            		Debug.e(TAG, FUNC_TAG, "Maximum bolus parameter is invalid!");
-	            		return;
-	            	}
-	            	
-	            	Mcm.meal = Mcm.correction = Mcm.spend = Mcm.credit = 0.0;	//Zero out the values each time
-	            	
-	            	if(Mcm.doesBolus)
-	            	{
-	            		Mcm.meal = MCMBundle.getDouble("meal", 0.0);
-		           		Mcm.correction = MCMBundle.getDouble("corr", 0.0);
-		           		
-		           		Debug.i(TAG, FUNC_TAG, "Meal: "+Mcm.meal+" Corr: "+Mcm.correction);
-		           		
-		           		//TODO: Check this because it shouldn't be 2 * MAX
-		           		if(Mcm.meal + Mcm.correction > (2 * max))
-		           		{
-		           			double total = 2 * max;
-							
-							if (Mcm.meal >= total) 
-		      	  			{		
-		      	  	 			Mcm.meal = total;			//If the meal bolus is greater than the delivered then it all goes to meal
-		      	  	 			Mcm.correction = 0.0;
-		      	  	  		}
-		      	  	  		else 
-		      	  	  		{	
-		      	  	  			total -= Mcm.meal;
-		      	  	  			
-		      	  	  			if(Mcm.correction >= total)
-		      	  	  				Mcm.correction = total;
-		      	  	  		}
-							
-							Debug.w(TAG, FUNC_TAG, "Limiting meal and correction > Meal: "+Mcm.meal+" U Corr: "+Mcm.correction+" U");
-		           		}
-            		}
-	            	else if(Mcm.doesCredit)
-	            	{
-	            		Mcm.credit = MCMBundle.getDouble("credit", 0.0);
-	            		if(Mcm.credit > (2 * max))
-	            		{
-	            			Mcm.credit = 2 * max;
-	            			Debug.w(TAG, FUNC_TAG, "Credit limited to max: "+Mcm.credit+" U");
-	            		}
-	            		
-		           		Mcm.spend = MCMBundle.getDouble("spend", 0.0);
-		           		if(Mcm.spend > (2 * max))
-		           		{
-		           			Mcm.spend = 2 * max;
-		           			Debug.w(TAG, FUNC_TAG, "Spend limited to max: "+Mcm.spend+" U");
-		           		}
-		           		
-	            	}
-	            	else
-	            	{
-	            		Debug.e(TAG, FUNC_TAG, "MCM service is not reporting either method for bolusing or is trying to support both!");
-	            		return;
-	            	}
-		           	
-	           		double mealSize = MCMBundle.getDouble("mealSize", 0.0);
-	           		double smbg = MCMBundle.getDouble("smbg", 0.0);
-	           		
-	           		ContentValues mealValues = new ContentValues();
-	           		mealValues.put("meal_size_grams", mealSize);
-	           		mealValues.put("SMBG", smbg);
-	           		mealValues.put("time_announce", getCurrentTimeSeconds());
-	           		mealValues.put("time", getCurrentTimeSeconds());
-	           		
-	           		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || (Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", 0) == 0)) {
-		           		mealValues.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
-	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
-	           		}
-	           		else if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
-		           		mealValues.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_PENDING);
-	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
-	           		}
-		         	
-	        		// Store MCM_REQUEST Event
-	        		Bundle b = new Bundle();
-	        		b.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-										"MCM_SEND_BOLUS"
-    									+", credit="+String.format("%.2f", Mcm.credit)+"U"
-    									+", spend="+String.format("%.2f", Mcm.spend)+"U"
-    									+", meal="+String.format("%.2f", Mcm.meal)+"U"
-    									+", correction="+String.format("%.2f", Mcm.correction)+"U"
-    									+" in "+FUNC_TAG);
-	        		Event.addEvent(getApplicationContext(), Event.EVENT_MCM_REQUEST, Event.makeJsonString(b), Event.SET_LOG);
-	        		
-        			changeAsyncState(FSM.MCM_REQUEST);
-		         	break;
-	        	default:
-					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
-        			if (true) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"UNKNOWN_MESSAGE="+msg.what
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-        			}
-	        		super.handleMessage(msg);
-	        		break;
-            }
-        }
-    }
-    
-    public void startMCM()
-    {
-    	mMCMConnection = new ServiceConnection() {
-        	final String FUNC_TAG = "mMCMConnection";
-        	
-            public void onServiceConnected(ComponentName className, IBinder service) {
-                Debug.i(TAG, FUNC_TAG, "onServiceConnected MCM");
-                mMCM = new Messenger(service);
-                mMCMBound = true;
-                Debug.i(TAG, FUNC_TAG, "MCM Start");
-                
-                try {
-            		// Send a register-client message to the APC service with the client message handler in replyTo
-                	Debug.i(TAG, FUNC_TAG, "Attempting to register with MCM");
-            		Message msg1 = Message.obtain(null, edu.virginia.dtc.SysMan.Meal.MCM_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
-            		
-            		Bundle paramBundle = new Bundle();
-            		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-            		
-            		if (true) 
-            		{
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "(DiAsService) >> MCMservice, IO_TEST"+", "+FUNC_TAG+", "+
-        								"MCM_SERVICE_CMD_REGISTER_CLIENT"+", "+
-        								"pump_cycle_time_seconds="+pump_cycle_time_seconds
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-            		}
-            		
-            		msg1.replyTo = mMCMMessenger;
-            		msg1.setData(paramBundle);
-            		mMCM.send(msg1);
-                }
-                catch (RemoteException e) 
-                {
-                	e.printStackTrace();
-                }
-           }
-            
-           public void onServiceDisconnected(ComponentName className) {
-        	   // This is called when the connection with the MCM service has been unexpectedly disconnected -- that is, its process crashed
-        	   Debug.i(TAG, FUNC_TAG, "onServiceDisconnected MCM");
-        	   mMCM = null;
-        	   mMCMBound = false;
-        	   
-        	   Debug.e(TAG, FUNC_TAG, "The MCM service connection was killed attempting to restart...");
-        	   startMCM();
-           }
-        };
-        
-        // Bind to the MCM Service
-        Intent intentMCM = new Intent("DiAs.MCMservice");
-        bindService(intentMCM, mMCMConnection, Context.BIND_AUTO_CREATE);
-    }
-    
-    public boolean getMCMMessenger(Message m) {
-    	final String FUNC_TAG = "getMCMMessenger";
-    	
-		if(mMCMBound)
-		{
-			try {
-				mMCM.send(m);
-				return true;
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-		}
-		else
-		{
-			Debug.i(TAG, FUNC_TAG, "Attempting to self-heal MCM service...");
-			Intent intent1 = new Intent("DiAs.MCMService");
-			bindService(intent1, mMCMConnection, Context.BIND_AUTO_CREATE);
-			return false;
-		}
-		
-		return false;
-	}
-    
     // ******************************************************************************************************************************
  	// STARTUP ROUTINES
  	// ******************************************************************************************************************************
@@ -1305,46 +259,31 @@ public class DiAsService extends Service
 		
 		super.onCreate();
 
+        controllers = new Controllers(this);
+
+
+
+
+
 		initialized = false;
-        
-        ASYNC = new Machine(FSM.MACHINE_ASYNC);
-        SYNC = new Machine(FSM.MACHINE_SYNC);
-        TBR = new Machine(FSM.MACHINE_TBR);
-        DEV = new Machine(FSM.MACHINE_DEV);
         
         hypoLight = Safety.UNKNOWN_LIGHT;
         hyperLight = Safety.UNKNOWN_LIGHT;
         
         cellRssi = new CellularRssiListener();
 		telMan = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
-        
-		changeSyncState(FSM.IDLE);
-		changeAsyncState(FSM.IDLE);
-		changeTbrState(FSM.IDLE);
-		changeDevState(FSM.DEV_NA);
 		
         cgm_min_value = 39.0;
         cgm_max_value = 401.0;
         
         // Initialize some values
-        APC_ready = true;
-        MCM_ready = true;
         Supervisor_Tick_Free_Running_Counter = 0;
-        
-        // where a user (or more likely a tester) requests a meal before the RCM has run.
-        Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = 3;
-        
-        Apc = new Controller();
-        Brm = new Controller();
-        Mcm = new Controller();
         
         cgm_trend = -3;
         cgm_value = -1;
         cgm_last_time_sec = (long)0;
         cgm_last_normal_time_sec = (long)0;
 
-        latestIOB = 0.0;
-        IOBvalid = true;
         initialize_exercise_state ();
         
         // Scan the database to properly initialize time stamps of calibration, hypo, correction and meal events
@@ -1364,9 +303,7 @@ public class DiAsService extends Service
 		wl.acquire();    
 		
 		changeDiasState(State.DIAS_STATE_STOPPED);
-		
-        SSM_STATE = Safety.SAFETY_SERVICE_STATE_NORMAL;
-        
+
         DIAS_SERVICE_STATE = DIAS_SERVICE_STATE_IDLE;
         
         // Initialize the value of prev_pump_state, pump_state and TEMP_BASAL_ENABLED for the pump
@@ -1375,9 +312,6 @@ public class DiAsService extends Service
  	   	{
  	   		if(c.moveToLast())
  	   		{
-// 	   			prev_pump_state = pump_state;
-// 			   	pump_state = c.getInt(c.getColumnIndex("state"));
-// 			   	pump_service_state = c.getInt(c.getColumnIndex("service_state"));
 	       		int tb = c.getInt(c.getColumnIndex("temp_basal"));
 	       		if(tb > 0)
 	       			TEMP_BASAL_ENABLED = true;
@@ -1401,9 +335,6 @@ public class DiAsService extends Service
 		
 		stateObserver = new StateObserver(new Handler());
 		getContentResolver().registerContentObserver(Biometrics.STATE_ESTIMATE_URI, true, stateObserver);
-		
-		fsmObserver = new FsmObserver(new Handler());
-		getContentResolver().registerContentObserver(Biometrics.STATE_URI, true, fsmObserver);
 
 		tempBasalObserver = new TempBasalObserver(new Handler());
 		getContentResolver().registerContentObserver(Biometrics.TEMP_BASAL_URI, true, tempBasalObserver);
@@ -1686,13 +617,8 @@ public class DiAsService extends Service
     				}
     			}
     			
-    			checkServices();
-    			
-    			if(initialized)
-    				changeSyncState(FSM.START);
-    			else
-    				Debug.e(TAG, FUNC_TAG, "DiAs Service has not been initialized!");
-    			
+                //TODO:  startup controllers
+
         		updateDiasService(DIAS_UI_CLICK_NULL);
         	}
      	};
@@ -1708,8 +634,10 @@ public class DiAsService extends Service
 				double insulin_injected = intent.getDoubleExtra("insulin_injected", 0.0);
             	Toast.makeText(getApplicationContext(), "Insulin Injected: "+insulin_injected, Toast.LENGTH_LONG).show();
 	    		Bundle b;
-            	if (status == MDI_ACTIVITY_STATUS_SUCCESS) {
-            		if (insulin_injected > EPSILON) {
+            	if (status == MDI_ACTIVITY_STATUS_SUCCESS)
+                {
+            		if (insulin_injected > Pump.EPSILON)
+                    {
             			storeInjectedInsulin(insulin_injected);
             		}
     	    		b = new Bundle();
@@ -1717,7 +645,8 @@ public class DiAsService extends Service
     	    						"state_change_command="+state_change_command);
     	    		Event.addEvent(getApplicationContext(), Event.EVENT_MDI_INPUT, Event.makeJsonString(b), Event.SET_LOG);
             	}
-            	else {
+            	else
+                {
     	    		b = new Bundle();
     	    		b.putString(	"description", "DiAsService, MDI_ACTIVITY_STATUS_TIMEOUT, No insulin_injected"+", "+
     								"state_change_command="+state_change_command);
@@ -1734,10 +663,12 @@ public class DiAsService extends Service
 	 	// Register to receive Battery Stats from the modified Settings application
 	    // **************************************************************************************************************
 		
-		BatteryStatsReceiver = new BroadcastReceiver() {
+		BatteryStatsReceiver = new BroadcastReceiver()
+        {
 			final String FUNC_TAG = "BatteryStatsReceiver";
 			
-			public void onReceive(Context context, Intent intent) {
+			public void onReceive(Context context, Intent intent)
+            {
 				Debug.i(TAG, FUNC_TAG, "onReceive: "+intent.getStringExtra("batteryStats"));
 				batteryStats = intent.getStringExtra("batteryStats");
 			}
@@ -1937,9 +868,6 @@ public class DiAsService extends Service
         if(stateObserver != null)
         	getContentResolver().unregisterContentObserver(stateObserver);
         
-        if(fsmObserver != null)
-        	getContentResolver().unregisterContentObserver(fsmObserver);
-
 		//Clear icons on destruction
 		Intent removeIconsIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON_REMOVE_ALL");
 		sendBroadcast(removeIconsIntent);
@@ -1968,30 +896,18 @@ public class DiAsService extends Service
 			
 			DIAS_SERVICE_STATE = DIAS_SERVICE_STATE_SETUP;
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is initializing service connections...");
-	        
+
 	        initializeServiceConnections();
 			updateDiasService(DIAS_UI_CLICK_NULL);
 		}
 		else
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is already initialized!");
     }
-    
-    private void initializeServiceConnections() 
+
+    private void initializeServiceConnections()
     {
     	final String FUNC_TAG = "initializeServiceConnections";
 
-    	APC_MODE = APC.MODE_NONE_INSTALLED;
-    	
-        startSSM();
-        
-        if(Params.getBoolean(getContentResolver(), "apc_enabled", false)) 
-        	startAPC();
-        
-        if(Params.getBoolean(getContentResolver(), "brm_enabled", false))
-        	startBRM();
-        
-        startMCM();
-        
         // Set up a Notification for this Service
         int icon = R.drawable.ic_launcher;
         CharSequence tickerText = "";
@@ -2004,94 +920,17 @@ public class DiAsService extends Service
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
         final int DIAS_ID = 5;
-        
+
         // Make this a Foreground Service
         startForeground(DIAS_ID, notification);
-        
+
         Debug.i(TAG, FUNC_TAG, "Done");
     }
 
 	// ******************************************************************************************************************************
 	// CONTENT OBSERVER CLASSES
 	// ******************************************************************************************************************************
-		
-    class FsmObserver extends ContentObserver
-    {
-    	private int count;
-    	
-		public FsmObserver(Handler handler) 
-		{
-			super(handler);
-			
-			final String FUNC_TAG = "FSM Observer";
-    		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		
-    		count = 0;
-		}
-		
-		@Override
-		public void onChange(boolean selfChange) 
-		{
-			this.onChange(selfChange, null);
-		}		
 
-		public void onChange(boolean selfChange, Uri uri) 
-		{
-			final String FUNC_TAG = "FSM onChange";
-    	   
-    	   	count++;
-    	   	Debug.i(TAG, FUNC_TAG, "FSM Observer: "+count);
-    	   
-    	   	Cursor c = getContentResolver().query(Biometrics.STATE_URI, null, null, null, null);
-    	   	if(c != null)
-    	   	{
-    	   		if(c.moveToLast())
-    	   		{
-    	   			//Store previous states
-    	   			SYNC.prev_state = SYNC.state;
-    	   			ASYNC.prev_state = ASYNC.state;
-    	   			TBR.prev_state = TBR.state;
-    	   			DEV.prev_state = DEV.state;
-    	   			
-    	   			//Read new states
-    	   			SYNC.state = c.getInt(c.getColumnIndex("sync_state"));
-    	   			ASYNC.state = c.getInt(c.getColumnIndex("async_state"));
-    	   			TBR.state = c.getInt(c.getColumnIndex("tbr_state"));
-    	   			DEV.state = c.getInt(c.getColumnIndex("dev_resp"));
-    	   			
-    	   			Debug.i(TAG, FUNC_TAG, "Sync > State: "+FSM.callStateToString(SYNC.state)+" Prev State: "+FSM.callStateToString(SYNC.prev_state));
-    	   			Debug.i(TAG, FUNC_TAG, "Async > State: "+FSM.callStateToString(ASYNC.state)+" Prev State: "+FSM.callStateToString(ASYNC.prev_state));
-    	   			Debug.i(TAG, FUNC_TAG, "Tbr > State: "+FSM.callStateToString(TBR.state)+" Prev State: "+FSM.callStateToString(TBR.prev_state));
-    	   			
-    	   			//Run FSMs on state transitions only//
-    	   			//----------------------------------//
-    	   			
-    	   			if(DEV.prev_state != DEV.state)
-    	   			{
-    	   				Debug.i(TAG, FUNC_TAG, "Device change!");
-    	   				
-	   					if(SYNC.state == FSM.WAKE_RESPONSE || SYNC.state == FSM.BREAK_RESPONSE)
-	   						syncFSM();
-	   					if(TBR.state == FSM.WAKE_RESPONSE || TBR.state == FSM.BREAK_RESPONSE)
-	   						tbrFSM();
-	   					if(ASYNC.state == FSM.WAKE_RESPONSE || ASYNC.state == FSM.BREAK_RESPONSE)
-	   						asyncFSM();
-    	   			}
-    	   			
-    	   			if(SYNC.prev_state != SYNC.state)
-    	   				syncFSM();
-    	   			
-    	   			if(ASYNC.prev_state != ASYNC.state)
-    	   				asyncFSM();
-    	   			
-    	   			if(TBR.prev_state != TBR.state)
-    	   				tbrFSM();
-    	   		}
-    	   	}
-    	   	c.close();
-		}
-    }
-    
     class StateObserver extends ContentObserver
     {
     	private int count;
@@ -2132,9 +971,7 @@ public class DiAsService extends Service
     			   
     			   Debug.i(TAG, FUNC_TAG, "State Observer: stoplight="+hypo+" stoplight2="+hyper);
     			   
-    			   latestIOB = iob;
-    			   
-    			   if (traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_APCSERVICE 
+    			   if (traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_APCSERVICE
     	       				&& traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_BRMSERVICE
     	       				&& traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_DISABLED
     	       				&& DIAS_STATE == State.DIAS_STATE_STOPPED) 
@@ -2143,7 +980,6 @@ public class DiAsService extends Service
 	    			   hyperLight = hyper;
 	    			   
 	    			   Debug.w(TAG, FUNC_TAG, "System is in stopped mode!, writing the lights in the observer from the SE Table!");
-	    			   Debug.i(TAG, FUNC_TAG, "State Observer: HyperLight = "+hyperLight+" HypoLight = "+hypoLight+" IOB = "+latestIOB);
     			   }
     			   
     			   updateSystem(null);
@@ -2320,36 +1156,6 @@ public class DiAsService extends Service
 	       			
 	       			Debug.i(TAG, FUNC_TAG, "Service State: "+Pump.serviceStateToString(pump_service_state));
 	       			
-	       			if(pump_service_state != prev_pump_service_state)
-	       			{
-	       				if(pump_service_state == Pump.PUMP_STATE_TBR_DISABLED)
-	       				{
-	       					if(TBR.state == FSM.TBR_CALL)
-	       						changeTbrState(FSM.TBR_RESPONSE);
-	       					if(SYNC.state == FSM.TBR_CALL)
-	       						changeSyncState(FSM.TBR_RESPONSE);
-	       				}
-	       				
-	       				if(pump_service_state == Pump.PUMP_STATE_COMPLETE 
-	       						|| pump_service_state == Pump.PUMP_STATE_CMD_TIMEOUT
-	       						|| pump_service_state == Pump.PUMP_STATE_DELIVER_TIMEOUT)
-	       				{
-	       					if(SYNC.state == FSM.SSM_RESPONSE)
-	       						changeSyncState(FSM.PUMP_RESPONSE);
-	       					if(ASYNC.state == FSM.SSM_RESPONSE)
-	       						changeAsyncState(FSM.PUMP_RESPONSE);
-	       				}
-	       				
-	       				if(pump_service_state == Pump.PUMP_STATE_TBR_COMPLETE 
-	       						|| pump_service_state == Pump.PUMP_STATE_TBR_TIMEOUT)
-	       				{
-	       					if(SYNC.state == FSM.TBR_CALL)
-	       						changeSyncState(FSM.TBR_RESPONSE);
-	       					if(TBR.state == FSM.TBR_CALL)
-	       						changeTbrState(FSM.TBR_RESPONSE);
-	       				}
-	       			}
-
 	       			if(tb > 0)
 	       				TEMP_BASAL_ENABLED = true;
 	       			else
@@ -2415,9 +1221,9 @@ public class DiAsService extends Service
     			   pump_last_bolus = 0;
 				   pump_last_bolus_time = time;
 				   
-    			   if(meal > EPSILON)
+    			   if(meal > Pump.EPSILON)
     				   pump_last_bolus += meal;
-    			   if(corr > EPSILON)
+    			   if(corr > Pump.EPSILON)
     				   pump_last_bolus += corr;
     		   }
     	   }
@@ -2794,7 +1600,7 @@ public class DiAsService extends Service
 	 * Checks for Hypo Red Light when in Closed Loop or Safety Mode
 	 * - Generates an Event (Hypo Events lead to custom dialog after first alert)
 	 */	
-	private void checkForHypo() {
+	public void checkForHypo() {
 		final String FUNC_TAG = "checkForHypo";
 		
         Debug.i(TAG, FUNC_TAG, "DIASMAIN_UI_UPDATE_HYPO_ALARM");
@@ -2839,7 +1645,7 @@ public class DiAsService extends Service
 	 * Checks for Hyper Red Light when in Closed Loop or Safety Mode
 	 * - Generates an Event
 	 */
-	private void checkForHyper() {
+	public void checkForHyper() {
 		final String FUNC_TAG = "checkForHyper";
 		
 		Debug.i(TAG, FUNC_TAG, "Checking Hyper Alarm...");
@@ -3137,12 +1943,12 @@ public class DiAsService extends Service
 	        	if((oldState == State.DIAS_STATE_STOPPED || oldState == State.DIAS_STATE_SENSOR_ONLY) && 
 	        			(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY || DIAS_STATE == State.DIAS_STATE_BRM))
 	        	{
-	        		sendTbrCommand(true);
+	        		//sendTbrCommand(true);
 	        	}
 	        	else if((oldState == State.DIAS_STATE_CLOSED_LOOP || oldState == State.DIAS_STATE_OPEN_LOOP || oldState == State.DIAS_STATE_SAFETY_ONLY || oldState == State.DIAS_STATE_BRM) &&
         				(DIAS_STATE == State.DIAS_STATE_STOPPED || DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY))
         		{
-	        		sendTbrCommand(false);
+	        		//sendTbrCommand(false);
         		}
 	        }
 	        
@@ -3249,7 +2055,7 @@ public class DiAsService extends Service
 		}
     }
     
-    private void writeTrafficLights(int calling, int hypo, int hyper)
+    public void writeTrafficLights(int calling, int hypo, int hyper)
     {
     	final String FUNC_TAG = "writeTrafficLights";
     	
@@ -3417,8 +2223,6 @@ public class DiAsService extends Service
         out.put("pumpState", pump_state);
         out.put("pumpStatus", "BLANK");
         
-        out.put("iobValue", latestIOB);
-        
         out.put("hypoLight", hypoLight);
         out.put("hyperLight", hyperLight);
         
@@ -3478,8 +2282,7 @@ public class DiAsService extends Service
     		if(diffInt(out, c, "hypoLight")){out.put("apcString", "hypoLight"); return true;}
     		if(diffInt(out, c, "hyperLight")){out.put("apcString", "hyperLight"); return true;}
     		
-    		if(diffDouble(out, c, "iobValue")){out.put("apcString", "iobValue"); return true;}
-    		
+
 //    		if(diffDouble(out, c, "apcBolus")) return true;
 //    		if(diffInt(out, c, "apcStatus")) return true;
 //    		if(diffInt(out, c, "apcType")) return true;
@@ -3558,60 +2361,8 @@ public class DiAsService extends Service
     // ******************************************************************************************************************************
  	// APC CALL FUNCTIONS
  	// ******************************************************************************************************************************
-    
-    public void checkServices()
-    {
-    	final String FUNC_TAG = "checkServices";
-    	final long EXPIRATION = 60*7;			//Time in seconds
-    	
-    	long checkTime = getCurrentTimeSeconds() - EXPIRATION;
-    	
-    	Debug.i(TAG, FUNC_TAG, "Checking all running services for "+APC.modeToString(APC_MODE));
-    	
-    	switch(APC_MODE)
-	    {
-	    	case APC.MODE_APC_BRM_INSTALLED:
-	    		if(Apc.last_calc_time < checkTime && Apc.last_calc_time != 0)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "APC is not responding within the "+EXPIRATION+" second time window!");
-	    			Bundle b = new Bundle();
-	        		b.putString("description", "APC not responding!");
-	        		Event.addEvent(this, Event.EVENT_APC_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-	    		}
-	    			
-	    		if(Brm.last_calc_time < checkTime && Brm.last_calc_time != 0)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "BRM is not responding within the "+EXPIRATION+" second time window!");
-	    			Bundle b = new Bundle();
-	        		b.putString("description", "BRM not responding!");
-	        		Event.addEvent(this, Event.EVENT_BRM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-	    		}
-	    		break;
-	    	case APC.MODE_APC_INSTALLED:
-	    		if(Apc.last_calc_time < checkTime && Apc.last_calc_time != 0)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "APC is not responding within the "+EXPIRATION+" second time window!");
-	    			Bundle b = new Bundle();
-	        		b.putString("description", "APC not responding!");
-	        		Event.addEvent(this, Event.EVENT_APC_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-	    		}
-	    		break;
-	    	case APC.MODE_BRM_INSTALLED:
-	    		if(Brm.last_calc_time < checkTime && Brm.last_calc_time != 0)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "BRM is not responding within the "+EXPIRATION+" second time window!");
-	    			Bundle b = new Bundle();
-	        		b.putString("description", "BRM not responding!");
-	        		Event.addEvent(this, Event.EVENT_BRM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-	    		}
-	    		break;
-	    	case APC.MODE_NONE_INSTALLED:
-	    		break;
-    		default:
-    			break;
-    	}
-    }
-    
+
+    /*
     private void reportMcmUi(boolean connected)
     {
     	Message msg1 = Message.obtain(null, edu.virginia.dtc.SysMan.Meal.MCM_UI, 0, 0);
@@ -3624,418 +2375,6 @@ public class DiAsService extends Service
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
-    }
-    
-    private void sendTbrCommand(boolean turnOn)
-    {
-    	final String FUNC_TAG = "sendTbrCommand";
-    	
-    	tbrOn = turnOn;
-    	
-    	if(Params.getBoolean(getContentResolver(), "tbr_enabled", false))
-    		changeTbrState(FSM.START);
-    	else
-    		Debug.w(TAG, FUNC_TAG, "TBR is not enabled at the application level!");
-    }
-    
-    public void tbrFSM()
-    {
-    	final String FUNC_TAG = "tbrFSM";
-    	
-    	switch(TBR.state)
-    	{
-	    	case FSM.IDLE:
-	    		break;
-	    	case FSM.START:
-	    		if(SYNC.isBusy())
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "SYNC is running, so we'll chain the TBR for after...");
-	    			changeTbrState(FSM.IDLE);
-	    			runTbrAfterSync = true;
-	    		}
-	    		else
-	    		{
-		    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-		    		{
-		    			changeTbrState(FSM.WAKE);
-		    			Debug.i(TAG, FUNC_TAG, "Connection scheduling is being used!");
-		    		}
-		    		else
-		    			changeTbrState(FSM.TBR_CALL);
-	    		}
-	    		break;
-	    	case FSM.WAKE:
-	    		//Send device wake command
-	    		//Transition to wake response
-	    		Debug.i(TAG, FUNC_TAG, "Waking devices...");
-	    		
-    			startWakeTimer();
-    			
-	    		changeDevState(FSM.DEV_WAKE);
-	    		changeTbrState(FSM.WAKE_RESPONSE);
-	    		break;
-	    	case FSM.WAKE_RESPONSE:
-	    		//Check device connections until they're connected
-	    		Debug.i(TAG, FUNC_TAG, "Checking device response...");
-	    		if(DEV.state == FSM.DEV_WAKE)
-	    		{
-	    			stopWakeTimer();
-	    			
-	    			Debug.i(TAG, FUNC_TAG, "Device connected!");
-	    			changeTbrState(FSM.TBR_CALL);
-	    		}
-	    		break;
-	    	case FSM.TBR_CALL:
-	    		Intent pumpIntent = new Intent();
-	    		pumpIntent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.PumpService.PumpService");
-	    		if(!tbrOn)
-	    		{
-	    			Debug.e(TAG, FUNC_TAG, "Turning off TBR!");
-	    			pumpIntent.putExtra("time", 0);
-	    			pumpIntent.putExtra("target", 100);
-	    			pumpIntent.putExtra("cancel", true);
-	    		}	
-	    		pumpIntent.putExtra("PumpCommand", Pump.PUMP_SERVICE_CMD_SET_TBR);
-	    		startService(pumpIntent);
-	    		break;
-	    	case FSM.TBR_RESPONSE:
-	    		//Response is gathered from the PumpObserver
-	    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			changeTbrState(FSM.BREAK);
-	    		else
-	    			changeTbrState(FSM.IDLE);
-	    		break;
-	    	case FSM.BREAK:
-    			Debug.w(TAG, FUNC_TAG, "Breaking connection...");
-    			changeDevState(FSM.DEV_DISCON);
-    			changeTbrState(FSM.BREAK_RESPONSE);
-	    	case FSM.BREAK_RESPONSE:
-	    		if(DEV.state == FSM.DEV_DISCON)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Device disconnected!");
-	    			clearDev();
-	    			changeTbrState(FSM.IDLE);
-	    		}
-	    		break;
-    	}
-    }
-    
-    public void asyncFSM()
-    {
-    	final String FUNC_TAG = "asyncFSM";
-    	
-    	switch(ASYNC.state)
-    	{
-    		case FSM.IDLE:
-    			break;
-    		case FSM.WAIT:
-    			break;
-    		case FSM.START:
-    			if(TBR.isBusy() || SYNC.isBusy())
-    			{
-    				changeAsyncState(FSM.WAIT);
-    				
-    				if(waitTimer != null)
-    					waitTimer.cancel(true);
-    				
-    				waitTimer = scheduler.scheduleAtFixedRate(wait, 0, 5, TimeUnit.SECONDS);
-    				
-//					Bundle b = new Bundle();
-//		    		b.putString("description", "The system is setting the Temporary Basal Rate, please wait...");
-//		    		Event.addEvent(getApplicationContext(), Event.EVENT_MCM_REQUEST, Event.makeJsonString(b), Event.SET_POPUP_VIBE);
-//		    		reportMcmUi(false);
-    			}
-    			else
-    			{
-    				if(waitTimer != null)
-    					waitTimer.cancel(true);
-    				
-	    			if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			{
-	    				changeAsyncState(FSM.WAKE);
-		    			Debug.i(TAG, FUNC_TAG, "Connection scheduling is being used!");
-		    		}
-		    		else
-		    		{
-			    		changeAsyncState(FSM.SSM_CALC_CALL);
-			    		Debug.i(TAG, FUNC_TAG, "Calling SSM Calculate...");
-		    		}
-    			}
-    			break;
-    		case FSM.WAKE:
-    			//Send device wake command
-	    		//Transition to wake response
-	    		Debug.i(TAG, FUNC_TAG, "Waking devices...");
-	    		
-    			startWakeTimer();
-    			
-    			Debug.w(TAG, FUNC_TAG, "Waking connection...");
-	    		changeDevState(FSM.DEV_WAKE);
-	    		changeAsyncState(FSM.WAKE_RESPONSE);
-    			break;
-    		case FSM.WAKE_RESPONSE:
-    			//Check device connections until they're connected
-	    		Debug.i(TAG, FUNC_TAG, "Checking device response...");
-	    		if(DEV.state == FSM.DEV_WAKE)
-	    		{
-	    			stopWakeTimer();
-	    			
-	    			Debug.i(TAG, FUNC_TAG, "Device connected!");
-	    			changeAsyncState(FSM.SSM_CALC_CALL);
-	    		}
-    			break;
-    		case FSM.SSM_CALC_CALL:
-    			Message ssmMessage = callCalcSSM();
-	    		if(getSSMMessenger(ssmMessage))
-	        		Debug.i(TAG, FUNC_TAG, "Call SSM Calculate - Success");
-	    		else
-	    			Debug.i(TAG, FUNC_TAG, "Call SSM Calculate - Error");
-    			break;
-    		case FSM.SSM_CALC_RESPONSE:
-    			Debug.i(TAG, FUNC_TAG, "Devices are connected and SSM has run, show the UI!");
-    			reportMcmUi(true);
-    			break;
-    		case FSM.MCM_REQUEST:
-    			//Send the request to the SSM
-    			if(!FSM.isSSMbusy(SYNC.state))		//Check the Synchronous state
-	    			sendInsulinRequestToSafetySystem(Mcm.meal, Mcm.correction, 0.0, Mcm.credit, Mcm.spend, DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS, true);
-	    		else
-	    			Debug.i(TAG, FUNC_TAG, "SSM is busy in with a synchronous call!");
-    			break;
-    		case FSM.SSM_RESPONSE:
-    			break;
-    		case FSM.PUMP_RESPONSE:
-    			if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-    				changeAsyncState(FSM.BREAK);
-    			else
-    				changeAsyncState(FSM.IDLE);
-    			break;
-    		case FSM.BREAK:
-    			Debug.w(TAG, FUNC_TAG, "Breaking connection...");
-    			changeDevState(FSM.DEV_DISCON);
-    			changeAsyncState(FSM.BREAK_RESPONSE);
-	    		break;
-	    	case FSM.BREAK_RESPONSE:
-	    		if(DEV.state == FSM.DEV_DISCON)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Device disconnected!");
-	    			clearDev();
-	    			changeAsyncState(FSM.IDLE);
-	    		}
-	    		break;
-	    	case FSM.MCM_CANCEL:
-	    		if(waitTimer != null)
-	    			waitTimer.cancel(true);
-	    		
-	    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			changeAsyncState(FSM.BREAK);
-	    		else
-	    			changeAsyncState(FSM.IDLE);
-	    		break;
-    	}
-    }
-    
-    public void syncFSM()
-    {
-    	final String FUNC_TAG = "syncFSM";
-    	
-    	switch(SYNC.state)
-    	{
-	    	case FSM.IDLE:
-	    		break;
-	    	case FSM.START:
-	    		if(ASYNC.isBusy() || TBR.isBusy())
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Skipping SYNC loop for now...");
-    				changeSyncState(FSM.IDLE);
-    			}
-	    		else
-	    		{
-    				if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-		    		{
-		    			changeSyncState(FSM.WAKE);
-		    			Debug.i(TAG, FUNC_TAG, "Connection scheduling is being used!");
-		    		}
-		    		else
-		    		{
-		    			//Skip waking devices if we aren't using connection scheduling
-			    		changeSyncState(FSM.SSM_CALC_CALL);
-			    		Debug.i(TAG, FUNC_TAG, "Calling SSM Calculate...");
-		    		}
-	    		}
-	    		break;
-	    	case FSM.WAKE:
-	    		//Send device wake command
-	    		//Transition to wake response
-	    		Debug.i(TAG, FUNC_TAG, "Waking devices...");
-
-	    		startWakeTimer();
-	    			
-    			Debug.w(TAG, FUNC_TAG, "Waking connection...");
-	    		changeDevState(FSM.DEV_WAKE);
-	    		changeSyncState(FSM.WAKE_RESPONSE);
-	    		break;
-	    	case FSM.WAKE_RESPONSE:
-	    		//Check device connections until they're connected
-	    		Debug.i(TAG, FUNC_TAG, "Checking device response...");
-	    		if(DEV.state == FSM.DEV_WAKE)
-	    		{
-	    			stopWakeTimer();
-	    			
-	    			Debug.i(TAG, FUNC_TAG, "Device connected!");
-	    			changeSyncState(FSM.SSM_CALC_CALL);
-	    		}
-	    		break;
-	    	case FSM.SSM_CALC_CALL:
-	    		Message ssmMessage = callCalcSSM();
-	    		if(getSSMMessenger(ssmMessage))
-	        		Debug.i(TAG, FUNC_TAG, "Call SSM Calculate - Success");
-	    		else
-	    			Debug.i(TAG, FUNC_TAG, "Call SSM Calculate - Error");
-	    		break;
-	    	case FSM.SSM_CALC_RESPONSE:
-	    		//Wait for response via SSM Service Connection
-	    		switch(APC_MODE)
-	    		{
-		    		case APC.MODE_APC_BRM_INSTALLED:
-		    		case APC.MODE_APC_INSTALLED:
-		    			changeSyncState(FSM.APC_CALL);
-		    			Debug.i(TAG, FUNC_TAG, "Calling APC...");
-		    			break;
-		    		case APC.MODE_BRM_INSTALLED:
-		    			changeSyncState(FSM.BRM_CALL);
-		    			Debug.i(TAG, FUNC_TAG, "Calling BRM...");
-		    			break;
-		    		case APC.MODE_NONE_INSTALLED:
-		    			changeSyncState(FSM.SSM_CALL);
-		    			Debug.i(TAG, FUNC_TAG, "Calling SSM...");
-		    			break;
-	    		}
-	    		break;
-	    	case FSM.APC_CALL:
-	    		Message apcMessage = syncCall("APC");
-    			if(getAPCMessenger(apcMessage))
-    				Debug.i(TAG, FUNC_TAG, "Call APC - Success");
-    			else
-    				Debug.i(TAG, FUNC_TAG, "Call APC - Error");
-	    		break;
-	    	case FSM.APC_RESPONSE:
-	    		//Wait for response from APC Service Connection
-	    		switch(APC_MODE)
-	    		{
-		    		case APC.MODE_APC_BRM_INSTALLED:
-		    			changeSyncState(FSM.BRM_CALL);
-		    			Debug.i(TAG, FUNC_TAG, "Calling BRM...");
-		    			break;
-		    		case APC.MODE_BRM_INSTALLED:
-		    			//Never happens
-		    			break;
-		    		case APC.MODE_APC_INSTALLED:
-		    			changeSyncState(FSM.SSM_CALL);
-		    			break;
-		    		case APC.MODE_NONE_INSTALLED:
-		    			Debug.i(TAG, FUNC_TAG, "Nothing to do...");
-		    			break;
-	    		}
-	    		break;
-	    	case FSM.BRM_CALL:
-	    		Message brmMessage = syncCall("BRMservice");
-	    		if(getBRMMessenger(brmMessage))
-	    			Debug.i(TAG, FUNC_TAG, "Call BRM - Success");
-	    		else
-	    			Debug.i(TAG, FUNC_TAG, "Call BRM - Error");
-	    		break;
-	    	case FSM.BRM_RESPONSE:
-	    		//Wait for response from BRM Service Connection
-	    		switch(APC_MODE)
-	    		{
-		    		case APC.MODE_APC_BRM_INSTALLED:
-		    		case APC.MODE_BRM_INSTALLED:
-		    			changeSyncState(FSM.SSM_CALL);
-		    			break;
-		    		case APC.MODE_APC_INSTALLED:
-		    			//Never happens
-		    			break;
-		    		case APC.MODE_NONE_INSTALLED:
-		    			Debug.i(TAG, FUNC_TAG, "Nothing to do...");
-		    			break;
-	    		}
-	    		break;
-	    	case FSM.SSM_CALL:
-	    		if(!FSM.isSSMbusy(ASYNC.state))
-		    		callSSM();
-	    		else
-	    			Debug.i(TAG, FUNC_TAG, "SSM is busy with an asynchronous call!");
-	    		break;
-	    	case FSM.SSM_RESPONSE:
-	    		//Wait for response from SSM Service Connection
-	    		break;
-	    	case FSM.PUMP_RESPONSE:
-	    		//Wait for change in pump service state to verify delivery response
-	    		changeSyncState(FSM.TBR_CALL);
-	    		break;
-	    	case FSM.TBR_CALL:
-	    		Debug.i(TAG, FUNC_TAG, "TBR CALL");
-	    		
-	    		if(Params.getBoolean(getContentResolver(), "tbr_enabled", false))
-	    		{
-		    		Intent pumpIntent = new Intent();
-		    		pumpIntent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.PumpService.PumpService");
-		    		pumpIntent.putExtra("PumpCommand", Pump.PUMP_SERVICE_CMD_SET_TBR);
-		    		startService(pumpIntent);
-	    		}
-	    		else
-	    			changeSyncState(FSM.BREAK);
-	    		break;
-	    	case FSM.TBR_RESPONSE:
-	    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			changeSyncState(FSM.BREAK);
-	    		else
-	    			changeSyncState(FSM.IDLE);
-	    		break;
-	    	case FSM.BREAK:
-	    		if(runTbrAfterSync)
-	    		{
-	    			//If we chained the TBR then set it to start and turn the SYNC state to IDLE
-	    			runTbrAfterSync = false;
-	    			changeTbrState(FSM.START);
-	    			changeSyncState(FSM.IDLE);
-	    		}
-	    		else
-	    		{
-		    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-		    		{
-		    			Debug.w(TAG, FUNC_TAG, "Breaking connection...");
-		    			changeDevState(FSM.DEV_DISCON);
-		    			changeSyncState(FSM.BREAK_RESPONSE);
-		    		}
-		    		else
-		    			changeSyncState(FSM.IDLE);
-	    		}
-	    		break;
-	    	case FSM.BREAK_RESPONSE:
-	    		if(DEV.state == FSM.DEV_DISCON)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Device disconnected!");
-	    			clearDev();
-	    			changeSyncState(FSM.IDLE);
-	    		}
-	    		break;
-    	}
-    }
-    
-    private void startWakeTimer()
-    {
-    	if(timeoutTimer != null)
-			timeoutTimer.cancel(true);
-    	
-    	timeoutTimer = scheduler.schedule(timeout, 45, TimeUnit.SECONDS);
-    }
-    
-    private void stopWakeTimer()
-    {
-    	if(timeoutTimer != null)
-    		timeoutTimer.cancel(true);
     }
     
     public Message callCalcSSM()
@@ -4054,7 +2393,7 @@ public class DiAsService extends Service
 
     	return ssmMessage;
     }
-    
+
     public void callSSM()
     {
     	final String FUNC_TAG = "callSSM";
@@ -4171,16 +2510,6 @@ public class DiAsService extends Service
 	    	case State.DIAS_STATE_BRM:
 	    		break;
 	    	case State.DIAS_STATE_OPEN_LOOP:
-	    		/*
-	    		SharedPreferences basalPauseSetting = getSharedPreferences(PREFS_NAME, 0);
-	    		boolean isPaused = basalPauseSetting.getBoolean("basalPaused", basalPaused);
-	    		if (isPaused) {
-	    			double basal = getCurrentBasalProfile();
-	    			Debug.i(TAG, FUNC_TAG, "Basal Paused, Value sent to SSM: -"+basal);
-	    			sendInsulinRequestToSafetySystem(0.0, 0.0, -basal, 0.0, 0.0,
-	    					DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN, false);
-	    		}
-	    		*/
 	    		if (temporaryBasalRateActive()) {
 	    			if (temp_basal_owner == TempBasal.TEMP_BASAL_OWNER_DIASSERVICE) {
 		    			Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
@@ -4224,7 +2553,7 @@ public class DiAsService extends Service
 	    		break;
     	}
     }
-    
+
     public Message syncCall(String process)
 	{
     	final String FUNC_TAG = "syncApcCall";
@@ -4263,11 +2592,14 @@ public class DiAsService extends Service
 		
 		return msg1;
 	}
+    */
 
     // ******************************************************************************************************************************
  	// SSMservice INTERFACE FUNCTIONS
  	// ******************************************************************************************************************************
-    
+
+    /*
+
     public void sendInsulinRequestToSafetySystem(	double bolus_meal,
     												double bolus_correction,
     												double differential_basal_rate,
@@ -4365,6 +2697,8 @@ public class DiAsService extends Service
     		e.printStackTrace();
     	}
     }
+
+    */
     
     // ******************************************************************************************************************************
  	// STATE ESTIMATE TABLE FUNCTIONS
@@ -4596,6 +2930,7 @@ public class DiAsService extends Service
 	private void analyzeEvent(Cursor c)
 	{
 		final String FUNC_TAG = "analyzeEvent";
+
 		JSONObject j;
 		String description = "", title = "Alert";
 		int settings = Event.SET_LOG;
@@ -4603,7 +2938,8 @@ public class DiAsService extends Service
 		int code = -1;
 		boolean popup_displayed = false;
 		
-		try {
+		try
+        {
 			j = new JSONObject(c.getString(c.getColumnIndex("json")));
 			code = c.getInt(c.getColumnIndex("code"));
 			description = j.getString("description");
@@ -5193,8 +3529,8 @@ public class DiAsService extends Service
 		return retvalue;
 	}
 		
-	public double getCurrentBasalProfile() {
-		
+	public double getCurrentBasalProfile()
+    {
 		double basal = 0.0;
 		Calendar now = Calendar.getInstance();
 		now.setTimeInMillis(getCurrentTimeSeconds()*1000);
@@ -5240,42 +3576,6 @@ public class DiAsService extends Service
 				return true;
 			else
 				return false;
-		}
-	}
-	
-	class Controller
-	{
-		ServiceConnection cxn;
-		Messenger rx, tx;
-		boolean bound, ready;
-		
-		boolean doesBolus, doesRate, doesCredit;
-		
-		double correction, meal;
-		double diff_rate;
-		double credit, spend;
-		
-		long last_calc_time;
-		
-		boolean extended;
-		double ext_meal, ext_correction;
-		
-		public Controller()
-		{
-			correction = 0.0;
-			meal = 0.0;
-			diff_rate = 0.0;
-			credit = 0.0;
-			spend = 0.0;
-			
-			last_calc_time = 0;
-			
-			extended = false;
-			ext_meal = 0.0;
-			ext_correction = 0.0;
-			
-			doesBolus = doesRate = doesCredit = false;
-			bound = ready = false;
 		}
 	}
 }
