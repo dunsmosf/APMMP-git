@@ -34,7 +34,7 @@ public class BrmDB extends SQLiteOpenHelper
     private static final String HISTORY_TABLE_CREATE =
     		"CREATE TABLE " + HISTORY_TABLE + "(" +
     		"_id integer primary key autoincrement, " +
-    		"time long, starttime long, duration long, d1 double, d2 double, d3 double);";
+    		"time long, starttime long, duration long, d1 double, d2 double, d3 double, TDI double);";
     public Context context;
 
     BrmDB(Context context) {
@@ -124,7 +124,37 @@ public class BrmDB extends SQLiteOpenHelper
 		
 	}
 	
+    public void addTDItoBrmDB(long time,double TDI) 
+	{
+			final String FUNC_TAG = "TDItoBrmDB";
+			
+			SQLiteDatabase db = this.getWritableDatabase();
+			
+			//if(lookupEventCounterInHistory(e.eventCounter))
+			//{
+			//Debug.i(TAG, FUNC_TAG, "Event already exists, cannot add again!");
+			//return;
+			//}
+			//else
+			//Debug.i(TAG, FUNC_TAG, "Adding event...Event Counter: "+e.eventCounter);
+			
+			Settings st = IOMain.db.getLastBrmDB();
+			
+			ContentValues values = new ContentValues();
+			values.put("time", time);
+			values.put("starttime", st.starttime);
+			values.put("duration", st.duration);
+			values.put("d1", st.d1);
+			values.put("d2", st.d2);
+			values.put("d3", st.d3);
+			values.put("TDI", TDI);
+			
+			db.insert(HISTORY_TABLE, null, values);
+			db.close();
+			
+			saveDatabase();  // save to sd card
 	
+	}
 	
 	public Settings getBrmDB(int id)
 	{
@@ -146,6 +176,7 @@ public class BrmDB extends SQLiteOpenHelper
         st.d1 = c.getDouble(c.getColumnIndex("d1"));
         st.d2 = c.getDouble(c.getColumnIndex("d2"));
         st.d3 = c.getDouble(c.getColumnIndex("d3"));
+        st.TDI = c.getDouble(c.getColumnIndex("TDI"));
         
         c.close();
         
@@ -179,7 +210,46 @@ public class BrmDB extends SQLiteOpenHelper
 		return st;
 	}	
 
+	public Settings getLastTDIBrmDB()
+	{
+		final String FUNC_TAG = "getLastTDIBrmDB";
+		
+		SQLiteDatabase db = this.getReadableDatabase();
+		String query = "SELECT * FROM " + HISTORY_TABLE+ " where TDI!=null";;
+
+		Settings st = new Settings();
+		
+		Cursor c = db.rawQuery(query, null);
+		Debug.i(TAG,FUNC_TAG,"Hello sweet   >>>> "+c.getCount());
+		if (c.getCount() != 0) {
+			Debug.i(TAG,FUNC_TAG,"Hello sweet");
+			c.moveToLast();   //// need to verify
+			st.time = c.getLong(c.getColumnIndex("time"));
+	        st.TDI = c.getDouble(c.getColumnIndex("TDI"));
+	        Debug.i(TAG,FUNC_TAG,"Hello sweet 1");
+		}
+		else {
+			Debug.i(TAG,FUNC_TAG,"Hello sweet 1 1");
+			st.time = getCurrentTimeSeconds();
+	        st.TDI = 0;
+	        Debug.i(TAG,FUNC_TAG,"Hello sweet 2");
+		}
+		Debug.i(TAG,FUNC_TAG,"Hello sweet 3");
+		c.close();
+		Debug.i(TAG,FUNC_TAG,"Hello sweet 4");
+        //Fill in event data
+		//st.id = c.getInt(c.getColumnIndex("id"));
+ 
+        
+        Debug.i(TAG,FUNC_TAG,"time =  "+st.time+"  TDI=   "+st.TDI);
+        Debug.i(TAG,FUNC_TAG,"Hello sweet final");
+        return st;
+	}
 	
+	public long getCurrentTimeSeconds() {
+		return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
+	}
+
 //	public List<Events> getManualInsulinHistory()
 //	{
 //		SQLiteDatabase db = this.getReadableDatabase();

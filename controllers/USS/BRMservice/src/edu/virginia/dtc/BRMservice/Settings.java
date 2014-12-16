@@ -8,5 +8,6 @@ public class Settings {
 	public double d1;
 	public double d2;
 	public double d3;
+	public double TDI;
 
 }

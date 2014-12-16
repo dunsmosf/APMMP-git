@@ -15,6 +15,10 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Params;
@@ -33,7 +37,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Debug;
+import edu.virginia.dtc.SysMan.Debug;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.os.PowerManager;
@@ -206,7 +210,29 @@ public class IOMain extends Service {
     /* Target we publish for clients to send commands to IncomingHandlerFromClient. */
     final Messenger mMessengerFromClient = new Messenger(new IncomingBRMHandler());
 	public static BrmDB db;  // static db enables other activities' access to it.
- 
+	
+	//Task to calculate TDI every hour based on insulin history
+	private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private ScheduledFuture<?> calculate_TDI;
+	private Runnable calc_TDI = new Runnable()
+	{
+		final String FUNC_TAG = "calc_TDI";
+		
+		public void run() 
+		{
+			Debug.i(TAG,FUNC_TAG,"time difference"+Long.toString(getCurrentTimeSeconds()-retrieveTimestampOfFirstInsulinDelivery()));
+			if (getCurrentTimeSeconds()-retrieveTimestampOfFirstInsulinDelivery()>(1+24*60*60))
+			{
+				//Debug.i(TAG,FUNC_TAG,"start time"+Double.toString(CalculateTDIfromInsulinDelivery(retrieveTimestampOfLastInsulinDelivery()-(1+24*60*60))));
+				SaveTDItobrmDB(CalculateTDIfromInsulinDelivery(retrieveTimestampOfLastInsulinDelivery()-(1+24*60*60)));
+				
+			}
+			
+		}
+
+		
+	};
+	
     /* When binding to the service, we return an interface to our messenger for sending messages to the service. */
     @Override
     public IBinder onBind(Intent intent) {
@@ -561,7 +587,9 @@ public class IOMain extends Service {
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();  
 		
+		//TDI calculation task scheduling
 		
+		calculate_TDI = scheduler.scheduleAtFixedRate(calc_TDI, 1, 60, TimeUnit.MINUTES);
 		
 		// Register to receive params button broadcast messages
         BRMparamReceiver = new BroadcastReceiver() 
@@ -831,6 +859,69 @@ public class IOMain extends Service {
         }
 			
 		return timeStamp;
+	}
+	
+	private long retrieveTimestampOfFirstInsulinDelivery() {
+		long timeStamp = -1;
+		Cursor c=getContentResolver().query(INSULIN_URI, null, null, null, null);
+		
+		try {
+			if (c.moveToFirst()) {
+				timeStamp = c.getInt(c.getColumnIndex("deliv_time"));
+			}		
+			c.close();
+		}
+        catch (Exception e) {
+        		Log.e("Error retrieveTimestampOfMostRecentInsulinDelivery", e.getMessage());
+        }
+			
+		return timeStamp;
+	}
+	
+	private long retrieveTimestampOfLastInsulinDelivery() {
+		long timeStamp = -1;
+		Cursor c=getContentResolver().query(INSULIN_URI, null, null, null, null);
+		
+		try {
+			if (c.moveToLast()) {
+				timeStamp = c.getInt(c.getColumnIndex("deliv_time"));
+			}		
+			c.close();
+		}
+        catch (Exception e) {
+        		Log.e("Error retrieveTimestampOfMostRecentInsulinDelivery", e.getMessage());
+        }
+			
+		return timeStamp;
+	}
+	
+	private double CalculateTDIfromInsulinDelivery(long start_time) {
+		final String FUNC_TAG = "CalculateTDIfromInsulinDelivery";
+		double tdi=0;
+		Cursor c=getContentResolver().query(INSULIN_URI, null, "deliv_time>"+Long.toString(start_time), null, null);
+		try {
+			if (c.moveToFirst()) {
+				while (c.moveToNext()) 
+					{
+						tdi =(double)Math.round((tdi+ c.getDouble(c.getColumnIndex("deliv_total"))) * 100) / 100;
+					}
+					
+				}
+			c.close();
+			}		
+			
+        catch (Exception e) {
+        		Log.e("Error CalculateTDIfromInsulinDelivery", e.getMessage());
+        		
+        }
+		
+		return tdi;
+	}
+	
+	private void SaveTDItobrmDB(double TDI) {
+		// TODO Auto-generated method stub
+		db = new BrmDB(getApplicationContext());
+		db.addTDItoBrmDB(getCurrentTimeSeconds(), TDI);
 	}
 	
 	private void storeInjectedInsulin(double insulin_injected) {

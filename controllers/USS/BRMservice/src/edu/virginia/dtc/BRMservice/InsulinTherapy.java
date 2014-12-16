@@ -527,11 +527,28 @@ public class InsulinTherapy {
 	}
 	
 	public double saturate_CF(double CF){
-		if (CF>(1800/subject.TDI))
-			return 1800/subject.TDI;
-		else if (CF<(1500/subject.TDI))
-			return 1500/subject.TDI;
+		final String FUNC_TAG = "saturate_CF";
+		double TDI = get_adaptive_TDI();
+		Debug.i(TAG, FUNC_TAG, "TDI === "+TDI);
+		if (CF>(1800/TDI))
+			return 1800/TDI;
+		else if (CF<(1500/TDI))
+			return 1500/TDI;
 		else return CF;	
+	}
+	
+	public double get_adaptive_TDI ()
+	{
+		final String FUNC_TAG = "get_adaptive_TDI";
+		double adap_TDI;
+		Settings st = IOMain.db.getLastTDIBrmDB();
+		Debug.i(TAG, FUNC_TAG, "time= "+getCurrentTimeSeconds());
+		Debug.i(TAG, FUNC_TAG, "BrmDB:time= "+st.time);
+		Debug.i(TAG, FUNC_TAG, "BrmDB:TDI= "+st.TDI);
+		if (st.TDI==0)
+				return subject.TDI;
+		else
+			return st.TDI;
 	}
 	
 	public double INS_target_saturate(double INS_target, double CF) {
