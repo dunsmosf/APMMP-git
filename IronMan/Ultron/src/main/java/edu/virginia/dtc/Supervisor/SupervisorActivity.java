@@ -31,7 +31,7 @@ import edu.virginia.dtc.SysMan.Debug;
 
 public class SupervisorActivity extends FragmentActivity
 {
-	private static final String TAG = "Supervisor";
+	private static final String TAG = "SupervisorActivity";
 
 	// DiAsService Commands
 	public static final int DIAS_SERVICE_COMMAND_NULL = 0;
@@ -50,14 +50,6 @@ public class SupervisorActivity extends FragmentActivity
 	public static final int COLOR_INVALID = Color.rgb(255, 20, 20);
 	public static final int COLOR_DEFAULT = Color.BLACK;
 
-    @Override
-    public void onStop()
-    {
-    	final String FUNC_TAG = "onStop";
-		super.onStop();
-		Debug.i(TAG, FUNC_TAG, "");
-    }
-    
     @Override
     public void onCreate(Bundle savedInstanceState) 
     {
@@ -178,7 +170,7 @@ public class SupervisorActivity extends FragmentActivity
         configurationManager = ConfigurationManager.getInstance(this);
         validConfigurationExists = configurationManager.checkForValidConfiguration();
 		
-        Debug.i(TAG, FUNC_TAG, "CONFIG: "+validConfigurationExists+" PARAMS: "+validParametersExist);
+        Debug.i(TAG, FUNC_TAG, "Configuration Exists: "+validConfigurationExists+" Parameters Exist: "+validParametersExist);
         
         invalidateOptionsMenu();
 
@@ -205,9 +197,6 @@ public class SupervisorActivity extends FragmentActivity
 				Toast.makeText(this.getBaseContext(), "No parameters in database, system not starting. Check the 'parameters.xml' file.", Toast.LENGTH_LONG).show();
 			}
 		}
-        else
-        {
-        }
     }
     
 	private void startDiAsServices()
@@ -220,30 +209,30 @@ public class SupervisorActivity extends FragmentActivity
         try 
         {			
 			// SupervisorService
-    		Debug.i(TAG, FUNC_TAG, "Starting supervisorService..."); 
+    		Debug.i(TAG, FUNC_TAG, "Starting Supervisor Service...");
     		startApp = new Intent();
     		startApp.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.Supervisor.SupervisorService");
     		startService(startApp);
 			
     		// DiAsService
-    		Debug.i(TAG, FUNC_TAG, "Starting DiAsService...");
+    		Debug.i(TAG, FUNC_TAG, "Starting DiAs Service...");
 			startApp = new Intent();
 			startApp.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
 			startApp.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_NULL);
 			startService(startApp);
     		
 			// NetworkService
-    		Debug.i(TAG, FUNC_TAG, "Starting networkService...");
+    		Debug.i(TAG, FUNC_TAG, "Starting Network Service...");
     		startApp = new Intent("DiAs.NetworkService");
     		startService(startApp);
     		
     		// biometricsCleanerService
-    		Debug.i(TAG, FUNC_TAG, "Starting biometricsCleanerService...");
+    		Debug.i(TAG, FUNC_TAG, "Starting Biometrics Cleaner Service...");
     		startApp = new Intent("DiAs.BiometricsCleanerService");
     		startService(startApp);
     		
     		// ConstraintService
-    		Debug.i(TAG, FUNC_TAG, "Starting ConstraintService...");
+    		Debug.i(TAG, FUNC_TAG, "Starting Constraint Service...");
     		startApp = new Intent("DiAs.ConstraintService");
     		startService(startApp);
 
@@ -259,13 +248,14 @@ public class SupervisorActivity extends FragmentActivity
 					Debug.i(TAG, FUNC_TAG, "Subject data exists in the database...");
 					
 					// DiAsService
-		    		Debug.i(TAG, FUNC_TAG, "Starting DiAsService...");
+		    		Debug.i(TAG, FUNC_TAG, "Starting DiAs Service...");
 					startApp = new Intent();
 					startApp.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
 					startApp.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_INIT);
 					startService(startApp);
 					
 					// Start DiAs UI
+                    Debug.i(TAG, FUNC_TAG, "Starting DiAs UI...");
 					startApp = new Intent();
 					startApp.setClassName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.DiAsMain");
 					startApp.setAction(Intent.ACTION_MAIN);
@@ -287,7 +277,7 @@ public class SupervisorActivity extends FragmentActivity
         }        
         catch (Exception e) 
         {
-        	Debug.e(TAG, FUNC_TAG, "ERROR: "+e.getMessage());
+        	Debug.e(TAG, FUNC_TAG, "Error: "+e.getMessage());
         	e.printStackTrace();
         }
 	}
@@ -310,9 +300,9 @@ public class SupervisorActivity extends FragmentActivity
 				Intent driver = new Intent();
 				if(pump != null && !pump.equalsIgnoreCase(""))
 				{
-					Debug.w(TAG, FUNC_TAG, "Previously running pump was found: "+pump);
+					Debug.i(TAG, FUNC_TAG, "Previously running pump was found: "+pump);
 					String p_pump = pump.substring(0, pump.lastIndexOf('.'));
-					Debug.w(TAG, FUNC_TAG, "Pump Package name: "+p_pump);
+					Debug.i(TAG, FUNC_TAG, "Pump Package name: "+p_pump);
 					
 					driver.setClassName(p_pump, pump);
 					driver.putExtra("auto", true);
@@ -323,9 +313,9 @@ public class SupervisorActivity extends FragmentActivity
 				
 				if(cgm != null && !cgm.equalsIgnoreCase(""))
 				{
-					Debug.w(TAG, FUNC_TAG, "Previously running CGM was found:  "+cgm);
+					Debug.i(TAG, FUNC_TAG, "Previously running CGM was found:  "+cgm);
 					String p_cgm = cgm.substring(0, cgm.lastIndexOf('.'));
-					Debug.w(TAG, FUNC_TAG, "CGM Package name: "+p_cgm);
+					Debug.i(TAG, FUNC_TAG, "CGM Package name: "+p_cgm);
 					
 					driver.setClassName(p_cgm, cgm);
 					driver.putExtra("auto", true);
@@ -336,9 +326,9 @@ public class SupervisorActivity extends FragmentActivity
 				
 				if(misc != null && !misc.equalsIgnoreCase(""))
 				{
-					Debug.w(TAG, FUNC_TAG, "Previously running Misc. Driver was found:  "+misc);
+					Debug.i(TAG, FUNC_TAG, "Previously running Misc. Driver was found:  "+misc);
 					String p_misc = misc.substring(0, misc.lastIndexOf('.'));
-					Debug.w(TAG, FUNC_TAG, "Misc Package name: "+p_misc);
+					Debug.i(TAG, FUNC_TAG, "Misc Package name: "+p_misc);
 					
 					driver.setClassName(p_misc, misc);
 					driver.putExtra("auto", true);
@@ -349,7 +339,7 @@ public class SupervisorActivity extends FragmentActivity
 			}
 		}
 		else
-			Debug.i(TAG, FUNC_TAG, "Cursor is null!");
+			Debug.w(TAG, FUNC_TAG, "Cursor is null!");
 		
 		c.close();
 	}
@@ -401,7 +391,7 @@ public class SupervisorActivity extends FragmentActivity
 			configID = getArguments().getInt(CONFIG_ID);
 			
 			Config config = configurationManager.configs.get(configID);
-            Debug.i(TAG, FUNC_TAG, "Setting up new config tab with id=" + configID);
+            Debug.i(TAG, FUNC_TAG, "Setting up new config tab with ID:" + configID);
 		    
             LinearLayout requiredList = (LinearLayout) rootView.findViewById(R.id.requiredAppsViews);
             LinearLayout currentList = (LinearLayout) rootView.findViewById(R.id.currentAppsView);

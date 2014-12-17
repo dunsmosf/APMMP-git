@@ -561,6 +561,13 @@ public class DiAsService extends Service
             @Override
             public void onReceive(Context context, Intent intent) 
             {
+                controllers.run();
+
+
+
+
+
+
             	if (Params.getBoolean(getContentResolver(), "enableIO", false))
        			{
     				Toast.makeText(getApplicationContext(), "Enable IO is Active", Toast.LENGTH_SHORT).show();

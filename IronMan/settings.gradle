@@ -1,4 +1,4 @@
-include ':Ultron', ':SkyNet', ':Jarvis', ':SimulationDriver'
+include ':Ultron', ':SkyNet', ':Jarvis', ':SimulationDriver', ':ApcShell'
 include ':RocheDriver'
 include ':BtleShare'
 include ':BtleG4'

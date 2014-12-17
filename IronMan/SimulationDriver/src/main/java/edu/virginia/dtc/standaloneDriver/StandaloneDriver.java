@@ -612,25 +612,26 @@ public class StandaloneDriver extends Service {
 		File dir = Environment.getExternalStorageDirectory();
 		File simDataOnCard = new File(dir, "standalone/cgmdata");
 
-		Debug.i("fetchCGMDataFile", FUNC_TAG, "Loading internal file");
+		Debug.i(TAG, FUNC_TAG, "Loading internal file");
 		InputStream inputStream = getResources().openRawResource(R.raw.dexcom);
 		if (inputStream == null) {
-			Debug.i("fetchCGMDataFile", FUNC_TAG, "null inputStream");
+			Debug.i(TAG, FUNC_TAG, "null inputStream");
 		}
 		reader = new BufferedReader(new InputStreamReader(inputStream));
 
 		if ((Environment.MEDIA_MOUNTED.equals(state) || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) && simDataOnCard.exists()) {
-			Debug.i("fetchCGMDataFile", FUNC_TAG, "SD is available and file exists, loading file from SD");
+			Debug.i(TAG, FUNC_TAG, "SD is available and file exists, loading file from SD");
 			useSD = true;
 			try {
 				reader = new BufferedReader(new FileReader(simDataOnCard));
 			} catch (FileNotFoundException e) {
-				Debug.i("fetchCGMDataFile", FUNC_TAG, "File not found!");
+				Debug.i(TAG, FUNC_TAG, "File not found!");
 			}
 		} else {
-			Debug.i("fetchCGMDataFile", FUNC_TAG, "SD inaccessible, continuing with internal file...");
+			Debug.i(TAG, FUNC_TAG, "SD inaccessible, continuing with internal file...");
 		}
-		Debug.i("fetchCGMDataFile", FUNC_TAG, "Reading file...");
+		Debug.i(TAG, FUNC_TAG, "Reading file...");
+
 		int ii = 0;
 		try {
 			String line;
@@ -646,9 +647,9 @@ public class StandaloneDriver extends Service {
 				ii = ii + 1;
 			}
 		} catch (IOException ie) {
-			Debug.i("fetchCGMDataFile", FUNC_TAG, "Error parsing from file");
+			Debug.i(TAG, FUNC_TAG, "Error parsing from file");
 		}
-		Debug.i("fetchCGMDataFile", FUNC_TAG, "Load complete...");
+		Debug.i(TAG, FUNC_TAG, "Load complete...");
 		return ii;
 	}
 

@@ -4,7 +4,6 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.app.NotificationCompat;
@@ -27,10 +26,10 @@ public class SupervisorService extends Service
 
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;
+
 	private long tickCounter;
 	private boolean batteryCollectionStarted = false;
 
-    public Handler handler;
 	public static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	public static ScheduledFuture<?> timer;
 
@@ -44,7 +43,7 @@ public class SupervisorService extends Service
    			tickBroadcast.putExtra("tick", tickCounter);
    			sendBroadcast(tickBroadcast);
 
-   			if(tickCounter == 2)
+   			if(tickCounter == 1)
     		{
 				Intent algTickBroadcast = new Intent("edu.virginia.dtc.intent.action.SUPERVISOR_CONTROL_ALGORITHM_TICK");
                 algTickBroadcast.putExtra("tick", tickCounter);
@@ -53,7 +52,9 @@ public class SupervisorService extends Service
 
     		if (tickCounter % TickMax == 0)
     			tickCounter = 0;
-    		
+
+            Debug.i(TAG, FUNC_TAG, "Counter: "+tickCounter);
+
     		tickCounter++;
 		}	
 	};
@@ -68,20 +69,16 @@ public class SupervisorService extends Service
         return System.currentTimeMillis();
     }
 
-    //TODO: check time stuff, i've removed it for now
 	@Override
 	public void onCreate()
     {
 		final String FUNC_TAG = "onCreate";
-		
-		handler = new Handler();
 
 		BluetoothAdapter bt = ((android.bluetooth.BluetoothManager)getSystemService(BLUETOOTH_SERVICE)).getAdapter();
 
 		if(!bt.isEnabled())
 			bt.enable();
-		
-		// Start the Battery Data Collection if specified by the Parameters
+
 		boolean collectBatteryStats = Params.getBoolean(getContentResolver(), "collectBatteryStats", false);
 
 		if(collectBatteryStats && !batteryCollectionStarted)
@@ -111,6 +108,7 @@ public class SupervisorService extends Service
         wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
         wl.acquire();
 
+        Debug.i(TAG, FUNC_TAG, "Starting system timer!");
         timer = scheduler.scheduleAtFixedRate(tick, 0, 1, TimeUnit.MINUTES);
 	}
 

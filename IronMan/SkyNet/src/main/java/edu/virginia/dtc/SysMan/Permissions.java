@@ -12,36 +12,30 @@ public class Permissions
 	{
 		//Main Applications
 		"edu.virginia.dtc.DiAsService", 					//0
-		"edu.virginia.dtc.DiAsUI", 							//1
-		"edu.virginia.dtc.ConstraintService",				//2
-		"edu.virginia.dtc.ExerciseService",					//3
-			
-		//Shell services
-		"edu.virginia.dtc.APCserviceShell",					//4
-		"edu.virginia.dtc.BRMserviceShell", 				//5
-		"edu.virginia.dtc.SSMserviceShell",					//6
-		
-		//Services
-		"edu.virginia.dtc.APCservice",						//7
-		"edu.virginia.dtc.BRMservice",						//8
-		"edu.virginia.dtc.MCMservice",						//9
-		"edu.virginia.dtc.MealActivity",					//10
-		"edu.virginia.dtc.SSMservice",						//11
+		"edu.virginia.dtc.DiAsUI",
+
+        //Services
+		"edu.virginia.dtc.ConstraintService",               //2
+		"edu.virginia.dtc.ExerciseService",
+		"edu.virginia.dtc.APCservice",                      //4
+		"edu.virginia.dtc.BRMservice",
+		"edu.virginia.dtc.MCMservice",
+		"edu.virginia.dtc.SSMservice",
    
 		//Simulation driver
-		"edu.virginia.dtc.standaloneDriver",				//12
+		"edu.virginia.dtc.standaloneDriver",				//8
 
         //Pump Drivers
-		"edu.virginia.dtc.BTLE_Tandem",						//13
-		"edu.virginia.dtc.RocheDriver",						//14
+		"edu.virginia.dtc.BTLE_Tandem",						//9
+		"edu.virginia.dtc.RocheDriver",
    
 		//CGM drivers
-		"edu.virginia.dtc.BTLE_G4",							//15
+		"edu.virginia.dtc.BTLE_G4",							//11
 					
 		//Misc. drivers
-		"edu.virginia.dtc.GlassDriver",						//16
-		"edu.virginia.dtc.HR_Driver",						//17
-		"edu.virginia.dtc.Bioharness_Driver"				//18
+		"edu.virginia.dtc.GlassDriver",						//12
+		"edu.virginia.dtc.HR_Driver",
+		"edu.virginia.dtc.Bioharness_Driver"
 	};
 	
 	public static class appPerm
@@ -152,7 +146,22 @@ public class Permissions
         {
             return new perm(table, true, true, true, true);
         }
-		else if(a.equalsIgnoreCase(applications[12]))				//Standalone Driver
+        else if(a.equalsIgnoreCase(applications[4]))
+        {
+            switch(table)
+            {														//						Query	Update	Insert	Delete
+                case Biometrics.ALL_URI:							return new perm(table,	false,	false,	false,	false);
+                case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
+
+                case Biometrics.MEAL_TABLE:							return new perm(table, 	true, 	true, 	false, 	false);
+                case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
+                case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
+                case Biometrics.TEMP_BASAL_TABLE:					return new perm(table,	true, 	true, 	true, 	false);
+                case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	true, 	true, 	true, 	false);
+                case Biometrics.SERVICE_OUTPUTS_TABLE:				return new perm(table,  true,   false,	true,	false);
+            }
+        }
+		else if(a.equalsIgnoreCase(applications[8]))				//Standalone Driver
 		{
 			switch(table)
 			{														//						Query	Update	Insert	Delete
@@ -167,16 +176,16 @@ public class Permissions
 			}
 		}
 		
-		else if(a.equalsIgnoreCase(applications[13]) ||				//Tandem Driver
-				a.equalsIgnoreCase(applications[14]))				//Roche Driver
+		else if(a.equalsIgnoreCase(applications[9]) ||				//Tandem Driver
+				a.equalsIgnoreCase(applications[10]))				//Roche Driver
 		{
 			return getPumpDriverPermissions(table);
 		}
-		else if(a.equalsIgnoreCase(applications[15]))				//BTLE G4 Dexcom Driver
+		else if(a.equalsIgnoreCase(applications[11]))				//BTLE G4 Dexcom Driver
 		{
 			return getCgmDriverPermissions(table);
 		}
-		else if(a.equalsIgnoreCase(applications[16]))				//Glass Driver
+		else if(a.equalsIgnoreCase(applications[12]))				//Glass Driver
 		{
 			switch(table)
 			{														//						Query	Update	Insert	Delete
@@ -190,8 +199,8 @@ public class Permissions
 		    	case Biometrics.CONTROLLER_PARAMETERS_TABLE:		return new perm(table,	false, 	false, 	false, 	false);
 			}
 		}
-		else if(a.equalsIgnoreCase(applications[17]) ||             // Heart Rate Driver
-                a.equalsIgnoreCase(applications[18]))			    // Bioharness
+		else if(a.equalsIgnoreCase(applications[13]) ||             // Heart Rate Driver
+                a.equalsIgnoreCase(applications[14]))			    // Bioharness
 		{
 			switch(table)
 			{														//						Query	Update	Insert	Delete

@@ -491,7 +491,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		tv.setText(mode);
 
 		Cursor c = getContentResolver().query(Biometrics.PASSWORD_URI, null, null, null, null);
-		if (c.moveToLast()) 
+		if (c != null && c.moveToLast())
 		{
 			Debug.i(TAG, FUNC_TAG, "There is a password so no need to animate!");
 			noPassword = false;

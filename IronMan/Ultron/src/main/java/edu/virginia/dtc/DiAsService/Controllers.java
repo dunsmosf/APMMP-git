@@ -48,21 +48,41 @@ public class Controllers
         Brm = new Controller("DiAs.BRMservice");
         Mcm = new Controller("DiAs.MCMservice");
 
+        startController(Ssm);
+        startController(Apc);
+        startController(Brm);
+        startController(Mcm);
+
         machine = new StateMachine(this);
 
-
+        serviceObserver = new ServiceObserver(new Handler());
+        service.getContentResolver().registerContentObserver(Biometrics.SERVICE_OUTPUTS_URI, false, serviceObserver);
     }
 
-    public void run()
+    public void runAlgorithm()
     {
-        //need to get system status
-        //initialize connections if unavailable
-        //run if necessary
+        final String FUNC_TAG = "run";
+
+        Debug.i(TAG, FUNC_TAG, "-----------------------------");
+        Debug.i(TAG, FUNC_TAG, "Running system...Cycle: "+cycle);
+
+        Debug.i(TAG, FUNC_TAG, "Starting scan...");
+        machine.startScan();
+
+        //Run algorithm machine
+
+        //Run TBR machine
+
+        cycle++;
+
+        Debug.i(TAG, FUNC_TAG, "-----------------------------");
     }
 
-    public void initialize()
+    public void runMeal()
     {
-        //Analyze system and run correct controllers
+        //Run scan machine
+
+        //Run meal machine
     }
 
     private long getCycle()
@@ -72,14 +92,18 @@ public class Controllers
 
     private void startController(final Controller c)
     {
+        final String FUNC_TAG = "startController";
+
         c.cxn = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
+                Debug.i(TAG, FUNC_TAG, c.intent+" connected!");
                 c.bound = true;
             }
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
+                Debug.i(TAG, FUNC_TAG, c.intent+" disconnected!");
                 c.bound = false;
             }
         };
@@ -99,6 +123,8 @@ public class Controllers
         c.put("type", Messages.COMMAND);
         c.put("message", mess);
         c.put("data", "");
+
+        service.getContentResolver().insert(Biometrics.SERVICE_OUTPUTS_URI, c);
     }
 
     // Internal Classes
@@ -106,6 +132,8 @@ public class Controllers
 
     class ServiceObserver extends ContentObserver
     {
+        final String FUNC_TAG = "ServiceObserver";
+
         public ServiceObserver(Handler handler)
         {
             super(handler);
@@ -134,6 +162,7 @@ public class Controllers
                 }
                 else if(type == Messages.RESPONSE)
                 {
+                    Debug.i(TAG, FUNC_TAG, "Processing response...");
                     processResponse(machine, source, message);
                 }
             }

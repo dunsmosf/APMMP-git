@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/ApcShell/ApcShell.iml" filepath="$PROJECT_DIR$/ApcShell/ApcShell.iml" />
       <module fileurl="file://$PROJECT_DIR$/BtleG4/BtleG4.iml" filepath="$PROJECT_DIR$/BtleG4/BtleG4.iml" />
       <module fileurl="file://$PROJECT_DIR$/BtleShare/BtleShare.iml" filepath="$PROJECT_DIR$/BtleShare/BtleShare.iml" />
       <module fileurl="file://$PROJECT_DIR$/BtleTandem/BtleTandem.iml" filepath="$PROJECT_DIR$/BtleTandem/BtleTandem.iml" />

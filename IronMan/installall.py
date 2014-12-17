@@ -18,6 +18,7 @@ adb install "Jarvis/build/outputs/apk/Jarvis-debug.apk"
 
 :: Controllers
 ::----------------------------------
+adb install "ApcShell/build/outputs/apk/ApcShell-debug.apk"
 
 :: Drivers
 ::----------------------------------
