@@ -261,6 +261,15 @@ public class DiAsService extends Service
 
         controllers = new Controllers(this);
 
+        Intent pumpIntent = new Intent();
+        pumpIntent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.PumpService.PumpService");
+        startService(pumpIntent);
+
+        Intent cgmIntent = new Intent();
+        cgmIntent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.CgmService.CgmService");
+        startService(cgmIntent);
+
+
 
 
 
@@ -561,17 +570,7 @@ public class DiAsService extends Service
             @Override
             public void onReceive(Context context, Intent intent) 
             {
-                controllers.run();
-
-
-
-
-
-
-            	if (Params.getBoolean(getContentResolver(), "enableIO", false))
-       			{
-    				Toast.makeText(getApplicationContext(), "Enable IO is Active", Toast.LENGTH_SHORT).show();
-       			}
+                controllers.runSync();
             	
             	ContentValues bv = new ContentValues();
      			bv.put("time", (System.currentTimeMillis()/1000));
@@ -591,12 +590,6 @@ public class DiAsService extends Service
   			    catch (Exception e) {
   			    	Debug.e(TAG, FUNC_TAG, e.getMessage());
   			    }
-				
-        		nextSimulatedPumpValue = intent.getDoubleExtra("nextSimulatedPumpValue", 0.0);
-        		Supervisor_Tick_Free_Running_Counter = Supervisor_Tick_Free_Running_Counter+1;
-        		
-        		Debug.i(TAG, FUNC_TAG, "TickReceiver > Supervisor_Tick_Free_Running_Counter="+Supervisor_Tick_Free_Running_Counter+", latestCGMTime="+cgm_last_time_sec);
-    			Debug.i(TAG, FUNC_TAG, "TickReceiver > DIAS_STATE == "+DIAS_STATE+", DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);
     			
     			if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY && DIAS_STATE != State.DIAS_STATE_STOPPED) 
     			{
@@ -623,10 +616,6 @@ public class DiAsService extends Service
     					}
     				}
     			}
-    			
-                //TODO:  startup controllers
-
-        		updateDiasService(DIAS_UI_CLICK_NULL);
         	}
      	};
         registerReceiver(AlgTickReceiver, new IntentFilter("edu.virginia.dtc.intent.action.SUPERVISOR_CONTROL_ALGORITHM_TICK"));
@@ -874,10 +863,6 @@ public class DiAsService extends Service
         	
         if(stateObserver != null)
         	getContentResolver().unregisterContentObserver(stateObserver);
-        
-		//Clear icons on destruction
-		Intent removeIconsIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON_REMOVE_ALL");
-		sendBroadcast(removeIconsIntent);
 	}
     
     @Override

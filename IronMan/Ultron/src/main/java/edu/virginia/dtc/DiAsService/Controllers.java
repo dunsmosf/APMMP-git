@@ -59,7 +59,7 @@ public class Controllers
         service.getContentResolver().registerContentObserver(Biometrics.SERVICE_OUTPUTS_URI, false, serviceObserver);
     }
 
-    public void runAlgorithm()
+    public void runSync()
     {
         final String FUNC_TAG = "run";
 
@@ -70,6 +70,8 @@ public class Controllers
         machine.startScan();
 
         //Run algorithm machine
+        Debug.i(TAG, FUNC_TAG, "Starting algorithm...");
+        machine.startAlgorithm();
 
         //Run TBR machine
 

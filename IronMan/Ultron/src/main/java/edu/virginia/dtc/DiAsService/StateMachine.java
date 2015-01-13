@@ -187,10 +187,16 @@ public class StateMachine
 
     public void startAlgorithm()
     {
-        if(ssm) {
-            algorithm.setState(FSM.SSM_UPDATE);
-            runAlgorithmMachine();
-        }
+        if(apc)
+            algorithm.setState(FSM.APC_PROCESS);
+        else if(brm)
+            algorithm.setState(FSM.BRM_PROCESS);
+        else if(ssm)
+            algorithm.setState(FSM.SSM_PROCESS);
+        else
+            algorithm.setState(FSM.IDLE);
+
+        runAlgorithmMachine();
     }
 
     private void runAlgorithmMachine()
@@ -199,10 +205,6 @@ public class StateMachine
             case FSM.IDLE:
                 if(algorithmExpire != null)
                     algorithmExpire.cancel(true);
-                break;
-            case FSM.SSM_UPDATE:
-                controllers.sendCommand(Messages.SSM, FSM.ALGORITHM, Messages.UPDATE);
-                setAlgorithmTimer();
                 break;
             case FSM.APC_PROCESS:
                 controllers.sendCommand(Messages.APC, FSM.ALGORITHM, Messages.PROCESS);
@@ -215,6 +217,9 @@ public class StateMachine
             case FSM.SSM_PROCESS:
                 controllers.sendCommand(Messages.SSM, FSM.ALGORITHM, Messages.PROCESS);
                 setAlgorithmTimer();
+            case FSM.PUMP_PROCESS:
+                controllers.sendCommand(Messages.PUMP, FSM.ALGORITHM, Messages.PROCESS);
+                setAlgorithmTimer();
                 break;
         }
     }
@@ -224,16 +229,6 @@ public class StateMachine
         int nextState = algorithm.getState();
 
         switch(algorithm.getState()) {
-            case FSM.SSM_UPDATE:
-                if(source == Messages.SSM && message == Messages.UPDATE) {
-                    if (apc)
-                        nextState = FSM.APC_PROCESS;
-                    else if (brm)
-                        nextState = FSM.BRM_PROCESS;
-                    else if (ssm)
-                        nextState = FSM.SSM_PROCESS;
-                }
-                break;
             case FSM.APC_PROCESS:
                 if(source == Messages.APC && message == Messages.PROCESS) {
                     if (brm)

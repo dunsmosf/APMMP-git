@@ -1,12 +1,4 @@
-//*********************************************************************************************************************
-//  Copyright 2011-2013 by the University of Virginia
-//	All Rights Reserved
-//
-//  Created by Patrick Keith-Hynes
-//  Center for Diabetes Technology
-//  University of Virginia
-//*********************************************************************************************************************
-package edu.virginia.dtc.APCservice;
+package edu.virginia.dtc.SSMservice;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -27,15 +19,15 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Messages;
 
-public class IOMain extends Service {
+public class SafetyService extends Service {
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;
-	
-	public static final String TAG = "APCservice";
+
+    public static final String TAG = "SSMservice";
 
     private ServiceObserver serviceObserver;
- 
-	@Override
+    
+    @Override
 	public void onCreate() {
         // Set up a Notification for this Service
         String ns = Context.NOTIFICATION_SERVICE;
@@ -44,32 +36,31 @@ public class IOMain extends Service {
         CharSequence tickerText = "";
         long when = System.currentTimeMillis();
         Notification notification = new Notification(icon, tickerText, when);
-        Context context = getApplicationContext();
-        CharSequence contentTitle = "APCservice";
-        CharSequence contentText = "Mitigating Hyperglycemia";
-        Intent notificationIntent = new Intent(this, IOMain.class);
+        CharSequence contentTitle = "Safety Service v1.0";
+        CharSequence contentText = "Monitoring Insulin Dosing";
+        Intent notificationIntent = new Intent(this, SafetyService.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+		Context context = getApplicationContext();
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
-        final int APC_ID = 3;
+        final int SAFETY_ID = 1;
 
-        // Make this a Foreground Service
-        startForeground(APC_ID, notification);
+        startForeground(SAFETY_ID, notification);
 
-		// Keep the CPU running even after the screen dims
 		pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();
 
         serviceObserver = new ServiceObserver(new Handler());
         getContentResolver().registerContentObserver(Biometrics.SERVICE_OUTPUTS_URI, false, serviceObserver);
-    }
+	}
 
-    @Override
-    public void onDestroy() {
+	@Override
+	public void onDestroy() {
         if(serviceObserver != null)
             getContentResolver().unregisterContentObserver(serviceObserver);
-    }
-
+	}
+	
+    /* When binding to the service, we return an interface to our messenger for sending messages to the service. */
     @Override
     public IBinder onBind(Intent intent) {
         return new Binder();
@@ -103,7 +94,7 @@ public class IOMain extends Service {
                 int destination = c.getInt(c.getColumnIndex("destination"));
                 long cycle = c.getLong(c.getColumnIndex("cycle"));
 
-                if(destination == Messages.APC) {
+                if(destination == Messages.SSM) {
                     if (type == Messages.COMMAND) {
                         switch(message) {
                             case Messages.PING:
@@ -128,7 +119,7 @@ public class IOMain extends Service {
             ContentValues c = new ContentValues();
             c.put("time", System.currentTimeMillis() / 1000);
             c.put("cycle", cycle);
-            c.put("source", Messages.APC);
+            c.put("source", Messages.SSM);
             c.put("destination", dest);
             c.put("machine", machine);
             c.put("type", Messages.RESPONSE);

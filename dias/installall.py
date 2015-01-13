@@ -34,13 +34,13 @@ adb install "PumpService/bin/PumpService.apk"
 ::adb install "ConstraintServiceShell/bin/ConstraintServiceShell.apk"
 ::adb install "ExerciseServiceShell/bin/ExerciseServiceShell.apk"
 
-::adb install "APCserviceShell/bin/APCserviceShell.apk"
-::adb install "BRMserviceShell/bin/BRMserviceShell.apk"
-::adb install "SSMserviceShell/bin/SSMserviceShell.apk"
+adb install "APCserviceShell/bin/APCserviceShell.apk"
+adb install "BRMserviceShell/bin/BRMserviceShell.apk"
+adb install "SSMserviceShell/bin/SSMserviceShell.apk"
 
-adb install "SSMservice.apk"
-adb install "BRMservice.apk"
-adb install "HMSservice.apk"
+::adb install "SSMservice.apk"
+::adb install "BRMservice.apk"
+::adb install "HMSservice.apk"
 
 ::SERVICES
 ::-------------------------------------------------------------------
@@ -52,11 +52,11 @@ adb install "MCMservice/bin/MCMservice.apk"
 ::-------------------------------------------------------------------
 adb install "standaloneDriver/bin/standaloneDriver.apk"
 ::adb install "GlassDriver/bin/GlassDriver.apk"
-adb install "RocheDriver/bin/RocheDriver.apk"
+::adb install "RocheDriver/bin/RocheDriver.apk"
 ::adb install "HR_Driver/bin/HR_Driver.apk"
 ::adb install "BTLE_Tandem/bin/BTLE_Tandem.apk"
 ::adb install "BTLE_G4/bin/BTLE_G4.apk"
-adb install "BTLE_Share/bin/BTLE_Share.apk"
+::adb install "BTLE_Share/bin/BTLE_Share.apk"
 
 """
 

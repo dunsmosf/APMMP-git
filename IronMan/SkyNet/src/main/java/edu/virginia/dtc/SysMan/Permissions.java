@@ -146,7 +146,8 @@ public class Permissions
         {
             return new perm(table, true, true, true, true);
         }
-        else if(a.equalsIgnoreCase(applications[4]))
+        else if(a.equalsIgnoreCase(applications[4]) || a.equalsIgnoreCase(applications[5])
+                || a.equalsIgnoreCase(applications[6]) || a.equalsIgnoreCase(applications[7]))
         {
             switch(table)
             {														//						Query	Update	Insert	Delete

@@ -79,7 +79,6 @@ public class TempBasalActivity extends Activity{
 			cancelTemporaryBasalRate();
 			finish();
 		}
-		
 	}
 	
 	@Override

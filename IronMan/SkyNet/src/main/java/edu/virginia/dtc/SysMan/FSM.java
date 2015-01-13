@@ -19,10 +19,10 @@ public class FSM
     public static final int PING_MCM    = 13;
 
     // STATES - ALGORITHM
-    public static final int SSM_UPDATE  = 20;
-    public static final int APC_PROCESS = 21;
-    public static final int BRM_PROCESS = 22;
-    public static final int SSM_PROCESS = 23;
+    public static final int APC_PROCESS     = 20;
+    public static final int BRM_PROCESS     = 21;
+    public static final int SSM_PROCESS     = 22;
+    public static final int PUMP_PROCESS    = 23;
 
 
 

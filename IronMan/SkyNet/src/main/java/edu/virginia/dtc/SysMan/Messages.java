@@ -12,6 +12,7 @@ public class Messages
     public static final int BRM     = 2;
     public static final int SSM     = 3;
     public static final int MCM     = 4;
+    public static final int PUMP    = 5;
 
     // MESSAGE ID
     public static final int PING    = 10;
