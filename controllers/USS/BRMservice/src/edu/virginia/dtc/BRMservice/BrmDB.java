@@ -284,11 +284,12 @@ public void UpdateTDIc(String subjectID, long time,double TDIc) {
 		final String FUNC_TAG = "getLastTDIestBrmDB";
 		
 		SQLiteDatabase db = this.getReadableDatabase();
-		String query = "SELECT * FROM " + TDI_HISTORY_TABLE+ " where TDIest!=null AND subjectID="+"'"+subjectID+"'";
+		String query = "SELECT * FROM " + TDI_HISTORY_TABLE+ " where TDIest IS NOT NULL AND subjectID="+"'"+subjectID+"'";
 
 		Settings st = new Settings();
 		
 		Cursor c = db.rawQuery(query, null);
+		Debug.i(TAG,FUNC_TAG,"last tdi est query >>>>"+c.getCount());
 		if (c.getCount() != 0) {
 			
 			c.moveToLast();   //// need to verify
