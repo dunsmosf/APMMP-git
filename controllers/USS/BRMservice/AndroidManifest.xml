@@ -49,7 +49,7 @@
             </intent-filter>
 		</service>
         
-		<meta-data android:name="Version" android:value="$Rev: 2009 $*"/>
+		<meta-data android:name="Version" android:value="$Rev: 1972 $*"/>
         
    </application>
    <uses-permission android:name="android.permission.WAKE_LOCK" />

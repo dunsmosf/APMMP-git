@@ -541,14 +541,14 @@ public class InsulinTherapy {
 	{
 		final String FUNC_TAG = "get_adaptive_TDI";
 		double adap_TDI;
-		Settings st = IOMain.db.getLastTDIBrmDB();
+		Settings st = IOMain.db.getLastTDIestBrmDB(subject.sessionID);
 		Debug.i(TAG, FUNC_TAG, "time= "+getCurrentTimeSeconds());
 		Debug.i(TAG, FUNC_TAG, "BrmDB:time= "+st.time);
-		Debug.i(TAG, FUNC_TAG, "BrmDB:TDI= "+st.TDI);
-		if (st.TDI==0)
+		Debug.i(TAG, FUNC_TAG, "BrmDB:TDI= "+st.TDIest);
+		if (st.TDIest==0)
 				return subject.TDI;
 		else
-			return st.TDI;
+			return st.TDIest;
 	}
 	
 	public double INS_target_saturate(double INS_target, double CF) {
