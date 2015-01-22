@@ -685,7 +685,7 @@ public class SSM_processing {
 
 			double Thres = -0.015;			
 			
-			if (Dma<Thres && CGMlatest>250 && beta1>-0.2){  //Dma from KF
+			if (Dma<Thres && CGMlatest>=200 && beta1>-0.2){  //Dma from KF
 			  HyperRL = Safety.RED_LIGHT;	
 			}else{
 				if (Uma>0){  //Uma from KF
@@ -1776,9 +1776,29 @@ public class SSM_processing {
 		
 		Long mealtime= (long) 0;
 		Long hypotime= (long) 0;
+		
 		if (inputs.Tvec_meal.count()>=1){
-			mealtime = inputs.Tvec_meal.get_last_time();
+			
+			int mealN = inputs.Tvec_meal.count();
+
+			int mealindex = mealN-1;
+			while (mealindex>=0) {
+				if (inputs.Tvec_meal.get(mealindex).value() !=0) {
+					break;
+				}else {
+					mealindex = mealindex-1;
+				}	
+			}
+			
+			if (mealindex>=0) {	
+			    mealtime = inputs.Tvec_meal.get(mealindex).time();
+			}else{
+				mealtime = (long) 0;
+			}
+		
 		}
+		
+		
 		if (inputs.Tvec_hypo.count()>=1){
 			hypotime = inputs.Tvec_hypo.get_last_time();
 		}
