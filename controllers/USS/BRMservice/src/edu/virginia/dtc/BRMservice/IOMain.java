@@ -8,49 +8,40 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.BRMservice;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.Params;
-import edu.virginia.dtc.Tvector.Tvector;
-import android.content.BroadcastReceiver;
-import android.content.ContentProvider;
-import android.content.ComponentName;
-import android.content.ContentUris;
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.IntentFilter;
-import android.content.UriMatcher;
-import android.app.Service;
-import android.content.ContentValues;
-import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.Bundle;
-import edu.virginia.dtc.SysMan.Debug;
-import android.os.IBinder;
-import android.os.Messenger;
-import android.os.PowerManager;
-import android.util.Log;
-import android.view.Gravity;
-import android.widget.Toast;
-import android.os.Message;
-import android.os.Handler;
-import android.os.Bundle;
-import android.os.RemoteException;
+import android.R.string;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.PowerManager;
+import android.os.RemoteException;
+import android.text.InputFilter.LengthFilter;
+import android.util.Log;
+import android.widget.Toast;
+import edu.virginia.dtc.BRMservice.Interpolator;
+import edu.virginia.dtc.SysMan.Debug;
+import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.Tvector.Pair;
+import edu.virginia.dtc.Tvector.Tvector;
 
 public class IOMain extends Service {
 	// Power management
@@ -221,11 +212,11 @@ public class IOMain extends Service {
 		public void run() 
 		{
 			Debug.i(TAG,FUNC_TAG,"time difference"+Long.toString(getCurrentTimeSeconds()-retrieveTimestampOfFirstInsulinDelivery()));
-			if (getCurrentTimeSeconds()-retrieveTimestampOfFirstInsulinDelivery()>(1+24*60*60))
+			if (getCurrentTimeSeconds()-retrieveTimestampOfFirstInsulinDelivery()>(86100))
 			{
-				//Debug.i(TAG,FUNC_TAG,"start time"+Double.toString(CalculateTDIfromInsulinDelivery(retrieveTimestampOfLastInsulinDelivery()-(1+24*60*60))));
-				SaveTDItobrmDB(CalculateTDIfromInsulinDelivery(retrieveTimestampOfLastInsulinDelivery()-(1+24*60*60)));
-				
+				Debug.i(TAG,FUNC_TAG,"start time"+Double.toString(CalculateTDIfromInsulinDelivery(retrieveTimestampOfLastInsulinDelivery()-(1+24*60*60))));
+				SaveTDIctobrmDB(CalculateTDIfromInsulinDelivery(retrieveTimestampOfLastInsulinDelivery()-(1+24*60*60)));
+				TDIestCalculateandUpdate(144);
 			}
 			
 		}
@@ -863,18 +854,18 @@ public class IOMain extends Service {
 	
 	private long retrieveTimestampOfFirstInsulinDelivery() {
 		long timeStamp = -1;
-		Cursor c=getContentResolver().query(INSULIN_URI, null, null, null, null);
+		String FUNC_TAG="retrieveTimestampOfFirstInsulinDelivery";
+		Cursor c=getContentResolver().query(INSULIN_URI, new String[]{"deliv_time"}, null, null, "deliv_time ASC LIMIT 1");
 		
-		try {
-			if (c.moveToFirst()) {
+		
+			if(c != null && c.moveToFirst()){
 				timeStamp = c.getInt(c.getColumnIndex("deliv_time"));
 			}		
 			c.close();
-		}
-        catch (Exception e) {
-        		Log.e("Error retrieveTimestampOfMostRecentInsulinDelivery", e.getMessage());
-        }
-			
+		
+        
+		Debug.i(TAG,FUNC_TAG,"time first delivery >>>>"+timeStamp);
+	
 		return timeStamp;
 	}
 	
@@ -901,11 +892,12 @@ public class IOMain extends Service {
 		Cursor c=getContentResolver().query(INSULIN_URI, null, "deliv_time>"+Long.toString(start_time), null, null);
 		try {
 			if (c.moveToFirst()) {
-				while (c.moveToNext()) 
-					{
-						tdi =(double)Math.round((tdi+ c.getDouble(c.getColumnIndex("deliv_total"))) * 100) / 100;
+					if (c.getCount()>240){//if we have a disconnection of 4 hours or more, we don't take it into account
+						while (c.moveToNext()) 
+							{
+								tdi =(double)Math.round((tdi+ c.getDouble(c.getColumnIndex("deliv_total"))) * 100) / 100;
+							}
 					}
-					
 				}
 			c.close();
 			}		
@@ -918,10 +910,60 @@ public class IOMain extends Service {
 		return tdi;
 	}
 	
-	private void SaveTDItobrmDB(double TDI) {
+	private void SaveTDIctobrmDB(double TDI) {
 		// TODO Auto-generated method stub
 		db = new BrmDB(getApplicationContext());
-		db.addTDItoBrmDB(getCurrentTimeSeconds(), TDI);
+		db.addTDItoBrmDB(subject.sessionID, getCurrentTimeSeconds(), TDI,0);
+	}
+	//method to calculate the TDIest based on a window of "h" hours
+	public void TDIestCalculateandUpdate (int h){
+		final String FUNC_TAG = "TDIestCalculateandUpdate";
+		Tvector TDIc = new Tvector(144);
+		db = new BrmDB(getApplicationContext());
+		
+		Settings st;
+		st=db.getLastTDIestBrmDB(subject.sessionID);
+		
+		TDIc=db.getTDIcHistory(subject.sessionID, st.time-h*60*60);
+		
+		//first and last values to tdi DEMOGRAPHICS If equal to 0
+		/*Pair FirstTDIc=TDIc.get(0);
+		double LastTDIc=TDIc.get_last_value();
+		if(LastTDIc==0){
+			TDIc.replace_last_value(subject.TDI);
+		}
+		if(FirstTDIc.value()==0){
+			TDIc.replace_value(subject.TDI,0);
+		}*/	
+		//Get all the 0 values (missing TDIs due to missed bolus injections for more than 4 hours)
+		//double [] xintp=new double[144];
+		//double [] t=new double[144];
+		//double [] v=new double [144];
+		Debug.i(TAG,FUNC_TAG,"TDIc Count >>>>"+TDIc.count());
+		//code to replace missing TDIc (due to missing boluses) by the subject TDI
+		for (int i=0;i<TDIc.count();i++){
+			Debug.i(TAG,FUNC_TAG,"TDIc value >>>>"+TDIc.get_value(i)+"TDIc time >>>>"+TDIc.get_time(i));
+			if (TDIc.get_value(i)==0){
+				db.UpdateTDIc(subject.sessionID, TDIc.get_time(i), subject.TDI);
+			}
+			
+		}
+		//interpolation code
+		//update the TDI
+		/*double[] interpolatedTDI = Interpolator.interpLinear(t, v, xintp);
+		for (int j=0;j<interpolatedTDI.length;j++){
+			db.UpdateTDIc((long) xintp[j], interpolatedTDI[j]);
+		}
+		*/
+		double temp_TDIest=subject.TDI*0.96+TDIc.get_value(0)*0.04;
+		Debug.i(TAG,FUNC_TAG,"Initial TDIest >>>>"+temp_TDIest);
+		for (int k=1;k<TDIc.count();k++){
+			temp_TDIest=temp_TDIest*0.96+TDIc.get_value(k)*0.04;
+		}
+		
+		Debug.i(TAG,FUNC_TAG,"TDIest >>>>"+temp_TDIest);
+		
+		db.UpdateTDIest(subject.sessionID, TDIc.get_last_time(), temp_TDIest);
 	}
 	
 	private void storeInjectedInsulin(double insulin_injected) {

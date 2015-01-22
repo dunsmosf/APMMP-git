@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
 
+import android.R.string;
 import android.content.SharedPreferences;
 import android.content.Context;
 import android.database.Cursor;
@@ -28,6 +29,7 @@ public class Subject {
 	public double weight;
 	public double height;
 	public double age;
+	public String sessionID;
 	public boolean valid = false;
 	
 	private static boolean DEBUG_MODE = true;
@@ -73,7 +75,7 @@ public class Subject {
 		weight = subject_data.subjectWeight;
 		height = subject_data.subjectHeight;
 		age = subject_data.subjectAge;
-		
+		sessionID = subject_data.subjectSession;
 		// Get current CF value
 		indices = subject_data.subjectCF.find(">", -1, "<=", timeNowSecs/60);			// Find the list of indices <= time in minutes since today at 00:00
 		if (indices == null) {
