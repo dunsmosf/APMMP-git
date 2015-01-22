@@ -700,6 +700,13 @@ public class DiAsService extends Service
         	   mSSM = null;
         	   mSSMBound = false;
         	   
+        	   	Bundle b = new Bundle();
+       			b.putString(	"description", "SSM Error: "+Event.EVENT_SSM_DEAD);
+       			Event.addEvent(getApplicationContext(), Event.EVENT_SSM_DEAD, Event.makeJsonString(b), Event.SET_LOG);
+       			
+       			changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
+       			updateDiasService(DIAS_UI_CLICK_NULL);
+        	   
         	   Debug.e(TAG, FUNC_TAG, "The SSM service connection was killed attempting to restart...");
         	   startSSM();
            }
@@ -760,13 +767,15 @@ public class DiAsService extends Service
 					Apc.credit = APCBundle.getDouble("creditRequest", 0.0);
 					Apc.spend = APCBundle.getDouble("spendRequest", 0.0);
 					boolean new_differential_rate = APCBundle.getBoolean("new_differential_rate", false);
+					
+					Apc.last_calc_time = getCurrentTimeSeconds();
+					
 					if (new_differential_rate) {
     					Apc.diff_rate = APCBundle.getDouble("differential_basal_rate", 0.0);
-						Apc.last_calc_time = getCurrentTimeSeconds();
 					}
+					
 					if (APC_MODE == APC.MODE_APC_INSTALLED) {			// If we have Apc but no Brm then Apc sets diff_rate
     					Apc.diff_rate = APCBundle.getDouble("differential_basal_rate", 0.0);
-						Apc.last_calc_time = getCurrentTimeSeconds();
 						Apc.doesRate = true;
 					}
 					Apc.extended = APCBundle.getBoolean("extendedBolus");
@@ -952,6 +961,13 @@ public class DiAsService extends Service
         	   mAPCBound = false;
         	   Apc.bound = false;
         	   
+        	   	Bundle b = new Bundle();
+      			b.putString(	"description", "APC Error: "+Event.EVENT_APC_DEAD);
+      			Event.addEvent(getApplicationContext(), Event.EVENT_APC_DEAD, Event.makeJsonString(b), Event.SET_LOG);
+      			
+      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
+       			updateDiasService(DIAS_UI_CLICK_NULL);
+        	   
         	   Debug.e(TAG, FUNC_TAG, "The APC service connection was killed attempting to restart...");
         	   startAPC();
         	   
@@ -1017,14 +1033,15 @@ public class DiAsService extends Service
 					
 					boolean new_differential_rate = BRMBundle.getBoolean("new_differential_rate", false);
 
+					Brm.last_calc_time = getCurrentTimeSeconds();
+					
 					if (new_differential_rate) 
 					{
     					Brm.diff_rate = BRMBundle.getDouble("differential_basal_rate", 0.0);
-						Brm.last_calc_time = getCurrentTimeSeconds();
 					}
+					
 					if (APC_MODE == APC.MODE_BRM_INSTALLED) {			// If we have Brm but no Apc then Brm sets diff_rate
 						Brm.diff_rate = BRMBundle.getDouble("differential_basal_rate", 0.0);
-						Brm.last_calc_time = getCurrentTimeSeconds();
 						Brm.doesRate = true;
 					}
 					
@@ -1153,6 +1170,13 @@ public class DiAsService extends Service
         	   mBRM = null;
         	   mBRMBound = false;
         	   Brm.bound = false;
+        	   
+        	   	Bundle b = new Bundle();
+      			b.putString(	"description", "BRM Error: "+Event.EVENT_BRM_DEAD);
+      			Event.addEvent(getApplicationContext(), Event.EVENT_BRM_DEAD, Event.makeJsonString(b), Event.SET_LOG);
+      			
+      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
+       			updateDiasService(DIAS_UI_CLICK_NULL);
         	   
         	   Debug.e(TAG, FUNC_TAG, "The BRM service connection was killed attempting to restart...");
         	   startBRM();
@@ -1388,6 +1412,13 @@ public class DiAsService extends Service
         	   Debug.i(TAG, FUNC_TAG, "onServiceDisconnected MCM");
         	   mMCM = null;
         	   mMCMBound = false;
+        	   
+        	   	Bundle b = new Bundle();
+      			b.putString(	"description", "MCM Error: "+Event.EVENT_MCM_DEAD);
+      			Event.addEvent(getApplicationContext(), Event.EVENT_MCM_DEAD, Event.makeJsonString(b), Event.SET_LOG);
+      			
+      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
+       			updateDiasService(DIAS_UI_CLICK_NULL);
         	   
         	   Debug.e(TAG, FUNC_TAG, "The MCM service connection was killed attempting to restart...");
         	   startMCM();

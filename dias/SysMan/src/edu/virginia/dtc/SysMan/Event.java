@@ -77,6 +77,7 @@ public class Event{
 	
 	public static final int EVENT_MEAL_ERROR 							= 400;
 	public static final int EVENT_MCM_REQUEST 							= 401;
+	public static final int EVENT_MCM_DEAD								= 402;
 
 	public static final int EVENT_SSM_CONSTRAINT_APPLIED 				= 500;
 	public static final int EVENT_SSM_BOLUS_INTERCEPT 					= 501;
@@ -86,6 +87,7 @@ public class Event{
 	public static final int EVENT_SSM_INTERCEPT_TIMEOUT 				= 511;
 	public static final int EVENT_SSM_INTERCEPT_CANCEL 					= 512;
 	public static final int EVENT_SSM_INTERCEPT_ACCEPT			 		= 513;
+	public static final int EVENT_SSM_DEAD								= 514;
 
 	// Popup alert dismiss Events
 	public static final int EVENT_USER_RESPONSE 						= 600;
@@ -93,9 +95,11 @@ public class Event{
 
 	public static final int EVENT_APC_ERROR 							= 700;
 	public static final int EVENT_APC_RESPONSE 							= 701;
+	public static final int EVENT_APC_DEAD								= 702;
 
 	public static final int EVENT_BRM_ERROR 							= 800;
 	public static final int EVENT_BRM_RESPONSE 							= 801;
+	public static final int EVENT_BRM_DEAD								= 802;
 	
 	public static final int EVENT_HW_PUMP								= 900;
 	public static final int EVENT_HW_CGM								= 901;
