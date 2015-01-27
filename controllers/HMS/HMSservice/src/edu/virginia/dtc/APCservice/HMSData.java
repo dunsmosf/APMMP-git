@@ -8,6 +8,7 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.APCservice;
 
+import edu.virginia.dtc.SysMan.Debug;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -44,7 +45,7 @@ public class HMSData {
 	public boolean read(Context calling_context) {
 		boolean ret_value = false;
 		Cursor c = calling_context.getContentResolver().query(HMS_STATE_ESTIMATE_URI, null, null, null, null);
-		Log.i(TAG, "Retrieved HMS_STATE_ESTIMATE_URI with " + c.getCount() + " items");
+		Debug.i(TAG, "read", "Retrieved HMS_STATE_ESTIMATE_URI with " + c.getCount() + " items");
 		double correction_in_units_temp = 0.0;
 		correction_in_units = 0.0;
 		correction_time_in_seconds = -1;

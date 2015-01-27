@@ -41,15 +41,26 @@ public class MCMservice extends Service{
 	double latestCR = 0;
 	double latestCF = 0;
 	
-	// Messengers for sending responses to MealActivity and DiAsService
-	public Messenger mMessengerToActivity = null;	// MealActivity
+	private BroadcastReceiver mealActivity = new BroadcastReceiver()
+	{
+		@Override
+		public void onReceive(Context context, Intent intent) 
+		{
+			Debug.i(TAG, "mealActivity", "Receiver called to start Meal Activity...");
+			Intent ui = new Intent();
+			ui.setClassName("edu.virginia.dtc.MCMservice", "edu.virginia.dtc.MCMservice.MealActivity");
+			ui.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+			context.startActivity(ui);
+		}
+	};
+	
+	// Messengers for sending responses to DiAsService
     public Messenger mMessengerToService = null;	// DiAsService
     
-    // Incoming messages from MealActivity and DiAsService handled here
     final Messenger mMessengerFromService = new Messenger(new IncomingHandler());
     class IncomingHandler extends Handler 
     {
-		final String FUNC_TAG = "IncomingHandlerFromClient";
+		final String FUNC_TAG = "messengerFromDiAsService";
 
     	Bundle responseBundle;
     	
@@ -61,7 +72,6 @@ public class MCMservice extends Service{
             	//-------------------------------------------------------------------------------------------------
 	            case Meal.MEAL_ACTIVITY_REGISTER:
 	            	Debug.i(TAG, FUNC_TAG, "MEAL_ACTIVITY_REGISTER");
-	            	mMessengerToActivity = msg.replyTo;
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
                 		b.putString(	"description", "MealActivity >> (MCMservice), IO_TEST"+", "+FUNC_TAG+", "+
@@ -126,12 +136,12 @@ public class MCMservice extends Service{
 					
      				mealCalc.setData(responseBundle);
      				
-					try {
-						mMessengerToActivity.send(mealCalc);
-					} 
-					catch (RemoteException e) {
-						e.printStackTrace();
-					}
+//					try {
+//						mMessengerToActivity.send(mealCalc);
+//					} 
+//					catch (RemoteException e) {
+//						e.printStackTrace();
+//					}
 					// ------------------------------------------------------
 	            	break;
 	            case Meal.MEAL_ACTIVITY_INJECT:
@@ -220,13 +230,13 @@ public class MCMservice extends Service{
 					}
 					else
 					{
-						Debug.i(TAG, FUNC_TAG, "Passing message to UI!");
-						try {
-							mMessengerToActivity.send(msg);
-						} 
-						catch (RemoteException e) {
-							e.printStackTrace();
-						}
+//						Debug.i(TAG, FUNC_TAG, "Passing message to UI!");
+//						try {
+//							mMessengerToActivity.send(msg);
+//						} 
+//						catch (RemoteException e) {
+//							e.printStackTrace();
+//						}
 					}
 					break;
 				default:
@@ -265,19 +275,23 @@ public class MCMservice extends Service{
         
         // Make this a Foreground Service
         startForeground(MCM_ID, notification);
+        
+        this.registerReceiver(mealActivity, new IntentFilter("DiAs.MealActivity"));
 	}
 	
 	@Override
-	public IBinder onBind(Intent intent) {
+	public IBinder onBind(Intent intent) 
+	{
 		return mMessengerFromService.getBinder();
 	}
 	
-	
-	public void subject_parameters() {
+	public void subject_parameters() 
+	{
 		final String FUNC_TAG = "subject_parameters";
 		
 		Tvector CR = new Tvector(24);
 		Tvector CF = new Tvector(24);
+		
 		// Load up CR Tvector
 	  	Cursor c=getContentResolver().query(Biometrics.CR_PROFILE_URI, null ,null, null, null);
  	  	c.moveToFirst();
@@ -292,6 +306,7 @@ public class MCMservice extends Service{
  	  		log_action(TAG, "Error: subject_parameters > CR_PROFILE_URI > c.getCount() == 0");
  	  	}
  	  	c.close();
+ 	  	
 		// Load up CF Tvector
 	  	c=getContentResolver().query(Biometrics.CF_PROFILE_URI, null ,null, null, null);
  	  	c.moveToFirst();
@@ -306,12 +321,14 @@ public class MCMservice extends Service{
  	  		log_action(TAG, "Error: subject_parameters > CF_PROFILE_URI > c.getCount() == 0");
  	  	}
  	  	c.close();
+ 	  	
 		// Get the offset in minutes into the current day in the current time zone (based on cell phone time zone setting)
 		long timeSeconds = getCurrentTimeSeconds();
 		TimeZone tz = TimeZone.getDefault();
 		int UTC_offset_secs = tz.getOffset(timeSeconds*1000)/1000;
 		int timeTodayMins = (int)((timeSeconds+UTC_offset_secs)/60)%1440;
 		Debug.i(TAG, FUNC_TAG, "subject_parameters > UTC_offset_secs="+UTC_offset_secs+", timeSeconds="+timeSeconds+", timeSeconds/60="+timeSeconds/60+", timeTodayMins="+timeTodayMins);
+		
 		// Get currently active CR value
 		List<Integer> indices = new ArrayList<Integer>();
 		indices = CR.find(">", -1, "<=", timeTodayMins);			// Find the list of indices <= time in minutes since today at 00:00
@@ -328,6 +345,7 @@ public class MCMservice extends Service{
 		else {
 			latestCR = CR.get_value(indices.get(indices.size()-1));		// Return the last CR in this range						
 		}
+		
 		// Get currently active CF value
 		indices = new ArrayList<Integer>();
 		indices = CF.find(">", -1, "<=", timeTodayMins);			// Find the list of indices <= time in minutes since today at 00:00
@@ -346,15 +364,15 @@ public class MCMservice extends Service{
 		}
 		Debug.i(TAG, FUNC_TAG, "subject_parameters > latestCR="+latestCR+", latestCF="+latestCF);
 	}
-
 	
-	public long getCurrentTimeSeconds() {
+	public long getCurrentTimeSeconds() 
+	{
 		final String FUNC_TAG = "getCurrentTimeSeconds";
-
-			return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
+		return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
 	}
 	
-	public void log_action(String service, String action) {
+	public void log_action(String service, String action) 
+	{
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
         i.putExtra("Service", service);
         i.putExtra("Status", action);
@@ -362,9 +380,9 @@ public class MCMservice extends Service{
         sendBroadcast(i);
 	}
 	
-	public void log_IO(String tag, String message) {
+	public void log_IO(String tag, String message) 
+	{
 		final String FUNC_TAG = "log_IO";
-
 		Debug.i(tag, FUNC_TAG, message);
 	}
 }

@@ -14,15 +14,23 @@
         android:icon="@drawable/ic_launcher"
         android:theme="@style/AppTheme">
 
-        
         <service
 		 	android:name="edu.virginia.dtc.MCMservice.MCMservice"
 		 	android:exported="true"
 		 	android:enabled="true" >
             <intent-filter>
                 <action android:name="DiAs.MCMservice" />
+                <action android:name="DiAs.MealActivity" />
             </intent-filter>
 		</service>
+		
+        <activity android:label="Meal Screen"
+                  android:configChanges="orientation|keyboardHidden" 
+                  android:name="MealActivity"
+                  android:screenOrientation="sensorLandscape"
+                  android:theme="@style/MealScreenTheme"
+                  android:windowSoftInputMode="adjustPan" >
+        </activity>
         
         <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
     </application>

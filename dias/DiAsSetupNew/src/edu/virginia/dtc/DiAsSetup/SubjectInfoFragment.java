@@ -501,8 +501,8 @@ public class SubjectInfoFragment extends Fragment {
 //			editTextHeight.setEnabled(false);
 //			editTextAge.setEnabled(false);
 //			editTextTDI.setEnabled(false);
-			RadioButtonFemale.setEnabled(false);
-			RadioButtonMale.setEnabled(false);
+//			RadioButtonFemale.setEnabled(false);
+//			RadioButtonMale.setEnabled(false);
 			spinner.setFocusable(false);
 			editTextSubjectID.setFocusable(false);
 			editTextSessionNumber.setFocusable(false);
@@ -510,16 +510,16 @@ public class SubjectInfoFragment extends Fragment {
 //			editTextHeight.setFocusable(false);
 //			editTextAge.setFocusable(false);
 //			editTextTDI.setFocusable(false);
-			RadioButtonFemale.setFocusable(false);
-			RadioButtonMale.setFocusable(false);
+//			RadioButtonFemale.setFocusable(false);
+//			RadioButtonMale.setFocusable(false);
 			editTextSubjectID.setTextColor(COLOR_DISABLED);
 			editTextSessionNumber.setTextColor(COLOR_DISABLED);
 //			editTextWeight.setTextColor(COLOR_DISABLED);
 //			editTextHeight.setTextColor(COLOR_DISABLED);
 //			editTextAge.setTextColor(COLOR_DISABLED);
 //			editTextTDI.setTextColor(COLOR_DISABLED);
-			RadioButtonFemale.setTextColor(COLOR_DISABLED);
-			RadioButtonMale.setTextColor(COLOR_DISABLED);
+//			RadioButtonFemale.setTextColor(COLOR_DISABLED);
+//			RadioButtonMale.setTextColor(COLOR_DISABLED);
 			
 			((TextView) view.findViewById(R.id.textViewInstructions)).setText("View Only: Fixed ID and Number");
 		}

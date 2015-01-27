@@ -1981,14 +1981,17 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	 		{
 		 		Debug.i(TAG, FUNC_TAG, "Starting MealActivity!");
 		 		
-		 		Intent mealIntent = new Intent();
-		 		mealIntent.setComponent(new ComponentName("edu.virginia.dtc.MealActivity", "edu.virginia.dtc.MealActivity.MealActivity"));
-		 		mealIntent.putExtra("height", midFrameH);
-		 		mealIntent.putExtra("width", midFrameW);
+//		 		Intent mealIntent = new Intent();
+//		 		mealIntent.setComponent(new ComponentName("edu.virginia.dtc.MealActivity", "edu.virginia.dtc.MealActivity.MealActivity"));
+//		 		mealIntent.putExtra("height", midFrameH);
+//		 		mealIntent.putExtra("width", midFrameW);
+//		 		
+//		 		Debug.i(TAG, "IO_TEST", "Sending Meal Activity Intent! ("+mealIntent.toString()+")");
+//		 		
+//		 		startActivity(mealIntent);
 		 		
-		 		Debug.i(TAG, "IO_TEST", "Sending Meal Activity Intent! ("+mealIntent.toString()+")");
-		 		
-		 		startActivity(mealIntent);
+		 		Intent meal = new Intent("DiAs.MealActivity");
+		 		sendBroadcast(meal);
 	 		}
 	 		else
 	 		{

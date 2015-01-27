@@ -304,7 +304,6 @@ public class DiAsService extends Service
 	private long pump_last_bolus_time;
 	
 	private boolean tbrOn = false;
-	private boolean runTbrAfterSync = false;
 	
 	// Temporary Basal Rate variables
 	private int temp_basal_status_code, temp_basal_percent_of_profile_basal_rate, temp_basal_owner;
@@ -363,7 +362,7 @@ public class DiAsService extends Service
     private ServiceConnection mAPCConnection;
     final Messenger mAPCMessenger = new Messenger(new IncomingAPCHandler());
     Messenger mAPC = null;				
-    boolean mAPCBound, APC_ready;	
+    boolean mAPCBound;	
     
 	// Connection to the BRM    
     private ServiceConnection mBRMConnection;
@@ -375,7 +374,7 @@ public class DiAsService extends Service
     private ServiceConnection mMCMConnection;			
     final Messenger mMCMMessenger = new Messenger(new IncomingMCMHandler());
     private Messenger mMCM = null;		
-    private boolean mMCMBound, MCM_ready;
+    private boolean mMCMBound;
 
     private CellularRssiListener cellRssi;
 	private TelephonyManager telMan;
@@ -437,37 +436,6 @@ public class DiAsService extends Service
 					changeAsyncState(FSM.START);
 				}
 			}
-		}
-	};
-	
-	private Runnable timeout = new Runnable()
-	{
-		final String FUNC_TAG = "timeout";
-		
-		public void run()
-		{
-			Debug.i(TAG, FUNC_TAG, "Timeout for devices firing!");
-			
-			if(ASYNC.state == FSM.WAKE_RESPONSE)
-			{
-				Debug.i(TAG, FUNC_TAG, "ASYNC FSM returning to idle...");
-				changeAsyncState(FSM.IDLE);
-				reportMcmUi(false);
-			}
-			
-			if(SYNC.state == FSM.WAKE_RESPONSE)
-			{
-				Debug.i(TAG, FUNC_TAG, "SYNC FSM returning to idle...");
-				changeSyncState(FSM.IDLE);
-			}
-			
-			if(TBR.state == FSM.WAKE_RESPONSE)
-			{
-				Debug.i(TAG, FUNC_TAG, "TBR FSM returning to idle...");
-				changeTbrState(FSM.IDLE);
-			}
-			
-			clearDev();
 		}
 	};
 	
@@ -704,8 +672,12 @@ public class DiAsService extends Service
        			b.putString(	"description", "SSM Error: "+Event.EVENT_SSM_DEAD);
        			Event.addEvent(getApplicationContext(), Event.EVENT_SSM_DEAD, Event.makeJsonString(b), Event.SET_LOG);
        			
-       			changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-       			updateDiasService(DIAS_UI_CLICK_NULL);
+       			if(DIAS_STATE != State.DIAS_STATE_STOPPED && DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY)
+       			{
+       				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to sensor/stopped mode!");
+	       			changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
+	       			updateDiasService(DIAS_UI_CLICK_NULL);
+       			}
         	   
         	   Debug.e(TAG, FUNC_TAG, "The SSM service connection was killed attempting to restart...");
         	   startSSM();
@@ -826,14 +798,11 @@ public class DiAsService extends Service
         					", new_differential_rate="+new_differential_rate+", lastRCMCalculationTime="+Apc.last_calc_time+
         					", timeNowMins="+timeNowMins);
         								
-                	APC_ready = true;
-                	
                 	changeSyncState(FSM.APC_RESPONSE);
         			break;
         		case APC_PROCESSING_STATE_ERROR:
 	           		DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
 	    			Debug.i(TAG, FUNC_TAG, "APC_PROCESSING_STATE_ERROR");
-	            	APC_ready = true;
 	    			break;
 	           	case APC_CONFIGURATION_PARAMETERS:
 					APCBundle = msg.getData();
@@ -853,7 +822,6 @@ public class DiAsService extends Service
         			}        			
 					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick);
 					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_To_Next_Meal_From_Last_Rate_Change="+Timer_Ticks_To_Next_Meal_From_Last_Rate_Change);
-	            	APC_ready = true;
 	           		break;
 	        	default:
 					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
@@ -933,7 +901,6 @@ public class DiAsService extends Service
             		msg1.replyTo = mAPCMessenger;
             		msg1.setData(paramBundle);
             		mAPC.send(msg1);
-            		APC_ready = false;
             		
             		Debug.i(TAG, FUNC_TAG, "Pump cycle time: "+pump_cycle_time_seconds+" IOB_curve"+subject_data.subjectAIT);
                 }
@@ -965,8 +932,12 @@ public class DiAsService extends Service
       			b.putString(	"description", "APC Error: "+Event.EVENT_APC_DEAD);
       			Event.addEvent(getApplicationContext(), Event.EVENT_APC_DEAD, Event.makeJsonString(b), Event.SET_LOG);
       			
-      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-       			updateDiasService(DIAS_UI_CLICK_NULL);
+      			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
+      			{
+      				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to sensor/stopped mode!");
+	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
+	       			updateDiasService(DIAS_UI_CLICK_NULL);
+      			}
         	   
         	   Debug.e(TAG, FUNC_TAG, "The APC service connection was killed attempting to restart...");
         	   startAPC();
@@ -981,7 +952,7 @@ public class DiAsService extends Service
 	                	break;
                }
         	   
-        	   Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
+        	   Debug.w(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
            }
         };
         
@@ -1175,8 +1146,11 @@ public class DiAsService extends Service
       			b.putString(	"description", "BRM Error: "+Event.EVENT_BRM_DEAD);
       			Event.addEvent(getApplicationContext(), Event.EVENT_BRM_DEAD, Event.makeJsonString(b), Event.SET_LOG);
       			
-      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-       			updateDiasService(DIAS_UI_CLICK_NULL);
+      			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
+      			{
+	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
+	       			updateDiasService(DIAS_UI_CLICK_NULL);
+      			}
         	   
         	   Debug.e(TAG, FUNC_TAG, "The BRM service connection was killed attempting to restart...");
         	   startBRM();
@@ -1191,7 +1165,7 @@ public class DiAsService extends Service
 	                	break;
                }
         	   
-        	   Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
+        	   Debug.w(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
            }
         };
         
@@ -1279,9 +1253,9 @@ public class DiAsService extends Service
 		           		
 		           		Debug.i(TAG, FUNC_TAG, "Meal: "+Mcm.meal+" Corr: "+Mcm.correction);
 		           		
-		           		if(Mcm.meal + Mcm.correction > (2 * max))
+		           		if(Mcm.meal + Mcm.correction > (max))
 		           		{
-		           			double total = 2 * max;
+		           			double total = max;
 							
 							if (Mcm.meal >= total) 
 		      	  			{		
@@ -1302,16 +1276,16 @@ public class DiAsService extends Service
 	            	else if(Mcm.doesCredit)
 	            	{
 	            		Mcm.credit = MCMBundle.getDouble("credit", 0.0);
-	            		if(Mcm.credit > (2 * max))
+	            		if(Mcm.credit > (max))
 	            		{
-	            			Mcm.credit = 2 * max;
+	            			Mcm.credit = max;
 	            			Debug.w(TAG, FUNC_TAG, "Credit limited to max: "+Mcm.credit+" U");
 	            		}
 	            		
 		           		Mcm.spend = MCMBundle.getDouble("spend", 0.0);
-		           		if(Mcm.spend > (2 * max))
+		           		if(Mcm.spend > (max))
 		           		{
-		           			Mcm.spend = 2 * max;
+		           			Mcm.spend = max;
 		           			Debug.w(TAG, FUNC_TAG, "Spend limited to max: "+Mcm.spend+" U");
 		           		}
 		           		
@@ -1417,8 +1391,11 @@ public class DiAsService extends Service
       			b.putString(	"description", "MCM Error: "+Event.EVENT_MCM_DEAD);
       			Event.addEvent(getApplicationContext(), Event.EVENT_MCM_DEAD, Event.makeJsonString(b), Event.SET_LOG);
       			
-      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-       			updateDiasService(DIAS_UI_CLICK_NULL);
+      			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
+      			{
+	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
+	       			updateDiasService(DIAS_UI_CLICK_NULL);
+      			}
         	   
         	   Debug.e(TAG, FUNC_TAG, "The MCM service connection was killed attempting to restart...");
         	   startMCM();
@@ -1488,8 +1465,6 @@ public class DiAsService extends Service
         cgm_max_value = 401.0;
         
         // Initialize some values
-        APC_ready = true;
-        MCM_ready = true;
         Supervisor_Tick_Free_Running_Counter = 0;
         MDI_injection_amount_has_been_received = false;
         
@@ -2278,18 +2253,6 @@ public class DiAsService extends Service
     	   			//Run FSMs on state transitions only//
     	   			//----------------------------------//
     	   			
-    	   			if(DEV.prev_state != DEV.state)
-    	   			{
-    	   				Debug.i(TAG, FUNC_TAG, "Device change!");
-    	   				
-	   					if(SYNC.state == FSM.WAKE_RESPONSE || SYNC.state == FSM.BREAK_RESPONSE)
-	   						syncFSM();
-	   					if(TBR.state == FSM.WAKE_RESPONSE || TBR.state == FSM.BREAK_RESPONSE)
-	   						tbrFSM();
-	   					if(ASYNC.state == FSM.WAKE_RESPONSE || ASYNC.state == FSM.BREAK_RESPONSE)
-	   						asyncFSM();
-    	   			}
-    	   			
     	   			if(SYNC.prev_state != SYNC.state)
     	   				syncFSM();
     	   			
@@ -2864,6 +2827,18 @@ public class DiAsService extends Service
 			cgmArrowIntent.putExtra("id", 10);
 			cgmArrowIntent.putExtra("resourcePackage", "edu.virginia.dtc.DiAsService");	
 			cgmArrowIntent.putExtra("resourceID", arrowResource);
+			sendBroadcast(cgmArrowIntent);
+		}
+		else
+		{
+			Intent cgmValueIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
+			cgmValueIntent.putExtra("id", 9);
+			cgmValueIntent.putExtra("remove", true);
+			sendBroadcast(cgmValueIntent);
+			
+			Intent cgmArrowIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
+			cgmArrowIntent.putExtra("id", 10);
+			cgmArrowIntent.putExtra("remove", true);
 			sendBroadcast(cgmArrowIntent);
 		}
         
@@ -3960,38 +3935,10 @@ public class DiAsService extends Service
 	    		{
 	    			Debug.i(TAG, FUNC_TAG, "SYNC is running, so we'll chain the TBR for after...");
 	    			changeTbrState(FSM.IDLE);
-	    			runTbrAfterSync = true;
 	    		}
 	    		else
 	    		{
-		    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-		    		{
-		    			changeTbrState(FSM.WAKE);
-		    			Debug.i(TAG, FUNC_TAG, "Connection scheduling is being used!");
-		    		}
-		    		else
-		    			changeTbrState(FSM.TBR_CALL);
-	    		}
-	    		break;
-	    	case FSM.WAKE:
-	    		//Send device wake command
-	    		//Transition to wake response
-	    		Debug.i(TAG, FUNC_TAG, "Waking devices...");
-	    		
-    			startWakeTimer();
-    			
-	    		changeDevState(FSM.DEV_WAKE);
-	    		changeTbrState(FSM.WAKE_RESPONSE);
-	    		break;
-	    	case FSM.WAKE_RESPONSE:
-	    		//Check device connections until they're connected
-	    		Debug.i(TAG, FUNC_TAG, "Checking device response...");
-	    		if(DEV.state == FSM.DEV_WAKE)
-	    		{
-	    			stopWakeTimer();
-	    			
-	    			Debug.i(TAG, FUNC_TAG, "Device connected!");
-	    			changeTbrState(FSM.TBR_CALL);
+		    		changeTbrState(FSM.TBR_CALL);
 	    		}
 	    		break;
 	    	case FSM.TBR_CALL:
@@ -4008,23 +3955,7 @@ public class DiAsService extends Service
 	    		startService(pumpIntent);
 	    		break;
 	    	case FSM.TBR_RESPONSE:
-	    		//Response is gathered from the PumpObserver
-	    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			changeTbrState(FSM.BREAK);
-	    		else
-	    			changeTbrState(FSM.IDLE);
-	    		break;
-	    	case FSM.BREAK:
-    			Debug.w(TAG, FUNC_TAG, "Breaking connection...");
-    			changeDevState(FSM.DEV_DISCON);
-    			changeTbrState(FSM.BREAK_RESPONSE);
-	    	case FSM.BREAK_RESPONSE:
-	    		if(DEV.state == FSM.DEV_DISCON)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Device disconnected!");
-	    			clearDev();
-	    			changeTbrState(FSM.IDLE);
-	    		}
+	    		changeTbrState(FSM.IDLE);
 	    		break;
     	}
     }
@@ -4057,41 +3988,11 @@ public class DiAsService extends Service
     			else
     			{
     				if(waitTimer != null)
-    					waitTimer.cancel(true);
-    				
-	    			if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			{
-	    				changeAsyncState(FSM.WAKE);
-		    			Debug.i(TAG, FUNC_TAG, "Connection scheduling is being used!");
-		    		}
-		    		else
-		    		{
-			    		changeAsyncState(FSM.SSM_CALC_CALL);
-			    		Debug.i(TAG, FUNC_TAG, "Calling SSM Calculate...");
-		    		}
-    			}
-    			break;
-    		case FSM.WAKE:
-    			//Send device wake command
-	    		//Transition to wake response
-	    		Debug.i(TAG, FUNC_TAG, "Waking devices...");
-	    		
-    			startWakeTimer();
+    					waitTimer.cancel(true);    				
     			
-    			Debug.w(TAG, FUNC_TAG, "Waking connection...");
-	    		changeDevState(FSM.DEV_WAKE);
-	    		changeAsyncState(FSM.WAKE_RESPONSE);
-    			break;
-    		case FSM.WAKE_RESPONSE:
-    			//Check device connections until they're connected
-	    		Debug.i(TAG, FUNC_TAG, "Checking device response...");
-	    		if(DEV.state == FSM.DEV_WAKE)
-	    		{
-	    			stopWakeTimer();
-	    			
-	    			Debug.i(TAG, FUNC_TAG, "Device connected!");
-	    			changeAsyncState(FSM.SSM_CALC_CALL);
-	    		}
+		    		changeAsyncState(FSM.SSM_CALC_CALL);
+		    		Debug.i(TAG, FUNC_TAG, "Calling SSM Calculate...");
+    			}
     			break;
     		case FSM.SSM_CALC_CALL:
     			Message ssmMessage = callCalcSSM();
@@ -4114,32 +4015,13 @@ public class DiAsService extends Service
     		case FSM.SSM_RESPONSE:
     			break;
     		case FSM.PUMP_RESPONSE:
-    			if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-    				changeAsyncState(FSM.BREAK);
-    			else
     				changeAsyncState(FSM.IDLE);
     			break;
-    		case FSM.BREAK:
-    			Debug.w(TAG, FUNC_TAG, "Breaking connection...");
-    			changeDevState(FSM.DEV_DISCON);
-    			changeAsyncState(FSM.BREAK_RESPONSE);
-	    		break;
-	    	case FSM.BREAK_RESPONSE:
-	    		if(DEV.state == FSM.DEV_DISCON)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Device disconnected!");
-	    			clearDev();
-	    			changeAsyncState(FSM.IDLE);
-	    		}
-	    		break;
 	    	case FSM.MCM_CANCEL:
 	    		if(waitTimer != null)
 	    			waitTimer.cancel(true);
 	    		
-	    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			changeAsyncState(FSM.BREAK);
-	    		else
-	    			changeAsyncState(FSM.IDLE);
+	    		changeAsyncState(FSM.IDLE);
 	    		break;
     	}
     }
@@ -4160,40 +4042,10 @@ public class DiAsService extends Service
     				changeSyncState(FSM.IDLE);
     			}
 	    		else
-	    		{
-    				if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-		    		{
-		    			changeSyncState(FSM.WAKE);
-		    			Debug.i(TAG, FUNC_TAG, "Connection scheduling is being used!");
-		    		}
-		    		else
-		    		{
-		    			//Skip waking devices if we aren't using connection scheduling
-			    		changeSyncState(FSM.SSM_CALC_CALL);
-			    		Debug.i(TAG, FUNC_TAG, "Calling SSM Calculate...");
-		    		}
-	    		}
-	    		break;
-	    	case FSM.WAKE:
-	    		//Send device wake command
-	    		//Transition to wake response
-	    		Debug.i(TAG, FUNC_TAG, "Waking devices...");
-
-	    		startWakeTimer();
-	    			
-    			Debug.w(TAG, FUNC_TAG, "Waking connection...");
-	    		changeDevState(FSM.DEV_WAKE);
-	    		changeSyncState(FSM.WAKE_RESPONSE);
-	    		break;
-	    	case FSM.WAKE_RESPONSE:
-	    		//Check device connections until they're connected
-	    		Debug.i(TAG, FUNC_TAG, "Checking device response...");
-	    		if(DEV.state == FSM.DEV_WAKE)
-	    		{
-	    			stopWakeTimer();
-	    			
-	    			Debug.i(TAG, FUNC_TAG, "Device connected!");
-	    			changeSyncState(FSM.SSM_CALC_CALL);
+	    		{    				
+	    			//Skip waking devices if we aren't using connection scheduling
+		    		changeSyncState(FSM.SSM_CALC_CALL);
+		    		Debug.i(TAG, FUNC_TAG, "Calling SSM Calculate...");
 	    		}
 	    		break;
 	    	case FSM.SSM_CALC_CALL:
@@ -4293,60 +4145,15 @@ public class DiAsService extends Service
 		    		Intent pumpIntent = new Intent();
 		    		pumpIntent.setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService");
 		    		pumpIntent.putExtra("PumpCommand", Pump.PUMP_SERVICE_CMD_SET_TBR);
-		    		startService(pumpIntent);
+		    		startService(pumpIntent); 
 	    		}
 	    		else
-	    			changeSyncState(FSM.BREAK);
+	    			changeSyncState(FSM.IDLE);
 	    		break;
 	    	case FSM.TBR_RESPONSE:
-	    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-	    			changeSyncState(FSM.BREAK);
-	    		else
-	    			changeSyncState(FSM.IDLE);
-	    		break;
-	    	case FSM.BREAK:
-	    		if(runTbrAfterSync)
-	    		{
-	    			//If we chained the TBR then set it to start and turn the SYNC state to IDLE
-	    			runTbrAfterSync = false;
-	    			changeTbrState(FSM.START);
-	    			changeSyncState(FSM.IDLE);
-	    		}
-	    		else
-	    		{
-		    		if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-		    		{
-		    			Debug.w(TAG, FUNC_TAG, "Breaking connection...");
-		    			changeDevState(FSM.DEV_DISCON);
-		    			changeSyncState(FSM.BREAK_RESPONSE);
-		    		}
-		    		else
-		    			changeSyncState(FSM.IDLE);
-	    		}
-	    		break;
-	    	case FSM.BREAK_RESPONSE:
-	    		if(DEV.state == FSM.DEV_DISCON)
-	    		{
-	    			Debug.i(TAG, FUNC_TAG, "Device disconnected!");
-	    			clearDev();
-	    			changeSyncState(FSM.IDLE);
-	    		}
+	    		changeSyncState(FSM.IDLE);
 	    		break;
     	}
-    }
-    
-    private void startWakeTimer()
-    {
-    	if(timeoutTimer != null)
-			timeoutTimer.cancel(true);
-    	
-    	timeoutTimer = scheduler.schedule(timeout, 45, TimeUnit.SECONDS);
-    }
-    
-    private void stopWakeTimer()
-    {
-    	if(timeoutTimer != null)
-    		timeoutTimer.cancel(true);
     }
     
     public Message callCalcSSM()
@@ -4538,7 +4345,7 @@ public class DiAsService extends Service
 	    		break;
 	    	case State.DIAS_STATE_SENSOR_ONLY:
 	    	case State.DIAS_STATE_STOPPED:
-	    		changeSyncState(FSM.BREAK);
+	    		changeSyncState(FSM.IDLE);
 	    		//TODO: Should we still set TBR in stopped or sensor only?
 	    		break;
     	}

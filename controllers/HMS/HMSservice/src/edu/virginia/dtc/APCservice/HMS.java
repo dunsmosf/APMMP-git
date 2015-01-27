@@ -113,7 +113,7 @@ public class HMS {
 		// 2. Are we in a time interval during which HMS corrections are permitted?
 		int timeOfDayOffsetSecs = subject.getTimeOfDayOffsetSecs(time);
 		hms_data.read(calling_context);
-		Log.i("Corr_Time"," first  "+Long.toString(hms_data.correction_time_in_seconds));
+		Debug.i(TAG, "Corr_Time"," first  "+Long.toString(hms_data.correction_time_in_seconds));
 		
 		
 				//detect the second alg tick
@@ -127,9 +127,9 @@ public class HMS {
 				{
 					first_alg_tick=true;
 				}
-				Log.i("Corr_Time"," first Alg Tick =  "+first_alg_tick);
-				Log.i("Corr_Time"," Second Alg Tick =  "+Second_alg_tick);
-				Log.i("Corr_Time"," reference    "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
+				Debug.i(TAG, "Corr_Time"," first Alg Tick =  "+first_alg_tick);
+				Debug.i(TAG, "Corr_Time"," Second Alg Tick =  "+Second_alg_tick);
+				Debug.i(TAG, "Corr_Time"," reference    "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
 				if (Second_alg_tick){
 					// 3. If the predicted BG greater than the threshold then calculate correction bolus
 					if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
@@ -147,7 +147,7 @@ public class HMS {
 						}
 						
 					}
-				Log.i("Corr_Time"," Second  "+Long.toString(hms_data.correction_time_in_seconds)+"  corr = "+return_value);
+				Debug.i(TAG, "Corr_Time"," Second  "+Long.toString(hms_data.correction_time_in_seconds)+"  corr = "+return_value);
 				
 			
 		}
@@ -178,11 +178,11 @@ public class HMS {
 					
 				if (indices.size() <= 8) {
 					reference=Gest;
-					Log.i("protection"," || There is more than 8 ==>> "+indices.size());
+					Debug.i(TAG, "protection"," || There is more than 8 ==>> "+indices.size());
 				}
 				else { 
 					reference=Gpred;	
-					Log.i("protection"," || There is less than 8 ==>> "+indices.size());
+					Debug.i(TAG, "protection"," || There is less than 8 ==>> "+indices.size());
 				}
 			
     	}
@@ -199,7 +199,7 @@ public class HMS {
 	}
  	
 	public void log_action(String service, String action, int priority) {
-		Log.i(TAG, "LOG ACTION > "+action);
+		Debug.i(TAG, "log_action", action);
 		
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
         i.putExtra("Service", service);
