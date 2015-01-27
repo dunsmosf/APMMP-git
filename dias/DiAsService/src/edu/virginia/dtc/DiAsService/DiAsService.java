@@ -931,7 +931,7 @@ public class DiAsService extends Service
         	   	Bundle b = new Bundle();
       			b.putString(	"description", "APC Error: "+Event.EVENT_APC_DEAD);
       			Event.addEvent(getApplicationContext(), Event.EVENT_APC_DEAD, Event.makeJsonString(b), Event.SET_LOG);
-      			
+
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
       				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to sensor/stopped mode!");
@@ -1151,6 +1151,7 @@ public class DiAsService extends Service
 	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
 	       			updateDiasService(DIAS_UI_CLICK_NULL);
       			}
+
         	   
         	   Debug.e(TAG, FUNC_TAG, "The BRM service connection was killed attempting to restart...");
         	   startBRM();
