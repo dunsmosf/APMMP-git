@@ -26,7 +26,7 @@
 		
         <activity android:label="Meal Screen"
                   android:configChanges="orientation|keyboardHidden" 
-                  android:name="MealActivity"
+                  android:name="edu.virginia.dtc.MCMservice.MealActivity"
                   android:screenOrientation="sensorLandscape"
                   android:theme="@style/MealScreenTheme"
                   android:windowSoftInputMode="adjustPan" >

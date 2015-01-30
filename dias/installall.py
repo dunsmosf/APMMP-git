@@ -33,23 +33,19 @@ adb install "PumpService/bin/PumpService.apk"
 ::adb install "SSMserviceShell/bin/SSMserviceShell.apk"
 
 ::adb install "BRMservice.apk"
-adb install "../controllers/SSMservice/bin/SSMservice.apk"
-adb install "../controllers/HMSservice/bin/HMSservice.apk"
+adb install "../controllers/USS/SSMservice/bin/SSMservice.apk"
+adb install "../controllers/HMS/HMSservice/bin/HMSservice.apk"
 
 ::SERVICES
 ::-------------------------------------------------------------------
-
 adb install "MCMservice/bin/MCMservice.apk"
 
 ::DRIVERS
 ::-------------------------------------------------------------------
 adb install "standaloneDriver/bin/standaloneDriver.apk"
-::adb install "GlassDriver/bin/GlassDriver.apk"
 ::adb install "RocheDriver/bin/RocheDriver.apk"
-::adb install "HR_Driver/bin/HR_Driver.apk"
-::adb install "BTLE_Tandem/bin/BTLE_Tandem.apk"
-adb install "BTLE_G4/bin/BTLE_G4.apk"
-::adb install "BTLE_Share/bin/BTLE_Share.apk"
+::adb install "BTLE_G4/bin/BTLE_G4.apk"
+adb install "BTLE_Share/bin/BTLE_Share.apk"
 
 """
 

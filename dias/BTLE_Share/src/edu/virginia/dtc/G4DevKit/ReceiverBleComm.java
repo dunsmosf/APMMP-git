@@ -33,6 +33,11 @@ public class ReceiverBleComm  implements IReceiverComm
 	
 	public static final UUID CHARACTERISTIC_CONFIG_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 	
+	private static final int NONE = 0;
+	private static final int RECONNECTING = 1;
+	private static final int CONNECTED = 2;
+	private static final int DISCONNECTED = 3;
+	
 	public static final UUID AUTH_CHAR = 		UUID.fromString("f0acacac-ebfa-f96f-28da-076c35a521db");
 	public static final UUID CRADLE_CHAR = 		UUID.fromString("f0acb0cd-ebfa-f96f-28da-076c35a521db");
 	public static final UUID HBT_CHAR = 		UUID.fromString("f0ac2b18-ebfa-f96f-28da-076c35a521db");
@@ -51,7 +56,7 @@ public class ReceiverBleComm  implements IReceiverComm
     private CountDownLatch rx;
     private long time, beats;
     
-    private static boolean connected = false, reconnecting = true;
+    private int state = NONE;
     
     private List<Byte> receive = new ArrayList<Byte>();
     
@@ -61,9 +66,6 @@ public class ReceiverBleComm  implements IReceiverComm
     	
     	Debug.w(TAG, FUNC_TAG, "Cancelling all running timers...");
     	
-    	if(setRecon != null)
-    		setRecon.cancel(true);
-    	
     	if(setNotify != null)
     		setNotify.cancel(true);
     	
@@ -71,11 +73,17 @@ public class ReceiverBleComm  implements IReceiverComm
     		rxTimer.cancel(true);
     }
     
+    private void cancelReconnect()
+    {
+    	if(setRecon != null)
+    		setRecon.cancel(true);
+    }
+    
     private Runnable recon = new Runnable()
     {
     	public void run()
     	{
-    		reconnect();
+    		reconnectDevice();
     	}
     };
     
@@ -144,13 +152,21 @@ public class ReceiverBleComm  implements IReceiverComm
 		btleAdapter = btleManager.getAdapter();
 		
 		this.service = c;
+		
+		if(mac.equalsIgnoreCase(ReceiverBleComm.mac) && code.equalsIgnoreCase(ReceiverBleComm.code))
+		{
+			Debug.w(TAG, FUNC_TAG, "This is the current device in use!");
+			return;
+		}
+		
 		ReceiverBleComm.code = code;
 		ReceiverBleComm.mac = mac;
 		
 		beats = 0;
 		
 		Debug.i(TAG, FUNC_TAG, "MAC: ("+ReceiverBleComm.mac+") Code: ("+ReceiverBleComm.code+")");
-
+		
+		cancelReconnect();
 		cancelTimers();
 		
 		new Handler().postDelayed(new Runnable()
@@ -244,18 +260,63 @@ public class ReceiverBleComm  implements IReceiverComm
 			Debug.e(TAG, FUNC_TAG, "BTLE Gatt Connection is null or closed!");
 	}
 	
+	private void setState(int s)
+	{
+		String stateString = "NONE";
+		
+		state = s;
+		
+		switch(state)
+		{
+			case NONE: stateString = "NONE"; break;
+			case RECONNECTING: stateString = "RECONNECTING"; break;
+			case CONNECTED: stateString = "CONNECTED"; break;
+			case DISCONNECTED: stateString = "DISCONNECTED"; break;
+			default: stateString = "UNKNOWN"; break;
+		}
+		
+		Debug.v(TAG, "setState", "Current state: "+stateString);
+	}
+	
 	public static boolean isConnected()
 	{
-		return connected;
+		return true;
 	}
 	
 	public void reconnect()
 	{
 		final String FUNC_TAG = "reconnect";
 		
-		cancelTimers();
+		if(state == RECONNECTING)
+		{
+			Debug.w(TAG, FUNC_TAG, "Already attempting reconnect, ignoring this call...");
+			return;
+		}
+		else if(state == CONNECTED)
+		{
+			Debug.w(TAG, FUNC_TAG, "Device is connected, cancelling any currently running reconnect timers...");
+			cancelReconnect();
+			return;
+		}
+		else
+		{
+			setState(RECONNECTING);
+			setRecon = scheduler.scheduleAtFixedRate(recon, 10, 30, TimeUnit.SECONDS);
+		}
+	}
+	
+	private void reconnectDevice()
+	{
+		final String FUNC_TAG = "reconnectDevice";
 		
-		reconnecting = true;
+		if(state != RECONNECTING)
+		{
+			cancelReconnect();
+			Debug.w(TAG, FUNC_TAG, "The device is not in reconnect mode...cancelling this timer!");
+			return;
+		}
+		
+		cancelTimers();
 		
 		Debug.i(TAG, FUNC_TAG, "Attempting reconnect...");
 		
@@ -294,14 +355,13 @@ public class ReceiverBleComm  implements IReceiverComm
 	            	Debug.v(TAG, FUNC_TAG, "Connected!");
 	            	if(status != BluetoothGatt.GATT_SUCCESS)
 	            	{
-	            		Debug.e(TAG, FUNC_TAG, "Error connecting...");
-	            		if(reconnecting)
-	            			setRecon = scheduler.schedule(recon, 15, TimeUnit.SECONDS);
+	            		Debug.e(TAG, FUNC_TAG, "Status is not successfull...");
+	            		reconnect();
 	            		return;
 	            	}
-	            	
-	            	connected = true;
-	            	reconnecting = false;
+
+	            	setState(CONNECTED);
+	            	cancelReconnect();
 	            	
 	            	Debug.i(TAG, FUNC_TAG, "Discovering services...");
 	                btleGatt.discoverServices();
@@ -311,11 +371,8 @@ public class ReceiverBleComm  implements IReceiverComm
 	            	break;
 	            case BluetoothProfile.STATE_DISCONNECTED:
 	            	Debug.v(TAG, FUNC_TAG, "Disconnected!");
-	            	
-	            	if(connected)
-	            		setRecon = scheduler.schedule(recon, 15, TimeUnit.SECONDS);
-	            	
-	            	connected = false;
+	            	setState(DISCONNECTED);
+	            	reconnect();
 	            	break;
 	            case BluetoothProfile.STATE_DISCONNECTING:
 	            	Debug.v(TAG, FUNC_TAG, "Disconnecting!");

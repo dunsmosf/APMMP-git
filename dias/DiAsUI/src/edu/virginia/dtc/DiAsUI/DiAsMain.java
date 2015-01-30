@@ -1360,7 +1360,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	Drawable icon = getResources().getDrawable(R.drawable.meal_button_normal);
         try 
         {
-        	icon = getPackageManager().getApplicationIcon("edu.virginia.dtc.MealActivity");
+        	icon = getPackageManager().getApplicationIcon("edu.virginia.dtc.MCMservice");
         } 
         catch (NameNotFoundException e) 
         {
@@ -1975,10 +1975,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
    		
 	 	soundClick();
 	 	
-	 	if(mealActivityAvailable())
+	 	if(PUMP_STATE == Pump.CONNECTED || PUMP_STATE == Pump.CONNECTED_LOW_RESV)
 	 	{
-	 		if(PUMP_STATE == Pump.CONNECTED || PUMP_STATE == Pump.CONNECTED_LOW_RESV)
-	 		{
 		 		Debug.i(TAG, FUNC_TAG, "Starting MealActivity!");
 		 		
 //		 		Intent mealIntent = new Intent();
@@ -1992,17 +1990,12 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		 		
 		 		Intent meal = new Intent("DiAs.MealActivity");
 		 		sendBroadcast(meal);
-	 		}
-	 		else
-	 		{
-	 			Debug.e(TAG, FUNC_TAG, "Pump is not connected, cannot launch Meal Activity!");
-	 			Toast.makeText(main, "Sorry, the pump is disconnected and a meal bolus cannot be processed!", Toast.LENGTH_LONG).show();
-	 		}
-	 	}
-	 	else
-	 	{
-	 		Debug.e(TAG, FUNC_TAG, "No meal activity installed!");
-	 	}
+ 		}
+ 		else
+ 		{
+ 			Debug.e(TAG, FUNC_TAG, "Pump is not connected, cannot launch Meal Activity!");
+ 			Toast.makeText(main, "Sorry, the pump is disconnected and a meal bolus cannot be processed!", Toast.LENGTH_LONG).show();
+ 		}
    	}
    	    
    	public void plotsClick(View view) 
@@ -2770,22 +2763,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 			Debug.i(TAG, FUNC_TAG, "Canceled");       				
 		}
 	}
-    
-    public boolean mealActivityAvailable()
-   	{
-   		//Does a quick scan to check if the MealService application is installed, if so it returns true
-   		final PackageManager pm = this.getPackageManager();
-		List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-
-		for(ApplicationInfo a: packages)
-		{
-			if(a.packageName.equalsIgnoreCase("edu.virginia.dtc.MealActivity"))
-			{
-				return true;
-			}
-		}
-   		return false;
-   	}
     
     public boolean standaloneDriverAvailable()
    	{

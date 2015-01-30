@@ -72,6 +72,7 @@ import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Exercise;
 import edu.virginia.dtc.SysMan.FSM;
+import edu.virginia.dtc.SysMan.Meal;
 import edu.virginia.dtc.SysMan.Mode;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
@@ -1212,133 +1213,142 @@ public class DiAsService extends Service
         	
             switch (msg.what) 
             {
-	            case edu.virginia.dtc.SysMan.Meal.MCM_UI:
-	            	if(msg.getData().getBoolean("end",false))
-	            	{
-	            		changeAsyncState(FSM.MCM_CANCEL);
-	            	}
-	            	break;
-            	case edu.virginia.dtc.SysMan.Meal.MCM_STARTED:
-            		Debug.i(TAG, FUNC_TAG, "Meal Screen opened!");
+	            case Meal.UI_STARTED:
+	            	Debug.i(TAG, FUNC_TAG, "Meal Screen opened!");
             		changeAsyncState(FSM.START);
-            		break;
-	            case edu.virginia.dtc.SysMan.Meal.MCM_SEND_BOLUS:
-	            	Mcm.doesBolus = MCMBundle.getBoolean("doesBolus", false);
-	            	Mcm.doesCredit = MCMBundle.getBoolean("doesCredit", false);
+	            	break;
+	            case Meal.UI_CLOSED:
+	            	Debug.i(TAG, FUNC_TAG, "Meal Screen closed!");
+	            	changeAsyncState(FSM.MCM_CANCEL);
+	            	break;
 	            	
-	            	double max = -1;
-	            	
-	            	Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, new String[]{"max_bolus_U"}, null, null, null);
-	            	if(c != null && c.moveToFirst())
-	            	{
-	            		max = c.getDouble(c.getColumnIndex("max_bolus_U"));
-	            	}
-	            	else
-	            	{
-	            		Debug.e(TAG, FUNC_TAG, "Unable to get maximum bolus parameter, exiting...");
-	            		return;
-	            	}
-	            	
-	            	if(max < 0)
-	            	{
-	            		Debug.e(TAG, FUNC_TAG, "Maximum bolus parameter is invalid!");
-	            		return;
-	            	}
-	            	
-	            	Mcm.meal = Mcm.correction = Mcm.spend = Mcm.credit = 0.0;	//Zero out the values each time
-	            	
-	            	if(Mcm.doesBolus)
-	            	{
-	            		Mcm.meal = MCMBundle.getDouble("meal", 0.0);
-		           		Mcm.correction = MCMBundle.getDouble("corr", 0.0);
-		           		
-		           		Debug.i(TAG, FUNC_TAG, "Meal: "+Mcm.meal+" Corr: "+Mcm.correction);
-		           		
-		           		if(Mcm.meal + Mcm.correction > (max))
-		           		{
-		           			double total = max;
-							
-							if (Mcm.meal >= total) 
-		      	  			{		
-		      	  	 			Mcm.meal = total;			//If the meal bolus is greater than the delivered then it all goes to meal
-		      	  	 			Mcm.correction = 0.0;
-		      	  	  		}
-		      	  	  		else 
-		      	  	  		{	
-		      	  	  			total -= Mcm.meal;
-		      	  	  			
-		      	  	  			if(Mcm.correction >= total)
-		      	  	  				Mcm.correction = total;
-		      	  	  		}
-							
-							Debug.w(TAG, FUNC_TAG, "Limiting meal and correction > Meal: "+Mcm.meal+" U Corr: "+Mcm.correction+" U");
-		           		}
-            		}
-	            	else if(Mcm.doesCredit)
-	            	{
-	            		Mcm.credit = MCMBundle.getDouble("credit", 0.0);
-	            		if(Mcm.credit > (max))
-	            		{
-	            			Mcm.credit = max;
-	            			Debug.w(TAG, FUNC_TAG, "Credit limited to max: "+Mcm.credit+" U");
-	            		}
-	            		
-		           		Mcm.spend = MCMBundle.getDouble("spend", 0.0);
-		           		if(Mcm.spend > (max))
-		           		{
-		           			Mcm.spend = max;
-		           			Debug.w(TAG, FUNC_TAG, "Spend limited to max: "+Mcm.spend+" U");
-		           		}
-		           		
-	            	}
-	            	else
-	            	{
-	            		Debug.e(TAG, FUNC_TAG, "MCM service is not reporting either method for bolusing or is trying to support both!");
-	            		return;
-	            	}
-		           	
-	           		double mealSize = MCMBundle.getDouble("mealSize", 0.0);
-	           		double smbg = MCMBundle.getDouble("smbg", 0.0);
-	           		
-	           		ContentValues mealValues = new ContentValues();
-	           		mealValues.put("meal_size_grams", mealSize);
-	           		mealValues.put("SMBG", smbg);
-	           		mealValues.put("time_announce", getCurrentTimeSeconds());
-	           		mealValues.put("time", getCurrentTimeSeconds());
-	           		
-	           		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || (Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", 0) == 0)) {
-		           		mealValues.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
-	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
-	           		}
-	           		else if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
-		           		mealValues.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_PENDING);
-	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
-	           		}
-		         	
-	        		// Store MCM_REQUEST Event
-	        		Bundle b = new Bundle();
-	        		b.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-										"MCM_SEND_BOLUS"
-    									+", credit="+String.format("%.2f", Mcm.credit)+"U"
-    									+", spend="+String.format("%.2f", Mcm.spend)+"U"
-    									+", meal="+String.format("%.2f", Mcm.meal)+"U"
-    									+", correction="+String.format("%.2f", Mcm.correction)+"U"
-    									+" in "+FUNC_TAG);
-	        		Event.addEvent(getApplicationContext(), Event.EVENT_MCM_REQUEST, Event.makeJsonString(b), Event.SET_LOG);
-	        		
-        			changeAsyncState(FSM.MCM_REQUEST);
-		         	break;
-	        	default:
-					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
-        			if (true) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"UNKNOWN_MESSAGE="+msg.what
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-        			}
-	        		super.handleMessage(msg);
-	        		break;
+//	            case edu.virginia.dtc.SysMan.Meal.MCM_UI:
+//	            	if(msg.getData().getBoolean("end",false))
+//	            	{
+//	            		changeAsyncState(FSM.MCM_CANCEL);
+//	            	}
+//	            	break;
+//            	case edu.virginia.dtc.SysMan.Meal.MCM_STARTED:
+//            		Debug.i(TAG, FUNC_TAG, "Meal Screen opened!");
+//            		changeAsyncState(FSM.START);
+//            		break;
+//	            case edu.virginia.dtc.SysMan.Meal.MCM_SEND_BOLUS:
+//	            	Mcm.doesBolus = MCMBundle.getBoolean("doesBolus", false);
+//	            	Mcm.doesCredit = MCMBundle.getBoolean("doesCredit", false);
+//	            	
+//	            	double max = -1;
+//	            	
+//	            	Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, new String[]{"max_bolus_U"}, null, null, null);
+//	            	if(c != null && c.moveToFirst())
+//	            	{
+//	            		max = c.getDouble(c.getColumnIndex("max_bolus_U"));
+//	            	}
+//	            	else
+//	            	{
+//	            		Debug.e(TAG, FUNC_TAG, "Unable to get maximum bolus parameter, exiting...");
+//	            		return;
+//	            	}
+//	            	
+//	            	if(max < 0)
+//	            	{
+//	            		Debug.e(TAG, FUNC_TAG, "Maximum bolus parameter is invalid!");
+//	            		return;
+//	            	}
+//	            	
+//	            	Mcm.meal = Mcm.correction = Mcm.spend = Mcm.credit = 0.0;	//Zero out the values each time
+//	            	
+//	            	if(Mcm.doesBolus)
+//	            	{
+//	            		Mcm.meal = MCMBundle.getDouble("meal", 0.0);
+//		           		Mcm.correction = MCMBundle.getDouble("corr", 0.0);
+//		           		
+//		           		Debug.i(TAG, FUNC_TAG, "Meal: "+Mcm.meal+" Corr: "+Mcm.correction);
+//		           		
+//		           		if(Mcm.meal + Mcm.correction > (max))
+//		           		{
+//		           			double total = max;
+//							
+//							if (Mcm.meal >= total) 
+//		      	  			{		
+//		      	  	 			Mcm.meal = total;			//If the meal bolus is greater than the delivered then it all goes to meal
+//		      	  	 			Mcm.correction = 0.0;
+//		      	  	  		}
+//		      	  	  		else 
+//		      	  	  		{	
+//		      	  	  			total -= Mcm.meal;
+//		      	  	  			
+//		      	  	  			if(Mcm.correction >= total)
+//		      	  	  				Mcm.correction = total;
+//		      	  	  		}
+//							
+//							Debug.w(TAG, FUNC_TAG, "Limiting meal and correction > Meal: "+Mcm.meal+" U Corr: "+Mcm.correction+" U");
+//		           		}
+//            		}
+//	            	else if(Mcm.doesCredit)
+//	            	{
+//	            		Mcm.credit = MCMBundle.getDouble("credit", 0.0);
+//	            		if(Mcm.credit > (max))
+//	            		{
+//	            			Mcm.credit = max;
+//	            			Debug.w(TAG, FUNC_TAG, "Credit limited to max: "+Mcm.credit+" U");
+//	            		}
+//	            		
+//		           		Mcm.spend = MCMBundle.getDouble("spend", 0.0);
+//		           		if(Mcm.spend > (max))
+//		           		{
+//		           			Mcm.spend = max;
+//		           			Debug.w(TAG, FUNC_TAG, "Spend limited to max: "+Mcm.spend+" U");
+//		           		}
+//		           		
+//	            	}
+//	            	else
+//	            	{
+//	            		Debug.e(TAG, FUNC_TAG, "MCM service is not reporting either method for bolusing or is trying to support both!");
+//	            		return;
+//	            	}
+//		           	
+//	           		double mealSize = MCMBundle.getDouble("mealSize", 0.0);
+//	           		double smbg = MCMBundle.getDouble("smbg", 0.0);
+//	           		
+//	           		ContentValues mealValues = new ContentValues();
+//	           		mealValues.put("meal_size_grams", mealSize);
+//	           		mealValues.put("SMBG", smbg);
+//	           		mealValues.put("time_announce", getCurrentTimeSeconds());
+//	           		mealValues.put("time", getCurrentTimeSeconds());
+//	           		
+//	           		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || (Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", 0) == 0)) {
+//		           		mealValues.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
+//	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
+//	           		}
+//	           		else if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
+//		           		mealValues.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_PENDING);
+//	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
+//	           		}
+//		         	
+//	        		// Store MCM_REQUEST Event
+//	        		Bundle b = new Bundle();
+//	        		b.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
+//										"MCM_SEND_BOLUS"
+//    									+", credit="+String.format("%.2f", Mcm.credit)+"U"
+//    									+", spend="+String.format("%.2f", Mcm.spend)+"U"
+//    									+", meal="+String.format("%.2f", Mcm.meal)+"U"
+//    									+", correction="+String.format("%.2f", Mcm.correction)+"U"
+//    									+" in "+FUNC_TAG);
+//	        		Event.addEvent(getApplicationContext(), Event.EVENT_MCM_REQUEST, Event.makeJsonString(b), Event.SET_LOG);
+//	        		
+//        			changeAsyncState(FSM.MCM_REQUEST);
+//		         	break;
+//	        	default:
+//					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
+//        			if (true) {
+//                		Bundle b1 = new Bundle();
+//                		b1.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
+//        								"UNKNOWN_MESSAGE="+msg.what
+//                					);
+//                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
+//        			}
+//	        		super.handleMessage(msg);
+//	        		break;
             }
         }
     }
@@ -1357,7 +1367,7 @@ public class DiAsService extends Service
                 try {
             		// Send a register-client message to the APC service with the client message handler in replyTo
                 	Debug.i(TAG, FUNC_TAG, "Attempting to register with MCM");
-            		Message msg1 = Message.obtain(null, edu.virginia.dtc.SysMan.Meal.MCM_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
+            		Message msg1 = Message.obtain(null, Meal.REGISTER, 0, 0);
             		
             		Bundle paramBundle = new Bundle();
             		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
@@ -1730,14 +1740,12 @@ public class DiAsService extends Service
         			{
         				changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
         				Meal meal = new Meal(getApplicationContext());
-        				meal.markAllMealsTreated();
         			}
 				}
 				else if (DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) 
 				{
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
     				Meal meal = new Meal(getApplicationContext());
-    				meal.markAllMealsTreated();
 				}
 */ 			
     			if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY && DIAS_STATE != State.DIAS_STATE_STOPPED) {
@@ -3216,7 +3224,6 @@ public class DiAsService extends Service
 		int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
 		
 		int oldState = DIAS_STATE;
-		Meal meal = new Meal(getApplicationContext());
 		
 		//If we transition modes then we clear the recovery flag
 		if(clickType != DIAS_UI_CLICK_NULL)
@@ -3226,50 +3233,40 @@ public class DiAsService extends Service
 			case State.DIAS_STATE_STOPPED:
 				if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (cgmReady() && clickType == DIAS_UI_START_SENSOR_ONLY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_OPEN_LOOP:
 				if (!(pumpReady() /*&& batteryReady()*/)) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
 				{
 					if(cgmReady())
 					{
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-						meal.markAllMealsTreated();
 					}
 					else
 					{
 						changeDiasState(State.DIAS_STATE_STOPPED);
-						meal.markAllMealsTreated();
 					}
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_CLOSED_LOOP:
@@ -3278,85 +3275,68 @@ public class DiAsService extends Service
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
 					else
 						changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
 				{
 					if(cgmReady())
 					{
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-						meal.markAllMealsTreated();
 					}
 					else
 					{
 						changeDiasState(State.DIAS_STATE_STOPPED);
-						meal.markAllMealsTreated();
 					}
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_SENSOR_ONLY:
 				if ( !(cgmReady())) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-					meal.markAllMealsTreated();
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 			case State.DIAS_STATE_SAFETY_ONLY:
 				if (!(pumpReady())) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
-					meal.markAllMealsTreated();
 				}
 				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
 				{
 					if(cgmReady())
 					{
 						changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-						meal.markAllMealsTreated();
 					}
 					else
 					{
 						changeDiasState(State.DIAS_STATE_STOPPED);
-						meal.markAllMealsTreated();
 					}
 				}
 				else if (clickType == DIAS_UI_STOP_CLICK) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
-					meal.markAllMealsTreated();
 				}
 				break;
 		}
@@ -3845,20 +3825,6 @@ public class DiAsService extends Service
     	}
     }
     
-    private void reportMcmUi(boolean connected)
-    {
-    	Message msg1 = Message.obtain(null, edu.virginia.dtc.SysMan.Meal.MCM_UI, 0, 0);
-		Bundle b = new Bundle();
-		b.putBoolean("connected", connected);
-		msg1.setData(b);
-		
-		try {
-			mMCM.send(msg1);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-    
     public void changeTbrState(int state)
     {
     	final String FUNC_TAG = "changeTbrState";
@@ -3980,11 +3946,6 @@ public class DiAsService extends Service
     					waitTimer.cancel(true);
     				
     				waitTimer = scheduler.scheduleAtFixedRate(wait, 0, 5, TimeUnit.SECONDS);
-    				
-//					Bundle b = new Bundle();
-//		    		b.putString("description", "The system is setting the Temporary Basal Rate, please wait...");
-//		    		Event.addEvent(getApplicationContext(), Event.EVENT_MCM_REQUEST, Event.makeJsonString(b), Event.SET_POPUP_VIBE);
-//		    		reportMcmUi(false);
     			}
     			else
     			{
@@ -4003,8 +3964,13 @@ public class DiAsService extends Service
 	    			Debug.i(TAG, FUNC_TAG, "Call SSM Calculate - Error");
     			break;
     		case FSM.SSM_CALC_RESPONSE:
-    			Debug.i(TAG, FUNC_TAG, "Devices are connected and SSM has run, show the UI!");
-    			reportMcmUi(true);
+    			Debug.i(TAG, FUNC_TAG, "SSM has run, show the UI!");
+    			
+    			try {
+    				mMCM.send(Message.obtain(null, Meal.SSM_CALC_DONE, 0, 0));
+    			} catch (RemoteException e) {
+    				e.printStackTrace();
+    			}
     			break;
     		case FSM.MCM_REQUEST:
     			//Send the request to the SSM

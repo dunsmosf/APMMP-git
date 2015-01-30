@@ -5,10 +5,15 @@ import java.util.List;
 import java.util.TimeZone;
 
 import edu.virginia.dtc.SysMan.Biometrics;
+import edu.virginia.dtc.SysMan.CGM;
+import edu.virginia.dtc.SysMan.Constraints;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Meal;
 import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.SysMan.Pump;
+import edu.virginia.dtc.SysMan.Safety;
 import edu.virginia.dtc.SysMan.State;
 import edu.virginia.dtc.Tvector.Tvector;
 import android.app.Notification;
@@ -20,7 +25,9 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -30,227 +37,45 @@ import android.os.RemoteException;
 import android.view.Gravity;
 import android.widget.Toast;
 
-
-public class MCMservice extends Service{
-
+public class MCMservice extends Service
+{
 	public static final String TAG = "MCMservice";
     public static final String IO_TEST_TAG = "MCMserviceIO";
     
 	public int cycle_duration_seconds = 300;
 	public int cycle_duration_mins = cycle_duration_seconds/60;
-	double latestCR = 0;
-	double latestCF = 0;
 	
-	private BroadcastReceiver mealActivity = new BroadcastReceiver()
+	private double latestCR = 0, latestCF = 0;
+	
+	private int DIAS_STATE, PUMP_STATE, PUMP_SERV_STATE, HYPO_LIGHT;
+	private int TBR, SYNC;
+	private double IOB;
+	
+    private Messenger mMessengerToService = null, mMessengerToActivity = null;
+    private final Messenger mMessengerFromService = new Messenger(new IncomingHandler());
+    
+    //Content Observer
+  	private SystemObserver sysObserver;
+  	private PumpObserver pumpObserver;
+  	private StateObserver stateObserver;
+  	
+  	private boolean systemBusy = false;
+	
+	private BroadcastReceiver mealActivityReceiver = new BroadcastReceiver()
 	{
+		final String FUNC_TAG = "mealActivityReceiver";
+		
 		@Override
 		public void onReceive(Context context, Intent intent) 
 		{
-			Debug.i(TAG, "mealActivity", "Receiver called to start Meal Activity...");
+			Debug.i(TAG, FUNC_TAG, "Receiver called to start Meal Activity...");
+			
 			Intent ui = new Intent();
 			ui.setClassName("edu.virginia.dtc.MCMservice", "edu.virginia.dtc.MCMservice.MealActivity");
-			ui.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+			ui.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 			context.startActivity(ui);
 		}
 	};
-	
-	// Messengers for sending responses to DiAsService
-    public Messenger mMessengerToService = null;	// DiAsService
-    
-    final Messenger mMessengerFromService = new Messenger(new IncomingHandler());
-    class IncomingHandler extends Handler 
-    {
-		final String FUNC_TAG = "messengerFromDiAsService";
-
-    	Bundle responseBundle;
-    	
-    	@Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) 
-            {
-            	//MEAL ACTIVITY COMMANDS
-            	//-------------------------------------------------------------------------------------------------
-	            case Meal.MEAL_ACTIVITY_REGISTER:
-	            	Debug.i(TAG, FUNC_TAG, "MEAL_ACTIVITY_REGISTER");
-					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "MealActivity >> (MCMservice), IO_TEST"+", "+FUNC_TAG+", "+
-                						"MEAL_ACTIVITY_REGISTER"
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-					
-					//Send message to DiAs Service that Meal Activity has started
-					Message reg = Message.obtain(null, Meal.MCM_STARTED);
-					try {
-						mMessengerToService.send(reg);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
-	            	break;
-	            case Meal.MEAL_ACTIVITY_CALCULATE:
-	            	responseBundle = msg.getData();
-	            	
-	            	double CHOg = responseBundle.getDouble("MealScreenCHO");
-	            	double SMBG = responseBundle.getDouble("MealScreenBG");
-	            	
-	            	Debug.i(TAG, FUNC_TAG, "CHO: "+CHOg+" SMBG: "+SMBG);
-	            	
-					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "MealActivity >> (MCMservice), IO_TEST"+", "+FUNC_TAG+", "+
-                						"MEAL_ACTIVITY_CALCULATE"+", "+
-                						"MealScreenCHO="+CHOg+", "+
-                						"MealScreenBG="+SMBG
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-	            	
-	            	// DO CALCULATION HERE !!!  (THIS IS JUST SAMPLE CODE NOT INTENDED FOR USE!!!)
-	            	// ------------------------------------------------------
-					double bolus;
-					int MCM_status;
-					String MCM_description;
-					subject_parameters();
-					bolus = Math.max(CHOg/latestCR+(SMBG-110.0)/latestCF, 0.0);					
-					
-					MCM_status = 0;
-					MCM_description = "Test";
-					
-					Message mealCalc = Message.obtain(null, Meal.MCM_CALCULATED_BOLUS, 0, 0);
-					responseBundle = new Bundle();
-					responseBundle.putDouble("bolus", bolus);
-					responseBundle.putInt("MCM_status", MCM_status);
-					responseBundle.putString("MCM_description", MCM_description);
-
-					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "(MCMservice) >> DiAsService, IO_TEST"+", "+FUNC_TAG+", "+
-                						"MCM_CALCULATED_BOLUS"+", "+
-                						"bolus="+bolus+", "+
-                						"MCM_status="+MCM_status+", "+
-                						"MCM_description="+MCM_description
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-					
-     				mealCalc.setData(responseBundle);
-     				
-//					try {
-//						mMessengerToActivity.send(mealCalc);
-//					} 
-//					catch (RemoteException e) {
-//						e.printStackTrace();
-//					}
-					// ------------------------------------------------------
-	            	break;
-	            case Meal.MEAL_ACTIVITY_INJECT:
-	            	//Open loop boluses will have meal and corr insulin, closed loop will have credit and spend
-	            	//THEY SHOULD NEVER HAVE BOTH IN THIS CONFIGURATION!
-	            	
-	            	responseBundle = msg.getData();
-	            	double mealSize = responseBundle.getDouble("mealSize", 0.0);
-	            	double smbg = responseBundle.getDouble("smbg", 0.0);
-	            	double meal = responseBundle.getDouble("meal", 0.0);
-	            	double corr = responseBundle.getDouble("corr", 0.0);
-	            	double credit = responseBundle.getDouble("credit", 0.0);
-	            	double spend = responseBundle.getDouble("spend", 0.0);
-	            	
-	            	double bolusAmount = meal + corr + spend;
-	            	
-	            	Debug.i(TAG, FUNC_TAG, "Meal: "+meal+" Corr: "+corr+" Spend: "+spend+" Credit: "+credit+" Bolus Amount: "+bolusAmount);
-	            	
-
-                	Message sendBolus = Message.obtain(null, Meal.MCM_SEND_BOLUS);
-	            	
-	            	responseBundle = new Bundle();
-	            	
-	            	if(meal+corr > 0)
-	            		responseBundle.putBoolean("doesBolus", true);
-	            	else if(spend+credit > 0)
-	            		responseBundle.putBoolean("doesCredit", true);
-	            	
-	            	responseBundle.putDouble("mealSize", mealSize);
-	            	responseBundle.putDouble("smbg", smbg);
-	            	responseBundle.putDouble("meal", meal);
-	            	responseBundle.putDouble("corr", corr);
-	            	responseBundle.putDouble("credit", credit);
-	            	responseBundle.putDouble("spend", spend);
-	            	
-					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "MealActivity >> (MCMservice), IO_TEST"+", "+FUNC_TAG+", "+
-                						"MCM_SEND_BOLUS"+", "+
-                						"doesBolus="+responseBundle.getBoolean("doesBolus", false)+", "+
-                						"doesCredit="+responseBundle.getBoolean("doesCredit", false)+", "+
-                						"mealSize="+responseBundle.getDouble("mealSize")+", "+
-                						"smbg="+responseBundle.getDouble("smbg")+", "+
-                						"meal="+responseBundle.getDouble("meal")+", "+
-                						"corr="+responseBundle.getDouble("corr")+", "+
-                						"credit="+responseBundle.getDouble("credit")+", "+
-                						"spend="+responseBundle.getDouble("spend")
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-
-					sendBolus.setData(responseBundle);
-	            	
-					try {
-						mMessengerToService.send(sendBolus);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
-	            	break;
-	            	
-            	//MCM SERVICE COMMANDS
-	            //-------------------------------------------------------------------------------------------------
-				case Meal.MCM_SERVICE_CMD_REGISTER_CLIENT:
-					Debug.i(TAG, FUNC_TAG, "MCM_SERVICE_CMD_REGISTER_CLIENT");
-					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "DiAsService >> (MCMservice), IO_TEST"+", "+FUNC_TAG+", "+
-                						"MCM_SERVICE_CMD_REGISTER_CLIENT"
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-					
-					mMessengerToService = msg.replyTo;
-					break;
-				case Meal.MCM_UI:
-					//Forward message to the UI
-					Bundle ui = msg.getData();
-					if(ui.getBoolean("end", false))
-					{
-						Debug.i(TAG, FUNC_TAG, "User canceled the Meal!");
-						try {
-							mMessengerToService.send(msg);
-						} catch (RemoteException e) {
-							e.printStackTrace();
-						}
-					}
-					else
-					{
-//						Debug.i(TAG, FUNC_TAG, "Passing message to UI!");
-//						try {
-//							mMessengerToActivity.send(msg);
-//						} 
-//						catch (RemoteException e) {
-//							e.printStackTrace();
-//						}
-					}
-					break;
-				default:
-					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b = new Bundle();
-                		b.putString(	"description", "DiAsService >> (MCMservice), IO_TEST"+", "+FUNC_TAG+", "+
-                						"UNKNOWN_COMMAND"
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					}
-					super.handleMessage(msg);
-            }
-        }
-    }
 	
 	public void onCreate()
 	{
@@ -273,10 +98,20 @@ public class MCMservice extends Service{
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
         final int MCM_ID = 100;
         
-        // Make this a Foreground Service
         startForeground(MCM_ID, notification);
         
-        this.registerReceiver(mealActivity, new IntentFilter("DiAs.MealActivity"));
+        sysObserver = new SystemObserver(new Handler());
+		getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
+
+		pumpObserver = new PumpObserver(new Handler());
+        getContentResolver().registerContentObserver(Biometrics.PUMP_DETAILS_URI, true, pumpObserver);
+        
+        stateObserver = new StateObserver(new Handler());
+        getContentResolver().registerContentObserver(Biometrics.STATE_URI, true, stateObserver);
+        
+        this.registerReceiver(mealActivityReceiver, new IntentFilter("DiAs.MealActivity"));
+        
+        readStartupValues();
 	}
 	
 	@Override
@@ -285,7 +120,124 @@ public class MCMservice extends Service{
 		return mMessengerFromService.getBinder();
 	}
 	
-	public void subject_parameters() 
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+		
+		if(mealActivityReceiver != null)
+			this.unregisterReceiver(mealActivityReceiver);
+		
+		 if(stateObserver != null)
+	        	getContentResolver().unregisterContentObserver(stateObserver);
+	        
+		if(sysObserver != null)
+			getContentResolver().unregisterContentObserver(sysObserver);
+		
+		if(pumpObserver != null)
+			getContentResolver().unregisterContentObserver(pumpObserver);
+	}
+	
+	/************************************************************************************
+	* Input and Calculations for Insulin
+	************************************************************************************/
+	
+	private void analyzeInput(double bg, double carbs, double corr)
+	{
+		final String FUNC_TAG = "analyzeInput";
+		
+		//Get profile data
+		subject_parameters();
+		
+		//Convert BG to mg/dL
+		int blood_glucose_display_units = Params.getInt(getContentResolver(), "blood_glucose_display_units", CGM.BG_UNITS_MG_PER_DL);
+		if (blood_glucose_display_units == CGM.BG_UNITS_MMOL_PER_L) 
+			bg = bg * CGM.MGDL_PER_MMOLL;
+		
+		openLoopCalculation(bg, carbs, corr);
+		
+		updateActivity();
+	}
+	
+	private void openLoopCalculation(double bg, double carbs, double corr)
+	{
+		final String FUNC_TAG = "openLoopCalculation";
+		final double TARGET_BG = 110;
+		
+		if(bg > 39.0 && bg < 401.0) {
+			double limit = (Constraints.MAX_CORR * latestCF) + TARGET_BG;
+			Debug.i(TAG, FUNC_TAG, "CF: "+latestCF+" Limit: "+limit);
+			
+			MealActivity.bgValid = true;
+			MealActivity.bgInsulin = (bg - TARGET_BG)*(1/latestCF);
+		}
+		else {
+			MealActivity.bgValid = false;
+		}
+		
+		if(carbs > 0) {
+			double limit = Constraints.MAX_MEAL * latestCR;
+			Debug.i(TAG, FUNC_TAG, "CR: "+latestCR+" Limit: "+limit);
+			
+			if(carbs <= limit) {
+				MealActivity.carbsValid = true;
+				MealActivity.carbsInsulin = carbs/latestCR;
+			}
+			else
+				MealActivity.carbsValid = false;
+		}
+		else {
+			MealActivity.carbsValid = false;
+		}
+		
+		if(corr >= -20.0 && corr <= Constraints.MAX_CORR) {
+			MealActivity.corrValid = true;
+		}
+		else {
+			MealActivity.corrValid = false;
+		}
+		
+		double total = 0.0;
+		
+		if(MealActivity.carbsValid)
+			total += MealActivity.carbsInsulin;
+		if(MealActivity.bgValid)
+			total += MealActivity.bgInsulin;
+		if(MealActivity.corrValid)
+			total += MealActivity.corrInsulin;
+		if(MealActivity.iobChecked)
+			total -= MealActivity.iobInsulin;
+		
+		if(total > 0.0) {
+			MealActivity.totalValid = true;
+			MealActivity.totalInsulin = total;
+		}
+		else {
+			MealActivity.totalValid = false;
+		}
+		
+		if(systemBusy || !MealActivity.totalValid) {
+			MealActivity.injectEnabled = false;
+		}
+		else {
+			MealActivity.injectEnabled = true;
+		}
+	}
+	
+	/************************************************************************************
+	* Auxillary Functions
+	************************************************************************************/
+	
+	public void readStartupValues()
+	{
+		stateObserver.onChange(false, null);
+		sysObserver.onChange(false, null);
+		pumpObserver.onChange(false, null);
+		
+		checkSystem();
+	}
+	
+	private void subject_parameters() 
 	{
 		final String FUNC_TAG = "subject_parameters";
 		
@@ -302,8 +254,7 @@ public class MCMservice extends Service{
  	 	  	}
  	  	}
  	  	else {
- 	  		Debug.e(TAG, FUNC_TAG, "subject_parameters > CR_PROFILE_URI > c.getCount() == 0");
- 	  		log_action(TAG, "Error: subject_parameters > CR_PROFILE_URI > c.getCount() == 0");
+ 	  		Debug.e(TAG, FUNC_TAG, "CR_PROFILE_URI > c.getCount() == 0");
  	  	}
  	  	c.close();
  	  	
@@ -317,30 +268,28 @@ public class MCMservice extends Service{
  	 	  	}
  	  	}
  	  	else {
- 	  		Debug.e(TAG, FUNC_TAG, "subject_parameters > CF_PROFILE_URI > c.getCount() == 0");
- 	  		log_action(TAG, "Error: subject_parameters > CF_PROFILE_URI > c.getCount() == 0");
+ 	  		Debug.e(TAG, FUNC_TAG, "CF_PROFILE_URI > c.getCount() == 0");
  	  	}
  	  	c.close();
  	  	
 		// Get the offset in minutes into the current day in the current time zone (based on cell phone time zone setting)
-		long timeSeconds = getCurrentTimeSeconds();
+		long timeSeconds = (System.currentTimeMillis()/1000);
 		TimeZone tz = TimeZone.getDefault();
 		int UTC_offset_secs = tz.getOffset(timeSeconds*1000)/1000;
 		int timeTodayMins = (int)((timeSeconds+UTC_offset_secs)/60)%1440;
-		Debug.i(TAG, FUNC_TAG, "subject_parameters > UTC_offset_secs="+UTC_offset_secs+", timeSeconds="+timeSeconds+", timeSeconds/60="+timeSeconds/60+", timeTodayMins="+timeTodayMins);
+		Debug.i(TAG, FUNC_TAG, "UTC_offset_secs="+UTC_offset_secs+", timeSeconds="+timeSeconds+", timeSeconds/60="+timeSeconds/60+", timeTodayMins="+timeTodayMins);
 		
 		// Get currently active CR value
 		List<Integer> indices = new ArrayList<Integer>();
 		indices = CR.find(">", -1, "<=", timeTodayMins);			// Find the list of indices <= time in minutes since today at 00:00
 		if (indices == null) {
-			indices = CR.find(">", -1, "<", -1);							// Use final value from the previous day's profile
+			indices = CR.find(">", -1, "<", -1);					// Use final value from the previous day's profile
 		}
 		else if (indices.size() == 0) {
-			indices = CR.find(">", -1, "<", -1);							// Use final value from the previous day's profile
+			indices = CR.find(">", -1, "<", -1);					// Use final value from the previous day's profile
 		}
 		if (indices == null) {
-			Debug.e(TAG, FUNC_TAG, "subject_parameters > Missing CR daily profile");
- 	  		log_action(TAG, "Error: subject_parameters > Missing CR daily profile");
+			Debug.e(TAG, FUNC_TAG, "Missing CR daily profile");
 		}
 		else {
 			latestCR = CR.get_value(indices.get(indices.size()-1));		// Return the last CR in this range						
@@ -350,39 +299,277 @@ public class MCMservice extends Service{
 		indices = new ArrayList<Integer>();
 		indices = CF.find(">", -1, "<=", timeTodayMins);			// Find the list of indices <= time in minutes since today at 00:00
 		if (indices == null) {
-			indices = CF.find(">", -1, "<", -1);							// Use final value from the previous day's profile
+			indices = CF.find(">", -1, "<", -1);					// Use final value from the previous day's profile
 		}
 		else if (indices.size() == 0) {
-			indices = CF.find(">", -1, "<", -1);							// Use final value from the previous day's profile
+			indices = CF.find(">", -1, "<", -1);					// Use final value from the previous day's profile
 		}
 		if (indices == null) {
-			Debug.e(TAG, FUNC_TAG, "subject_parameters > Missing CF daily profile");
- 	  		log_action(TAG, "Error: subject_parameters > Missing CF daily profile");
+			Debug.e(TAG, FUNC_TAG, "Missing CF daily profile");
 		}
 		else {
 			latestCF = CF.get_value(indices.get(indices.size()-1));		// Return the last CF in this range						
 		}
-		Debug.i(TAG, FUNC_TAG, "subject_parameters > latestCR="+latestCR+", latestCF="+latestCF);
+		Debug.i(TAG, FUNC_TAG, "latestCR="+latestCR+", latestCF="+latestCF);
 	}
 	
-	public long getCurrentTimeSeconds() 
+	private void checkSystem()
 	{
-		final String FUNC_TAG = "getCurrentTimeSeconds";
-		return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
+		final String FUNC_TAG = "checkInjectButton";
+	
+		if(Pump.isBusy(PUMP_SERV_STATE) || TBR != FSM.IDLE || SYNC != FSM.IDLE)
+		{
+			Debug.i(TAG, FUNC_TAG, "Service state is busy!");
+			systemBusy = true;
+		}
+		else if(!(PUMP_STATE == Pump.CONNECTED || PUMP_STATE == Pump.CONNECTED_LOW_RESV))
+		{
+			Debug.i(TAG, FUNC_TAG, "Pump is not connected!");
+			systemBusy = true;
+		}
+		else if((HYPO_LIGHT == Safety.RED_LIGHT) && (DIAS_STATE != State.DIAS_STATE_OPEN_LOOP))
+		{
+			Debug.i(TAG, FUNC_TAG, "Red light...");
+			systemBusy = true;
+		}
+		else
+		{
+			Debug.i(TAG, FUNC_TAG, "All is well...");
+			systemBusy = false;
+		}
+		
+		updateActivity();
 	}
 	
-	public void log_action(String service, String action) 
+	private void updateActivity()
+	{
+		final String FUNC_TAG = "updateActivity";
+		
+		if(mMessengerToActivity != null)
+		{
+			try {
+	    		Message msg = Message.obtain(null, Meal.MCM_CALCULATED, 0, 0);
+	    		mMessengerToActivity.send(msg);
+	        }
+	        catch (RemoteException e) {
+	    		e.printStackTrace();
+	        }
+		}
+		else
+			Debug.e(TAG, FUNC_TAG, "Messenger to activity is null!");
+	}
+	
+	private void log_action(String service, String action) 
 	{
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
         i.putExtra("Service", service);
         i.putExtra("Status", action);
-        i.putExtra("time", (long)getCurrentTimeSeconds());
+        i.putExtra("time", (long)(System.currentTimeMillis()/1000));
         sendBroadcast(i);
 	}
 	
-	public void log_IO(String tag, String message) 
+	/************************************************************************************
+	* Message Handler
+	************************************************************************************/
+	
+	class IncomingHandler extends Handler 
+    {
+		final String FUNC_TAG = "messengerFromDiAsService";
+
+    	Bundle responseBundle;
+    	
+    	@Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) 
+            {
+	            case Meal.REGISTER:
+	            	Debug.i(TAG, FUNC_TAG, "REGISTER");
+	            	
+					if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
+					{
+                		Bundle b = new Bundle();
+                		b.putString(	"description", "MealActivity >> (MCMservice), IO_TEST"+", "+FUNC_TAG+" REGISTER");
+                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+					}
+					
+					mMessengerToService = msg.replyTo;
+	            	break;
+	            case Meal.SSM_CALC_DONE:
+	            	Debug.i(TAG, FUNC_TAG, "SSM_CALC_DONE");
+	            	MealActivity.inProgress = false;
+	            	readStartupValues();
+	            	break;
+	            case Meal.INJECT:
+	            	break;
+	            case Meal.UI_CLOSED:
+	            	Debug.i(TAG, FUNC_TAG, "UI_CLOSED");
+	    			try {
+	    				mMessengerToService.send(Message.obtain(null, Meal.UI_CLOSED));
+	    			} catch (RemoteException e) {
+	    				e.printStackTrace();
+	    			}
+	            	break;
+	            case Meal.UI_CHANGE:
+	            	Debug.i(TAG, FUNC_TAG, "UI_CHANGE");
+	            	
+	            	Debug.i(TAG, FUNC_TAG, "BG: "+MealActivity.bg+" Carbs: "+MealActivity.carbs+" Corr: "+MealActivity.corrInsulin);
+	            	analyzeInput(MealActivity.bg, MealActivity.carbs, MealActivity.corrInsulin);
+	            	break;
+	            case Meal.UI_REGISTER:
+	            	Debug.i(TAG, FUNC_TAG, "UI_REGISTER");
+	            	
+	            	mMessengerToActivity = msg.replyTo;
+	            	
+	            	try {
+	    				mMessengerToService.send(Message.obtain(null, Meal.UI_STARTED));
+	    			} catch (RemoteException e) {
+	    				e.printStackTrace();
+	    			}
+	            	break;
+            }
+        }
+    }
+	
+	/************************************************************************************
+	* Observers
+	************************************************************************************/
+	
+	class StateObserver extends ContentObserver
 	{
-		final String FUNC_TAG = "log_IO";
-		Debug.i(tag, FUNC_TAG, message);
+		private int count;
+    	
+    	public StateObserver(Handler handler) 
+    	{
+    		super(handler);
+    		
+    		final String FUNC_TAG = "State Observer";
+    		Debug.i(TAG, FUNC_TAG, "Constructor");
+    		
+    		count = 0;
+    	}
+
+       @Override
+       public void onChange(boolean selfChange) 
+       {
+    	   this.onChange(selfChange, null);
+       }		
+
+       @Override
+       public void onChange(boolean selfChange, Uri uri) 
+       {
+    	   final String FUNC_TAG = "onChange";
+    	   
+    	   count++;
+    	   
+    	   Cursor c = getContentResolver().query(Biometrics.STATE_URI, new String[]{"sync_state", "tbr_state"}, null, null, null);
+    	   if(c != null)
+    	   {
+    		   if(c.moveToLast())
+    		   {
+    			   SYNC = c.getInt(c.getColumnIndex("sync_state"));
+    			   TBR = c.getInt(c.getColumnIndex("tbr_state"));
+    		   }
+    	   }
+    	   c.close();
+    	   
+    	   checkSystem();
+       }
 	}
+	
+	class PumpObserver extends ContentObserver 
+    {	
+    	private int count;
+    	
+    	public PumpObserver(Handler handler) 
+    	{
+    		super(handler);
+    		
+    		final String FUNC_TAG = "Pump Observer";
+    		Debug.i(TAG, FUNC_TAG, "Constructor");
+    		
+    		count = 0;
+    	}
+
+       @Override
+       public void onChange(boolean selfChange) 
+       {
+    	   this.onChange(selfChange, null);
+       }		
+
+       @Override
+       public void onChange(boolean selfChange, Uri uri) 
+       {
+    	   final String FUNC_TAG = "onChange";
+    	   
+    	   count++;
+    	   
+    	   Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, new String[]{"state", "service_state"}, null, null, null);
+    	   if(c != null)
+    	   {
+    		   if(c.moveToLast())
+    		   {
+    			   PUMP_SERV_STATE = c.getInt(c.getColumnIndex("service_state"));
+    		   }
+    	   }
+    	   c.close();
+    	   
+    	   checkSystem();
+       }		
+    }
+	
+	class SystemObserver extends ContentObserver 
+    {	
+    	private int count;
+    	
+    	public SystemObserver(Handler handler) 
+    	{
+    		super(handler);
+    		
+    		final String FUNC_TAG = "System Observer";
+    		Debug.i(TAG, FUNC_TAG, "Constructor");
+    		
+    		count = 0;
+    	}
+
+       @Override
+       public void onChange(boolean selfChange) 
+       {
+    	   this.onChange(selfChange, null);
+       }		
+
+       @Override
+       public void onChange(boolean selfChange, Uri uri) 
+       {
+    	   final String FUNC_TAG = "onChange";
+    	   
+    	   count++;
+    	   
+    	   Cursor c = getContentResolver().query(Biometrics.SYSTEM_URI, null, null, null, null);
+    	   if(c!=null)
+    	   {
+    		   if(c.moveToLast())
+    		   {
+    			   IOB = c.getDouble(c.getColumnIndex("iobValue"));
+    			   if(IOB < 0.0)
+    				   IOB = 0;
+    			   
+    			   MealActivity.iobInsulin = IOB;
+    			   
+    			   PUMP_STATE = c.getInt(c.getColumnIndex("pumpState"));
+    			   DIAS_STATE = c.getInt(c.getColumnIndex("diasState"));
+    			   HYPO_LIGHT = c.getInt(c.getColumnIndex("hypoLight"));
+    			   
+    			   if(!(PUMP_STATE == Pump.CONNECTED || PUMP_STATE == Pump.CONNECTED_LOW_RESV))
+    			   {
+    				   Debug.e(TAG, FUNC_TAG, "Pump is disconnected!  State: "+Pump.stateToString(PUMP_STATE));
+    				   //Toast.makeText(getApplicationContext(), "Sorry, the pump is disconnected and a meal bolus cannot be processed!", Toast.LENGTH_LONG).show();
+    				   //TODO: add some thing to close the UI when this occurs
+    			   }
+    		   }
+    		   c.close();
+    	   }
+           
+           checkSystem();
+       }		
+    }
 }
