@@ -89,11 +89,6 @@ public class DiAsService extends Service
 	
     public static final String IO_TEST_TAG = "DiAsServiceIO";
 	public final String TAG = "DiAsService";
-
-	// Status for meals from MCM and meal announcement
-	public static final int MEAL_STATUS_TREATED = 0;
-	public static final int MEAL_STATUS_CANCELLED = 1;
-	public static final int MEAL_STATUS_ABORTED = 2;
 	
 	// DiAs State Variable and Definitions - state for the system as a whole
 	public int DIAS_STATE;
@@ -105,21 +100,6 @@ public class DiAsService extends Service
 	public static final int DIAS_UI_START_OPEN_LOOP_CLICK = 3;
 	public static final int DIAS_UI_START_SENSOR_ONLY_CLICK = 4;
 	public static final int DIAS_UI_START_SAFETY_CLICK = 5;
-	
-	// DiAsService State Variable and Definitions
-	public int DIAS_SERVICE_STATE;
-	public static final int DIAS_SERVICE_STATE_SETUP = 1;
-	public static final int DIAS_SERVICE_STATE_IDLE = 2;
-	public static final int DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_UPDATE = 4;	
-	public static final int DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN = 5;	
-	public static final int DIAS_SERVICE_STATE_AWAITING_APC_RESPONSE = 6;	
-	public static final int DIAS_SERVICE_STATE_AWAITING_USER_CORRECTION_BOLUS_APPROVAL = 7;
-	public static final int DIAS_SERVICE_STATE_AWAITING_BOLUS_INTERCEPT_RESPONSE = 8;
-	public static final int DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS = 9;	
-	public static final int DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_STATUS = 10;	
-	public static final int DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVER_BASAL = 11;	
-	public static final int DIAS_SERVICE_STATE_AWAITING_CREDIT_REQUEST_RESPONSE = 12;
-	public static final int DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_GET_STATUS = 13;
     
     public static final String TIME = "time";
     public static final String TIME_ANNOUNCE = "time_announce";
@@ -160,9 +140,6 @@ public class DiAsService extends Service
 	// CgmService commands
 	public static final int CGM_SERVICE_CMD_NULL = 0;
 	public static final int CGM_SERVICE_CMD_CALIBRATE = 1;
-	
-	// PumpService commands
-	public static final int PUMP_SERVICE_CMD_SET_HYPO_TIME = 8;
 	
 	// DiAsService Commands
 	public static final int DIAS_SERVICE_COMMAND_NULL = 0;
@@ -242,9 +219,6 @@ public class DiAsService extends Service
     public static final int APC_CONFIGURATION_PARAMETERS = 12;		// APController parameter status return
     public static final int APC_CALCULATED_BOLUS = 13;    			// Calculated bolus return value
 
-    // APController type
-    private int APC_MODE;
-	
     // log_action priority levels
 	private static final boolean LOGGING = false;
 	
@@ -276,10 +250,6 @@ public class DiAsService extends Service
 	// BRM hour parameters from Subject Information
 	private boolean brmEnabled = true;
 	
-	// MDI insulin
-	private boolean MDI_injection_amount_has_been_received = false;
-    
-	private boolean enoughCgmData = false;					// Enough data to go to Closed Loop mode
 	public double EPSILON = 0.000001;						// Effectively zero for doubles
 	
 	// Power management
@@ -412,7 +382,7 @@ public class DiAsService extends Service
 	private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 	private static ScheduledFuture<?> timeoutTimer, waitTimer;
 	
-	private Machine ASYNC, SYNC, TBR, DEV;
+	private Machine ASYNC, SYNC, TBR;
 	
 	private Thread logThread;
 	private boolean logStop, logRunning;
@@ -464,7 +434,6 @@ public class DiAsService extends Service
                 						"SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE");
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
         			}        			
-    				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE, DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);            				
         			break;
         		case Safety.SAFETY_SERVICE_STATE_CALCULATE_RESPONSE:
         			Debug.i(TAG, FUNC_TAG, "Safety Service Calculate Response!");
@@ -479,27 +448,6 @@ public class DiAsService extends Service
         			}
         			break;
         		case Safety.SAFETY_SERVICE_STATE_NORMAL:
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL, DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);
-        			if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_UPDATE) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_UPDATE");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVER_BASAL) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVER_BASAL");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS");
-        			}
-        			else if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_GET_STATUS) {
-        				Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_NORMAL > DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_GET_STATUS");
-        				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-        			}
-        			else {
-        				Debug.i(TAG, FUNC_TAG, "Error > DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);            				
-        			}
-        			
 					responseBundle = msg.getData();
 	       	        writeTrafficLights(Safety.TRAFFIC_LIGHT_CONTROL_SSMSERVICE, responseBundle.getInt("stoplight", Safety.UNKNOWN_LIGHT), responseBundle.getInt("stoplight2", Safety.UNKNOWN_LIGHT));
 					
@@ -560,12 +508,6 @@ public class DiAsService extends Service
 //        				log_IO(IO_TEST_TAG, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 //        				log_IO(IO_TEST_TAG, "< SAFETY_SERVICE_STATE_PUMP_ERROR");
         			}        			
-        			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_PUMP_ERROR");
-        			if (DIAS_SERVICE_STATE == DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS) {
-        				Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS");
-        				updateStatusMealBolusFailed();
-        			}
-    				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
         			SSM_STATE = Safety.SAFETY_SERVICE_STATE_NORMAL;
         			break;
         		case Safety.SAFETY_SERVICE_STATE_BUSY:
@@ -580,7 +522,6 @@ public class DiAsService extends Service
 //        				log_IO(IO_TEST_TAG, "< SAFETY_SERVICE_STATE_BUSY");
         			}        			
         			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_BUSY");
-    				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
         			SSM_STATE = Safety.SAFETY_SERVICE_STATE_NORMAL;
         			break;
         		case Safety.SAFETY_SERVICE_STATE_INVALID_COMMAND:
@@ -593,7 +534,6 @@ public class DiAsService extends Service
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
         			}        			
         			Debug.i(TAG, FUNC_TAG, "SAFETY_SERVICE_STATE_INVALID_COMMAND");
-    				DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
         			SSM_STATE = msg.what;
         			break;
 	        	default:
@@ -727,9 +667,6 @@ public class DiAsService extends Service
         	
             switch (msg.what) {
         		case APC_PROCESSING_STATE_NORMAL:
-            		if (DIAS_SERVICE_STATE !=  DIAS_SERVICE_STATE_AWAITING_APC_RESPONSE) {
-            			Debug.i(TAG, FUNC_TAG, "Returned from APC > Error > DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);
-            		}
         			// Fetch the APC recommended insulin therapy
 					APCBundle = msg.getData();
 					double APC_IOB = APCBundle.getDouble("IOB", 0.0);
@@ -802,7 +739,6 @@ public class DiAsService extends Service
                 	changeSyncState(FSM.APC_RESPONSE);
         			break;
         		case APC_PROCESSING_STATE_ERROR:
-	           		DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
 	    			Debug.i(TAG, FUNC_TAG, "APC_PROCESSING_STATE_ERROR");
 	    			break;
 	           	case APC_CONFIGURATION_PARAMETERS:
@@ -908,18 +844,6 @@ public class DiAsService extends Service
                 catch (RemoteException e) {
                 	e.printStackTrace();
                 }
-                
-                switch(APC_MODE)
-                {
-	                case APC.MODE_NONE_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_INSTALLED;
-	                	break;
-	                case APC.MODE_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_BRM_INSTALLED;
-	                	break;
-                }
-                
-                Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
            }
             
            public void onServiceDisconnected(ComponentName className) {
@@ -942,18 +866,6 @@ public class DiAsService extends Service
         	   
         	   Debug.e(TAG, FUNC_TAG, "The APC service connection was killed attempting to restart...");
         	   startAPC();
-        	   
-        	   switch(APC_MODE)
-               {
-	                case APC.MODE_APC_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_BRM_INSTALLED;
-	                	break;
-	                case APC.MODE_APC_INSTALLED:
-	                	APC_MODE = APC.MODE_NONE_INSTALLED;
-	                	break;
-               }
-        	   
-        	   Debug.w(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
            }
         };
         
@@ -1122,18 +1034,6 @@ public class DiAsService extends Service
                 catch (RemoteException e) {
                 	e.printStackTrace();
                 }
-                
-                switch(APC_MODE)
-                {
-	                case APC.MODE_NONE_INSTALLED:
-	                	APC_MODE = APC.MODE_BRM_INSTALLED;
-	                	break;
-	                case APC.MODE_APC_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_BRM_INSTALLED;
-	                	break;
-                }
-                
-                Debug.i(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
            }
             
            public void onServiceDisconnected(ComponentName className) {
@@ -1156,18 +1056,6 @@ public class DiAsService extends Service
         	   
         	   Debug.e(TAG, FUNC_TAG, "The BRM service connection was killed attempting to restart...");
         	   startBRM();
-        	   
-        	   switch(APC_MODE)
-               {
-	                case APC.MODE_APC_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_APC_INSTALLED;
-	                	break;
-	                case APC.MODE_BRM_INSTALLED:
-	                	APC_MODE = APC.MODE_NONE_INSTALLED;
-	                	break;
-               }
-        	   
-        	   Debug.w(TAG, FUNC_TAG, "APC_BRM_MODE: "+APC.modeToString(APC_MODE));
            }
         };
         
@@ -1214,24 +1102,21 @@ public class DiAsService extends Service
             switch (msg.what) 
             {
 	            case Meal.UI_STARTED:
-	            	Debug.i(TAG, FUNC_TAG, "Meal Screen opened!");
+	            	Debug.i(TAG, FUNC_TAG, "UI_STARTED");
             		changeAsyncState(FSM.START);
 	            	break;
 	            case Meal.UI_CLOSED:
-	            	Debug.i(TAG, FUNC_TAG, "Meal Screen closed!");
+	            	Debug.i(TAG, FUNC_TAG, "UI_CLOSED");
 	            	changeAsyncState(FSM.MCM_CANCEL);
 	            	break;
+	            case Meal.MCM_BOLUS:
+	            	Debug.i(TAG, FUNC_TAG, "MCM_BOLUS");
 	            	
-//	            case edu.virginia.dtc.SysMan.Meal.MCM_UI:
-//	            	if(msg.getData().getBoolean("end",false))
-//	            	{
-//	            		changeAsyncState(FSM.MCM_CANCEL);
-//	            	}
-//	            	break;
-//            	case edu.virginia.dtc.SysMan.Meal.MCM_STARTED:
-//            		Debug.i(TAG, FUNC_TAG, "Meal Screen opened!");
-//            		changeAsyncState(FSM.START);
-//            		break;
+	            	//Set the MCM values
+	            	
+	            	changeAsyncState(FSM.MCM_REQUEST);
+	            	break;
+	            	
 //	            case edu.virginia.dtc.SysMan.Meal.MCM_SEND_BOLUS:
 //	            	Mcm.doesBolus = MCMBundle.getBoolean("doesBolus", false);
 //	            	Mcm.doesCredit = MCMBundle.getBoolean("doesCredit", false);
@@ -1306,7 +1191,8 @@ public class DiAsService extends Service
 //	            		Debug.e(TAG, FUNC_TAG, "MCM service is not reporting either method for bolusing or is trying to support both!");
 //	            		return;
 //	            	}
-//		           	
+
+	            	
 //	           		double mealSize = MCMBundle.getDouble("mealSize", 0.0);
 //	           		double smbg = MCMBundle.getDouble("smbg", 0.0);
 //	           		
@@ -1338,17 +1224,6 @@ public class DiAsService extends Service
 //	        		
 //        			changeAsyncState(FSM.MCM_REQUEST);
 //		         	break;
-//	        	default:
-//					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
-//        			if (true) {
-//                		Bundle b1 = new Bundle();
-//                		b1.putString(	"description", "MCMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-//        								"UNKNOWN_MESSAGE="+msg.what
-//                					);
-//                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-//        			}
-//	        		super.handleMessage(msg);
-//	        		break;
             }
         }
     }
@@ -1459,7 +1334,6 @@ public class DiAsService extends Service
         ASYNC = new Machine(FSM.MACHINE_ASYNC);
         SYNC = new Machine(FSM.MACHINE_SYNC);
         TBR = new Machine(FSM.MACHINE_TBR);
-        DEV = new Machine(FSM.MACHINE_DEV);
         
         hypoLight = Safety.UNKNOWN_LIGHT;
         hyperLight = Safety.UNKNOWN_LIGHT;
@@ -1477,7 +1351,6 @@ public class DiAsService extends Service
         
         // Initialize some values
         Supervisor_Tick_Free_Running_Counter = 0;
-        MDI_injection_amount_has_been_received = false;
         
         // where a user (or more likely a tester) requests a meal before the RCM has run.
         Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = 3;
@@ -1488,7 +1361,6 @@ public class DiAsService extends Service
         
         cgm_trend = -3;
         cgm_value = -1;
-        enoughCgmData = false;
         cgm_last_time_sec = (long)0;
         cgm_last_normal_time_sec = (long)0;
 
@@ -1515,8 +1387,6 @@ public class DiAsService extends Service
 		changeDiasState(State.DIAS_STATE_STOPPED);
 		
         SSM_STATE = Safety.SAFETY_SERVICE_STATE_NORMAL;
-        
-        DIAS_SERVICE_STATE = DIAS_SERVICE_STATE_IDLE;
         
         // Initialize the value of prev_pump_state, pump_state and TEMP_BASAL_ENABLED for the pump
  	   	Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, new String[]{"state", "service_state", "temp_basal"}, null, null, null);
@@ -1821,7 +1691,7 @@ public class DiAsService extends Service
         		Supervisor_Tick_Free_Running_Counter = Supervisor_Tick_Free_Running_Counter+1;
         		
         		Debug.i(TAG, FUNC_TAG, "TickReceiver > Supervisor_Tick_Free_Running_Counter="+Supervisor_Tick_Free_Running_Counter+", startTimeSeconds="+startTimeSeconds+", latestCGMTime="+cgm_last_time_sec);
-    			Debug.i(TAG, FUNC_TAG, "TickReceiver > DIAS_STATE == "+DIAS_STATE+", DIAS_SERVICE_STATE="+DIAS_SERVICE_STATE);
+    			Debug.i(TAG, FUNC_TAG, "TickReceiver > DIAS_STATE == "+DIAS_STATE);
     			
     			if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY && DIAS_STATE != State.DIAS_STATE_STOPPED) 
     			{
@@ -2162,7 +2032,6 @@ public class DiAsService extends Service
 		{
 			initialized = true;
 			
-			DIAS_SERVICE_STATE = DIAS_SERVICE_STATE_SETUP;
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is initializing service connections...");
 	        
 	        initializeServiceConnections();
@@ -2176,17 +2045,17 @@ public class DiAsService extends Service
     {
     	final String FUNC_TAG = "initializeServiceConnections";
 
-    	APC_MODE = APC.MODE_NONE_INSTALLED;
-    	
-        startSSM();
-        
         if(Params.getBoolean(getContentResolver(), "apc_enabled", false)) 
         	startAPC();
         
         if(Params.getBoolean(getContentResolver(), "brm_enabled", false))
         	startBRM();
         
-        startMCM();
+        if(Params.getBoolean(getContentResolver(), "ssm_enabled", false))
+        	startSSM();
+        
+        if(Params.getBoolean(getContentResolver(), "mcm_enabled", false))
+        	startMCM();
         
         // Set up a Notification for this Service
         int icon = R.drawable.icon;
@@ -2203,8 +2072,6 @@ public class DiAsService extends Service
         
         // Make this a Foreground Service
         startForeground(DIAS_ID, notification);
-        
-        Debug.i(TAG, FUNC_TAG, "Done");
     }
 
 	// ******************************************************************************************************************************
@@ -2247,13 +2114,11 @@ public class DiAsService extends Service
     	   			SYNC.prev_state = SYNC.state;
     	   			ASYNC.prev_state = ASYNC.state;
     	   			TBR.prev_state = TBR.state;
-    	   			DEV.prev_state = DEV.state;
     	   			
     	   			//Read new states
     	   			SYNC.state = c.getInt(c.getColumnIndex("sync_state"));
     	   			ASYNC.state = c.getInt(c.getColumnIndex("async_state"));
     	   			TBR.state = c.getInt(c.getColumnIndex("tbr_state"));
-    	   			DEV.state = c.getInt(c.getColumnIndex("dev_resp"));
     	   			
     	   			Debug.i(TAG, FUNC_TAG, "Sync > State: "+FSM.callStateToString(SYNC.state)+" Prev State: "+FSM.callStateToString(SYNC.prev_state));
     	   			Debug.i(TAG, FUNC_TAG, "Async > State: "+FSM.callStateToString(ASYNC.state)+" Prev State: "+FSM.callStateToString(ASYNC.prev_state));
@@ -3975,7 +3840,7 @@ public class DiAsService extends Service
     		case FSM.MCM_REQUEST:
     			//Send the request to the SSM
     			if(!FSM.isSSMbusy(SYNC.state))		//Check the Synchronous state
-	    			sendInsulinRequestToSafetySystem(Mcm.meal, Mcm.correction, 0.0, Mcm.credit, Mcm.spend, DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_DELIVERY_OF_MEAL_BOLUS, true);
+	    			sendInsulinRequestToSafetySystem(Mcm.meal, Mcm.correction, 0.0, Mcm.credit, Mcm.spend, true);
 	    		else
 	    			Debug.i(TAG, FUNC_TAG, "SSM is busy in with a synchronous call!");
     			break;
@@ -4258,8 +4123,7 @@ public class DiAsService extends Service
 	    	    		break;
 	        	}
 	    		
-	    		sendInsulinRequestToSafetySystem(0.0, correction, diff_rate, credit, spend, 
-	    				DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN, false);
+	    		sendInsulinRequestToSafetySystem(0.0, correction, diff_rate, credit, spend, false);
 	    		break;
 	    	case State.DIAS_STATE_BRM:
 	    		break;
@@ -4291,8 +4155,7 @@ public class DiAsService extends Service
 		    			double temporary_differential_basal_rate = basal*((float)(temp_basal_percent_of_profile_basal_rate-100)/100.0);
 		    			temporary_differential_basal_rate = Math.max(temporary_differential_basal_rate, -basal);	// >= -basal
 		    			temporary_differential_basal_rate = Math.min(temporary_differential_basal_rate, 5.0);		// <= 5.0 U/hour
-		    			sendInsulinRequestToSafetySystem(0.0, 0.0, temporary_differential_basal_rate, 0.0, 0.0,
-		    					DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN, false);
+		    			sendInsulinRequestToSafetySystem(0.0, 0.0, temporary_differential_basal_rate, 0.0, 0.0, false);
 	    			}
 	    			else {
 	    				// If we are in Pump mode and DiAsService is not the owner then we need to cancel this temporary basal rate
@@ -4301,14 +4164,12 @@ public class DiAsService extends Service
 	    		}
 	    		else {
 	    			//Administer basal insulin per profile
-	    			sendInsulinRequestToSafetySystem(0.0, 0.0, 0.0, 0.0, 0.0, 
-	    				DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN, false);
+	    			sendInsulinRequestToSafetySystem(0.0, 0.0, 0.0, 0.0, 0.0, false);
 	    		}
 	    		break;
 	    	case State.DIAS_STATE_SAFETY_ONLY:
     			//Administer basal insulin per profile
-    			sendInsulinRequestToSafetySystem(0.0, 0.0, 0.0, 0.0, 0.0, 
-    				DIAS_SERVICE_STATE_AWAITING_SAFETY_SYSTEM_ADMINISTER_INSULIN, false);
+    			sendInsulinRequestToSafetySystem(0.0, 0.0, 0.0, 0.0, 0.0, false);
 	    		break;
 	    	case State.DIAS_STATE_SENSOR_ONLY:
 	    	case State.DIAS_STATE_STOPPED:
@@ -4366,7 +4227,6 @@ public class DiAsService extends Service
     												double differential_basal_rate,
     												double credit_request, 
     												double spend_request,
-    												int wait_state,
     												boolean asynchronous) {
     	final String FUNC_TAG = "sendInsulinRequestToSafetySystem";
 	 	// Create and send a message to the Safety Service to deliver the bolus subject to approval by the Safety System.
@@ -4422,53 +4282,11 @@ public class DiAsService extends Service
 		try {
 			Debug.i(TAG, FUNC_TAG, "sendInsulinRequestToSafetySystem > bolus_meal="+bolus_meal+", bolus_correction="+bolus_correction+", " +
 					"differential_basal_rate="+differential_basal_rate+", credit_request="+credit_request+", spend_request="+spend_request);
-			DIAS_SERVICE_STATE =  wait_state;
 			mSSM.send(msg1);
 		} 
 		catch (RemoteException e) {
-			DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
 			e.printStackTrace();
 		}
-    }
-
-    public void sendCalculateStateEstimateRequestToSafetySystem(	
-			int wait_state) {
-    	final String FUNC_TAG = "sendCalculateStateEstimateRequestToSafetySystem";
-    	// Create and send a message to the Safety Service to calculate a state estimate.
-    	Debug.i(TAG, FUNC_TAG, "sendCalculateStateEstimateRequestToSafetySystem");
-    	Message msg1 = Message.obtain(null, Safety.SAFETY_SERVICE_CMD_CALCULATE_STATE, 0, 0);
-    	Bundle paramBundle = new Bundle();
-    	paramBundle.putBoolean("asynchronous", false);
-    	paramBundle.putInt("DIAS_STATE", DIAS_STATE);
-    	paramBundle.putBoolean("currentlyExercising", currentlyExercising);
-    	paramBundle.putLong("calFlagTime", calFlagTime);
-    	paramBundle.putLong("hypoFlagTime", hypoFlagTime);
-    	paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-    	msg1.setData(paramBundle);
-
-    	// Log the parameters for IO testing
-    	if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-    		Bundle b = new Bundle();
-    		b.putString(	"description", "(DiAsService) >> SSMservice, IO_TEST"+", "+FUNC_TAG+", "+
-    				"SAFETY_SERVICE_CMD_CALCULATE_STATE"+", "+
-    				"asynchronous="+false+", "+
-    				"calFlagTime="+calFlagTime+", "+
-    				"hypoFlagTime="+hypoFlagTime+", "+
-    				"currentlyExercising="+currentlyExercising+", "+
-    				"DIAS_STATE="+DIAS_STATE
-    				);
-    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-    	}
-    	
-    	try {
-    		Debug.i(TAG, FUNC_TAG, "sendInsulinRequestToSafetySystem");
-    		DIAS_SERVICE_STATE =  wait_state;
-    		mSSM.send(msg1);
-    	} 
-    	catch (RemoteException e) {
-    		DIAS_SERVICE_STATE =  DIAS_SERVICE_STATE_IDLE; 
-    		e.printStackTrace();
-    	}
     }
     
     // ******************************************************************************************************************************
@@ -4840,103 +4658,6 @@ public class DiAsService extends Service
 		}
    		return retVal;
     }
-    
-	private void saveMealTime(long meal_time_seconds) {
-		final String FUNC_TAG = "saveMealTime";
-		
-		// Update the meal delivery time and mark the meal record as approved by the user
-		ContentValues values = new ContentValues();
-		int _id = -1;
-		long time_announce = 0;
-		long time_database = 0;
-		
-        try {
-			// Fetch meal data
-			Cursor creq=getContentResolver().query(Biometrics.MEAL_URI, null, null, null, null);
-			if (creq.moveToFirst()) {
-				do {
-					// Save the latest timestamp from the retrieved data
-					_id = creq.getInt(creq.getColumnIndex("_id"));
-					time_announce = creq.getLong(creq.getColumnIndex(TIME_ANNOUNCE));
-					time_database = creq.getLong(creq.getColumnIndex(TIME));
-					values.put(TIME, creq.getLong(creq.getColumnIndex(TIME)));
-					values.put(TIME_ANNOUNCE, creq.getLong(creq.getColumnIndex(TIME_ANNOUNCE)));
-					values.put("meal_size_grams", creq.getLong(creq.getColumnIndex("meal_size_grams")));
-					values.put("SMBG", creq.getLong(creq.getColumnIndex("SMBG")));
-					values.put("meal_screen_bolus", creq.getLong(creq.getColumnIndex("meal_screen_bolus")));
-				} while (creq.moveToNext());
-			}
-			creq.close();
-			Debug.i(TAG, FUNC_TAG, "meal_time_seconds="+meal_time_seconds+", time_announce="+time_announce);
-        }
-        catch (Exception e) {
-        	Debug.i(TAG, FUNC_TAG, "Error APController:"+ e.getMessage());
-        }
-		if (time_database == -1) {			// "time"==-1 in the meal record means that the "time" field has not been filled in yet
-			values.put("time", meal_time_seconds);
-			values.put("approved", 1);		// Mark the meal as "approved".  This permits the meal controller to begin delivering the meal insulin.
-		    try {
-				getContentResolver().update(Biometrics.MEAL_URI, values, "_id="+_id, null);
-		    }
-		    catch (Exception e) {
-		    	Debug.i(TAG, FUNC_TAG, e.getMessage());
-		    }
-		}
-		else {
-			log_IO(TAG, "saveMealTime > Meal record with time==-1 not found in table");
-		}
-	}
-	
-	private void removeMealTime() {
-		final String FUNC_TAG = "removeMealTime";
-		
-		ContentValues values = new ContentValues();
-		int _id = -1;
-		long time_announce = 0;
-		long time_database = 0;
-        try {
-			// Fetch meal data
-			Cursor creq=getContentResolver().query(Biometrics.MEAL_URI, null, null, null, null);
-			if (creq.moveToFirst()) {
-				do{
-					// Save the latest timestamp from the retrieved data
-					_id = creq.getInt(creq.getColumnIndex("_id"));
-					time_announce = creq.getLong(creq.getColumnIndex(TIME_ANNOUNCE));
-					time_database = creq.getLong(creq.getColumnIndex(TIME));
-					values.put(TIME_ANNOUNCE, creq.getLong(creq.getColumnIndex(TIME_ANNOUNCE)));
-					values.put("meal_size_grams", creq.getLong(creq.getColumnIndex("meal_size_grams")));
-					values.put("SMBG", creq.getLong(creq.getColumnIndex("SMBG")));
-					values.put("meal_screen_bolus", creq.getLong(creq.getColumnIndex("meal_screen_bolus")));
-				} while (creq.moveToNext());
-			}
-			creq.close();
-			Debug.i(TAG, FUNC_TAG,"removeMealTime");
-        }
-        catch (Exception e) {
-        	Debug.i(TAG, FUNC_TAG, "Error APController"+ e.getMessage());
-        }
-        
-		if (time_database == -1) {			// "meal_screen_bolus"==-1 in the meal record means that the meal was canceled by the user
-			values.put("meal_screen_bolus", -1);				
-		    try {
-				getContentResolver().update(Biometrics.MEAL_URI, values, "_id="+_id, null);
-		    }
-		    catch (Exception e) {
-		    	Debug.i(TAG, FUNC_TAG, e.getMessage());
-		    }
-		}
-	}
-    
-	public void updateStatusMealBolusFailed() {
-		//TODO: Check if this is really useful here
-		final String FUNC_TAG = "updateStatusMealBolusFailed";
-		
-	    Intent intentBroadcast = new Intent("edu.virginia.dtc.intent.action.DIAS_SERVICE_UPDATE_STATUS");
-	    intentBroadcast.putExtra("DiAsMainCommand", DIASMAIN_UI_UPDATE_MEAL_BOLUS_FAILED);
-        Debug.i(TAG, FUNC_TAG, "DiAsMainCommand = DIASMAIN_UI_UPDATE_MEAL_BOLUS_FAILED");
-        sendBroadcast(intentBroadcast);
-        updateDiasService(DIAS_UI_CLICK_NULL);			// Update DIAS_STATE
-	}
 	
 	public void log_IO(String tag, String message) {
 		Debug.i(IO_TEST_TAG, tag, message);

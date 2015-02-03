@@ -352,6 +352,16 @@
 
              </LinearLayout>
 
+             <TextView
+                 android:id="@+id/infoText"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:gravity="center_horizontal"
+                 android:layout_gravity="center_horizontal"
+                 android:text="Information"
+                 android:textAppearance="?android:attr/textAppearanceSmall"
+                 android:textSize="11sp" />
+
              <LinearLayout
                  android:id="@+id/mealButtonLayout"
                  android:layout_width="match_parent"

@@ -22,4 +22,5 @@ public class Meal {
  	public static final int UI_CHANGE = 6;
  	public static final int UI_REGISTER = 7;
  	public static final int MCM_CALCULATED = 8;
+ 	public static final int MCM_BOLUS = 9;
 }

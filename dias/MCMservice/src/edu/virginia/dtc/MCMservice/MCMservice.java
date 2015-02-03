@@ -154,15 +154,48 @@ public class MCMservice extends Service
 		if (blood_glucose_display_units == CGM.BG_UNITS_MMOL_PER_L) 
 			bg = bg * CGM.MGDL_PER_MMOLL;
 		
-		openLoopCalculation(bg, carbs, corr);
+		int meal_activity_bolus_calculation_mode = Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", Meal.MEAL_ACTIVITY_ALWAYS_CALCULATES_BOLUS);
+        switch(meal_activity_bolus_calculation_mode) 
+        {
+	        case Meal.MEAL_ACTIVITY_ALWAYS_CALCULATES_BOLUS:
+	        	openLoopCalculation(bg, carbs, corr);
+	    		break;
+	    	case Meal.MEAL_ACTIVITY_CALCULATES_BOLUS_PUMP_MODE:
+	            switch(DIAS_STATE) 
+	            {
+					case State.DIAS_STATE_OPEN_LOOP:
+						openLoopCalculation(bg, carbs, corr);
+						break;
+					case State.DIAS_STATE_SAFETY_ONLY:
+					case State.DIAS_STATE_CLOSED_LOOP:
+						closedLoopCalculation(bg, carbs, corr);
+						break;
+	            }
+	    		break;
+	    	case Meal.MEAL_ACTIVITY_NEVER_CALCULATES_BOLUS:
+	    		closedLoopCalculation(bg, carbs, corr);
+	    		break;
+	    	default:
+	    		openLoopCalculation(bg, carbs, corr);
+	    		break;
+        }
 		
 		updateActivity();
+	}
+	
+	private void closedLoopCalculation(double bg, double carbs, double corr)
+	{
+		final String FUNC_TAG = "closedLoopCalculation";
+		
+		//TODO:  Closed-Loop Control Meal Calculation
 	}
 	
 	private void openLoopCalculation(double bg, double carbs, double corr)
 	{
 		final String FUNC_TAG = "openLoopCalculation";
 		final double TARGET_BG = 110;
+		
+		MealActivity.info = "";
 		
 		if(bg > 39.0 && bg < 401.0) {
 			double limit = (Constraints.MAX_CORR * latestCF) + TARGET_BG;
@@ -183,8 +216,10 @@ public class MCMservice extends Service
 				MealActivity.carbsValid = true;
 				MealActivity.carbsInsulin = carbs/latestCR;
 			}
-			else
+			else {
 				MealActivity.carbsValid = false;
+				MealActivity.info = "Carbohydrate Insulin Exceeds "+Constraints.MAX_MEAL+"U Limit!";
+			}
 		}
 		else {
 			MealActivity.carbsValid = false;
@@ -197,8 +232,36 @@ public class MCMservice extends Service
 			MealActivity.corrValid = false;
 		}
 		
-		double total = 0.0;
+		if(MealActivity.carbsValid && MealActivity.carbsInsulin > Constraints.MAX_MEAL)
+			MealActivity.carbsInsulin = Constraints.MAX_MEAL;
 		
+		double correct;
+		if(MealActivity.iobChecked)
+			correct = MealActivity.iobInsulin;
+		else
+			correct = 0.0;
+		
+		if(MealActivity.bgValid && MealActivity.corrValid) {
+			correct += (MealActivity.bgInsulin + MealActivity.corrInsulin);
+		}
+		else if(MealActivity.bgValid) {
+			correct += MealActivity.bgInsulin;
+		}
+		else if(MealActivity.corrValid) {
+			correct += MealActivity.corrInsulin;
+		}
+		
+		if(correct > Constraints.MAX_CORR)
+		{
+			MealActivity.bgValid = false;
+			MealActivity.corrValid = false;
+			
+			if(!MealActivity.info.equalsIgnoreCase(""))
+				MealActivity.info += "\n";
+			MealActivity.info += "Combined IOB, BG, and Correction Insulin Exceeds "+Constraints.MAX_CORR+"U Limit!";
+		}
+		
+		double total = 0.0;
 		if(MealActivity.carbsValid)
 			total += MealActivity.carbsInsulin;
 		if(MealActivity.bgValid)
@@ -225,7 +288,7 @@ public class MCMservice extends Service
 	}
 	
 	/************************************************************************************
-	* Auxillary Functions
+	* Auxiliary Functions
 	************************************************************************************/
 	
 	public void readStartupValues()
@@ -400,6 +463,25 @@ public class MCMservice extends Service
 	            	readStartupValues();
 	            	break;
 	            case Meal.INJECT:
+	            	Debug.i(TAG, FUNC_TAG, "INJECT");
+	            	
+	            	//TODO: Fix the inject values
+	           		ContentValues mealValues = new ContentValues();
+	           		mealValues.put("carbs", MealActivity.carbs);
+	           		mealValues.put("smbg", MealActivity.bg);
+	           		mealValues.put("time", System.currentTimeMillis()/1000);
+//	           		mealValues.put("meal_bolus", );
+//	           		mealValues.put("corr_bolus", );
+	           		
+	           		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || (Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", 0) == 0)) {
+		           		mealValues.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
+	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
+	           		}
+	           		else if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
+		           		mealValues.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_PENDING);
+	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
+	           		}
+	            	
 	            	break;
 	            case Meal.UI_CLOSED:
 	            	Debug.i(TAG, FUNC_TAG, "UI_CLOSED");

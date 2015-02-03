@@ -96,9 +96,8 @@ public class biometricsContentProvider extends ContentProvider {
     private static final String DATABASE_TABLE_MEAL_CREATE =
     "create table " + Biometrics.MEAL_TABLE_NAME +
     " (_id integer primary key autoincrement, "
-    + "meal_size_grams double, time_announce long not null, SMBG double, meal_screen_bolus double, time long, type int, size int, treated int, active int, approved int,"
-    + "extended_bolus int, extended_bolus_duration_seconds long, meal_screen_meal_bolus double, meal_screen_corr_bolus double, meal_screen_smbg_bolus double, extended_bolus_insulin_rem double, "
-    + "meal_status int, json text, "
+    + "time long not null, smbg double, carbs double, meal_bolus double, corr_bolus double, "
+    + "status int, json text, "
     + "send_attempts_server int, received_server boolean);";
     
     private static final String DATABASE_TABLE_LOG_CREATE =

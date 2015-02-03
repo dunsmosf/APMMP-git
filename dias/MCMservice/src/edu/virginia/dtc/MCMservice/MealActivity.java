@@ -1,15 +1,19 @@
 package edu.virginia.dtc.MCMservice;
 
+import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Meal;
 import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.SysMan.Pump;
+import edu.virginia.dtc.SysMan.State;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,6 +40,8 @@ public class MealActivity extends Activity{
 	public static final boolean DEBUG = true;
     public static final String IO_TEST_TAG = "MealActivityIO";
     
+    public static int DIAS_STATE;
+    
 	public static double carbs = 0.0;
 	public static double carbsInsulin = 0.0;
 	public static double bg = 0.0;
@@ -44,6 +50,7 @@ public class MealActivity extends Activity{
 	public static double iobInsulin = 0.0;
 	public static double totalInsulin = 0.0;
 	
+	private TextView infoText;
 	private EditText carbsInput, carbsOutput;
 	private EditText bgInput, bgOutput;
 	private EditText corrInput;
@@ -60,6 +67,8 @@ public class MealActivity extends Activity{
     public static boolean carbsValid, bgValid, corrValid, totalValid;
     public static boolean iobChecked, injectEnabled;
     
+    public static String info = "";
+    
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
@@ -70,6 +79,8 @@ public class MealActivity extends Activity{
 		setContentView(R.layout.defaultmealscreen);
 		
 		Debug.i(TAG, FUNC_TAG, "Orientation: "+getResources().getConfiguration().orientation);
+		
+		getSystemStatus();
 		
 		if (getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE)
 		{
@@ -143,6 +154,8 @@ public class MealActivity extends Activity{
     	final String FUNC_TAG = "updateUi";
     	
 		String invalid = "---";
+		
+		infoText.setText(info);
 		
 		if(injectEnabled) {
 			injectMeal.setEnabled(true);
@@ -343,11 +356,34 @@ public class MealActivity extends Activity{
 	{
 		final String FUNC_TAG = "injectMealBolusClick";
 		
+		try {
+    		Message msg = Message.obtain(null, Meal.INJECT, 0, 0);
+    		MCM.send(msg);
+        }
+        catch (RemoteException e) {
+    		e.printStackTrace();
+        }
 	}
 	
 	/************************************************************************************
-	* Auxillary Functions
+	* Auxiliary Functions
 	************************************************************************************/
+	
+	private void getSystemStatus()
+	{
+		final String FUNC_TAG = "getSystemStatus";
+		
+		Cursor c = getContentResolver().query(Biometrics.SYSTEM_URI, null, null, null, null);
+		if(c!=null)
+		{
+			if(c.moveToLast())
+			{
+				DIAS_STATE = c.getInt(c.getColumnIndex("diasState"));
+				Debug.i(TAG, FUNC_TAG, "DiAs State: "+State.stateToString(DIAS_STATE));
+			}
+			c.close();
+		}
+	}
 	
 	private void reportChangeToMcm()
 	{
@@ -363,6 +399,8 @@ public class MealActivity extends Activity{
 	private void initializeScreen()
 	{
 		final String FUNC_TAG = "initMealScreen";
+		
+		info = "";
 		
 		inProgress = true;
 		carbsValid = bgValid = corrValid = totalValid = injectEnabled = false;
@@ -382,6 +420,7 @@ public class MealActivity extends Activity{
 			unit_string_mgdl.setVisibility(View.VISIBLE);
 		}
 		
+		infoText = (TextView)this.findViewById(R.id.infoText);
 		injectMeal = (Button)this.findViewById(R.id.injectMealBolusButton);
 		carbsInput = (EditText)this.findViewById(R.id.editMealCarbs);
 		bgInput = (EditText)this.findViewById(R.id.editBg);
@@ -391,13 +430,37 @@ public class MealActivity extends Activity{
 		corrInput = (EditText)this.findViewById(R.id.editCorrTotal);
 		totalOutput = (EditText)this.findViewById(R.id.editAllTotal);
 		iob = (CheckBox)this.findViewById(R.id.iobCheckbox);
+		infoText.setTextColor(Color.RED);
+		infoText.setText("");
 		
 	 	carbListeners();
 	 	smbgListeners();
 	 	corrListeners();
 	 	
-	 	//TODO: setup choosing which meal screen type
-	 	mealScreenOpenLoop();
+	 	int meal_activity_bolus_calculation_mode = Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", Meal.MEAL_ACTIVITY_ALWAYS_CALCULATES_BOLUS);
+        switch(meal_activity_bolus_calculation_mode) 
+        {
+        	case Meal.MEAL_ACTIVITY_ALWAYS_CALCULATES_BOLUS:
+				mealScreenOpenLoop();
+        		break;
+        	case Meal.MEAL_ACTIVITY_CALCULATES_BOLUS_PUMP_MODE:
+                switch(DIAS_STATE) {
+    				case State.DIAS_STATE_OPEN_LOOP:
+    					mealScreenOpenLoop();
+    					break;
+    				case State.DIAS_STATE_SAFETY_ONLY:
+    				case State.DIAS_STATE_CLOSED_LOOP:
+    					mealScreenClosedLoop();
+    					break;
+                }
+        		break;
+        	case Meal.MEAL_ACTIVITY_NEVER_CALCULATES_BOLUS:
+				mealScreenClosedLoop();
+        		break;
+        	default:
+				mealScreenOpenLoop();
+        		break;
+        }
 	}
 	
 	private void mealScreenClosedLoop() 

@@ -118,7 +118,7 @@
     
     <!-- The number of addresses "macX" must match the number of "tandem_addresses" -->
     <parameter name="tandem_addresses" value="3" type="int"> </parameter>
-    <parameter name="mac1" value="FC:2D:B7" type="string"> </parameter>
+    <parameter name="mac1" value="D0:5F:B8" type="string"> </parameter>
     <parameter name="mac2" value="D0:D7:EB" type="string"> </parameter>
     <parameter name="mac3" value="FC:6A:29" type="string"> </parameter>
   
