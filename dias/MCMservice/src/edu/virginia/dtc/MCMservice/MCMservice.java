@@ -439,8 +439,6 @@ public class MCMservice extends Service
     {
 		final String FUNC_TAG = "messengerFromDiAsService";
 
-    	Bundle responseBundle;
-    	
     	@Override
         public void handleMessage(Message msg) {
             switch (msg.what) 
@@ -465,13 +463,27 @@ public class MCMservice extends Service
 	            case Meal.INJECT:
 	            	Debug.i(TAG, FUNC_TAG, "INJECT");
 	            	
-	            	//TODO: Fix the inject values
+	            	double meal = 0.0, correction = 0.0;
+	            	if(MealActivity.carbsValid)
+	        			meal += MealActivity.carbsInsulin;
+	        		if(MealActivity.bgValid)
+	        			correction += MealActivity.bgInsulin;
+	        		if(MealActivity.corrValid)
+	        			correction += MealActivity.corrInsulin;
+	        		if(MealActivity.iobChecked)
+	        			correction -= MealActivity.iobInsulin;
+	            	
+	        		Debug.i(TAG, FUNC_TAG, "Carbs: "+MealActivity.carbs+" SMBG: "+MealActivity.bg);
+	        		Debug.i(TAG, FUNC_TAG, "Meal: "+meal+" Correction: "+correction);
+	        		Debug.i(TAG, FUNC_TAG, "Total: "+(meal+correction));
+	        		
 	           		ContentValues mealValues = new ContentValues();
 	           		mealValues.put("carbs", MealActivity.carbs);
 	           		mealValues.put("smbg", MealActivity.bg);
 	           		mealValues.put("time", System.currentTimeMillis()/1000);
-//	           		mealValues.put("meal_bolus", );
-//	           		mealValues.put("corr_bolus", );
+	           		mealValues.put("meal_bolus", meal);
+	           		mealValues.put("corr_bolus", correction);
+	           		mealValues.put("json", "");
 	           		
 	           		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || (Params.getInt(getContentResolver(), "meal_activity_bolus_calculation_mode", 0) == 0)) {
 		           		mealValues.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
@@ -481,7 +493,18 @@ public class MCMservice extends Service
 		           		mealValues.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_PENDING);
 	           			getContentResolver().insert(Biometrics.MEAL_URI, mealValues);
 	           		}
-	            	
+	           		
+	           		Bundle b = new Bundle();
+	           		b.putDouble("meal", meal);
+	           		b.putDouble("correction", correction);
+	           		Message m = Message.obtain(null, Meal.MCM_BOLUS);
+	           		m.setData(b);
+	           		
+					try {
+						mMessengerToService.send(m);
+					} catch (RemoteException e1) {
+						e1.printStackTrace();
+					}
 	            	break;
 	            case Meal.UI_CLOSED:
 	            	Debug.i(TAG, FUNC_TAG, "UI_CLOSED");

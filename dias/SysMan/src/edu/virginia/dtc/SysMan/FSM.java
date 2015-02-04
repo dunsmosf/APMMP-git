@@ -2,18 +2,17 @@ package edu.virginia.dtc.SysMan;
 
 public class FSM {
 	
+	public static final int NONE = 0;
+	public static final int APC_ONLY = 1;
+	public static final int BRM_ONLY = 2;
+	public static final int APC_BRM = 3;
+	
 	//Different machine type identifiers
 	public static final int MACHINE_SYNC = 0;
 	public static final int MACHINE_ASYNC = 1;
 	public static final int MACHINE_TBR = 2;
-	public static final int MACHINE_DEV = 3;
-	
-	//Device States
-	public static final int DEV_NA			= 0;
-	public static final int DEV_WAKE		= 1;
-	public static final int DEV_DISCON		= 2;
 
-	//CALL STATES
+	//Call States
 	public static final int IDLE				= 0;
 	public static final int START				= 1;
 	public static final int SSM_CALC_CALL		= 4;
@@ -34,24 +33,16 @@ public class FSM {
 	
 	public static final int WAIT				= 19;
 	
-	public static boolean isSSMbusy(int state)
+	public static String configToString(int config)
 	{
-		if(state == SSM_CALL || state == SSM_RESPONSE || state == SSM_CALC_CALL || state == SSM_CALC_RESPONSE)
-			return true;
-		else
-			return false;
-	}
-	
-	public static String devStateToString(int state)
-	{
-		switch(state)
+		switch(config)
 		{
-			case DEV_NA: return "N/A";
-			case DEV_WAKE: return "Waking!";
-			case DEV_DISCON: return "Breaking!";
+			case NONE: return "None";
+			case APC_ONLY: return "APC Only";
+			case BRM_ONLY: return "BRM Only";
+			case APC_BRM: return "APC and BRM";
+			default: return "Unknown";
 		}
-		
-		return "Unknown";
 	}
 	
 	public static String callStateToString(int mode)

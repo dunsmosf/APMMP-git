@@ -363,6 +363,8 @@ public class MealActivity extends Activity{
         catch (RemoteException e) {
     		e.printStackTrace();
         }
+		
+		finish();
 	}
 	
 	/************************************************************************************
@@ -404,7 +406,8 @@ public class MealActivity extends Activity{
 		
 		inProgress = true;
 		carbsValid = bgValid = corrValid = totalValid = injectEnabled = false;
-		carbsInsulin = bgInsulin = corrInsulin = totalInsulin = 0.0;
+		carbsInsulin = bgInsulin = corrInsulin = iobInsulin = totalInsulin = 0.0;
+		bg = carbs = 0.0;
 		
     	int blood_glucose_display_units = Params.getInt(getContentResolver(), "blood_glucose_display_units", CGM.BG_UNITS_MG_PER_DL);
 		TextView unit_string_mmol = (TextView)this.findViewById(R.id.bgTextUnitLabelMMolPerL);

@@ -32,6 +32,7 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.SysMan.State;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -71,18 +72,7 @@ public class PlotsActivity extends Activity{
 	public static final String TAG = "PlotsActivity";
 	public static final boolean DEBUG = true;
 	
-//	public static final int DIAS_SERVICE_COMMAND_APC_CALCULATE_BOLUS = 23;
-	public static final int DIAS_SERVICE_COMMAND_SEND_MEAL_BOLUS = 10;
-	
-	public static final int DIASMAIN_UI_UPDATE_STATUS_MESSAGE = 3;
-	public static final int DIASMAIN_UI_APC_RETURN_BOLUS = 13;
-	
-	public int DIAS_STATE;
-	public static final int DIAS_STATE_STOPPED = 0;
-	public static final int DIAS_STATE_OPEN_LOOP = 1;
-	public static final int DIAS_STATE_CLOSED_LOOP = 2;
-	public static final int DIAS_STATE_SAFETY_ONLY = 3;
-	public static final int DIAS_STATE_SENSOR_ONLY = 4;
+	private int DIAS_STATE;
 	
 	// Variables needed to support the Plots Screen
     private long MAX_PLOT_STORAGE_DURATION_SECONDS = 24*3600;					// Store only 24 hours of plots data
@@ -91,11 +81,9 @@ public class PlotsActivity extends Activity{
 		deliveredTimes, deliveredValues, bolusTimes, bolusValues, stateValues,
 		mealBolusTimes, mealBolusValues, corrBolusTimes, corrBolusValues;
 	
-	private HashSet<RectRegion> cgmRegions;
-	private int cgmCount, insulinCount, mealCount, corrCount, deliveredCount;
-	private XYSeries seriesCGM, seriesState, seriesInsulin, seriesBasal, seriesMeal, seriesCorr, seriesDeliveredInsulin, seriesBolus, seriesMealBolus, seriesCorrBolus;
-	private double BOLUS_INDICATOR_POINT = 5.25f;
-	private LineAndPointFormatter seriesCGMFormat, seriesBasalFormat, seriesBolusFormat, seriesMealBolusFormat, seriesCorrBolusFormat;
+	private int cgmCount, insulinCount;
+	private XYSeries seriesCGM, seriesInsulin, seriesBasal, seriesMeal, seriesCorr, seriesDeliveredInsulin, seriesMealBolus, seriesCorrBolus;
+	private LineAndPointFormatter seriesCGMFormat, seriesBasalFormat, seriesMealBolusFormat, seriesCorrBolusFormat;
 	private BarFormatter seriesInsulinFormat, seriesMealFormat, seriesCorrFormat, seriesDeliveredInsulinFormat;
 	
 	private XYRegionFormatter 
@@ -118,27 +106,21 @@ public class PlotsActivity extends Activity{
 	private double[] insulinPlotBounds = new double[9];
 	private double[] highInsulinPlotBounds = new double[9];
 	
-	public int activePlot = R.id.insulinPlot;							// ID of the currently active (maximized) plot
+	private int activePlot = R.id.insulinPlot;							// ID of the currently active (maximized) plot
 	
-	public static int DEFAULT_CYCLE_TIME = 5;							// The default length of a cycle
+	private static int DEFAULT_CYCLE_TIME = 5;							// The default length of a cycle
 	public long TIME_REGION_IN_SECONDS = 3 * 60 * 60;					// Change the first factor to modify time values by the hour
-	public long TOTAL_INSULIN_RANGE_IN_SECONDS = 3 * 60 * 60;			// Total insulin range in seconds
-	public boolean snapPlotsToRight = true;								// Should plots shift all the way to the right on each update?
+	private boolean snapPlotsToRight = true;								// Should plots shift all the way to the right on each update?
 	
 	// Makes plots always rebuild on first loading program
-	public boolean forcePlotsRebuild = true;
-	private	Number currentStateValue = -1, prevStateValue = -1;
+	private	Number currentStateValue = -1;
 	private	Number prevStateTime = 0;
 	
 	// Plot edit dialogs
-	public static final int DIALOG_PLOTS_EDIT = 0;
-	public static final int DIALOG_PLOTS_TIME_REGION = 1;
-	public static final int DIALOG_PLOTS_ACTIVE_PLOT = 2;
+	private static final int DIALOG_PLOTS_EDIT = 0;
+	private static final int DIALOG_PLOTS_TIME_REGION = 1;
 	
 	private long currentTime;					// The current time in UTC seconds - may be real or simulated depending upon the SupervisorService mode
-	private long lastCGMTime;
-	
-	private final PlotsActivity plots = this;
 	
 	private boolean plotsShown = false;
 	
@@ -177,7 +159,7 @@ public class PlotsActivity extends Activity{
 		setResult(RESULT_CANCELED);		//Set the result to cancelled unless we actually send a bolus with the UI
 		
 		//Gather data passed with startup intent
-		DIAS_STATE = getIntent().getIntExtra("state", DIAS_STATE_STOPPED);
+		DIAS_STATE = getIntent().getIntExtra("state", State.DIAS_STATE_STOPPED);
 		
 		Debug.i(TAG, FUNC_TAG, "STATE: "+DIAS_STATE);
 		
@@ -215,7 +197,6 @@ public class PlotsActivity extends Activity{
 	{
 		final String FUNC_TAG = "onDestroy";
 		super.onDestroy();
-		Debug.i(TAG, FUNC_TAG, "");
 		
 		unregisterReceiver(TickReceiver);
 	}
@@ -233,12 +214,6 @@ public class PlotsActivity extends Activity{
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) 
         {
-//    		case R.id.menuPlotsSelectBolus:
-//    			plotExpand(R.id.highInsulinPlot);
-//    			return true;
-//    		case R.id.menuPlotsSelectInsulin:
-//    			plotExpand(R.id.insulinPlot);
-//    			return true;
     		case R.id.menuPlotsTimeRegion:
     			showDialog(DIALOG_PLOTS_TIME_REGION);
     			return true;
@@ -299,24 +274,6 @@ public class PlotsActivity extends Activity{
 		params.width = getIntent().getIntExtra("width", 100);
 		params.height = getIntent().getIntExtra("height", 100);
 		params.height -= (0.03*params.height);		//Have to take off the stupid 3% for sizing to work
-//		
-//		Debug.i(TAG, FUNC_TAG, "HEIGHT: "+getIntent().getIntExtra("height", 100)+" WIDTH: "+getIntent().getIntExtra("width", 100));
-//		
-//		ViewGroup.LayoutParams lParams = this.findViewById(R.id.plotLayout).getLayoutParams();
-//		lParams.height = getIntent().getIntExtra("height", 100);
-//		lParams.height -= (0.07*lParams.height);		//Have to take off the stupid 7% for sizing to work
-//		
-//		lParams.width = params.width;
-//		lParams.width -= (0.07*lParams.width);
-//		
-//		ViewGroup.LayoutParams plotParams = this.findViewById(R.id.cgmPlotLayout).getLayoutParams();
-//		plotParams.height = lParams.height/2;
-//		plotParams.width = lParams.width;
-//		(this.findViewById(R.id.cgmPlotLayout)).setLayoutParams(plotParams);
-//		(this.findViewById(R.id.insPlotLayout)).setLayoutParams(plotParams);
-//		
-//		(this.findViewById(R.id.plotLayout)).setLayoutParams(lParams);
-//		
 		this.getWindow().setAttributes(params);
 		
 		// Make plots invisible to start
@@ -392,19 +349,16 @@ public class PlotsActivity extends Activity{
 		mealBolusValues = new Vector<Number>();
 		corrBolusTimes = new Vector<Number>();
 		corrBolusValues = new Vector<Number>();
-		cgmRegions = new HashSet<RectRegion>();
 	}
 	
 	public void plotsBuild() 
 	{
 		final String FUNC_TAG = "plotsBuild";
 		
-   	 	forcePlotsRebuild = false;
-	 
    	 	// Move CGM plot for sensor-only mode
    	 	switch (DIAS_STATE) 
    	 	{
-			case DIAS_STATE_SENSOR_ONLY:
+			case State.DIAS_STATE_SENSOR_ONLY:
 				break;
 			default:
 				break;
@@ -426,7 +380,6 @@ public class PlotsActivity extends Activity{
 		cgmCount = c.getCount();
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 		int ii = 0;
-		prevStateValue = -1;
 		prevStateTime = 0;
 		
 		seriesCGMFormat = new LineAndPointFormatter(Color.rgb(80, 80, 80), 		// Line color
@@ -449,28 +402,27 @@ public class PlotsActivity extends Activity{
  				currentStateValue = c.getInt(c.getColumnIndex("diasState"));
  				stateValues.addElement(currentStateValue);
  				if (COLOR_REGIONS_BY_DIAS_STATE) {
- 	  				Debug.i(TAG, FUNC_TAG, "seriesCGMFormat="+seriesCGMFormat+", prevStateTime="+prevStateTime+", currentTime="+currentTime);
+// 	  				Debug.i(TAG, FUNC_TAG, "seriesCGMFormat="+seriesCGMFormat+", prevStateTime="+prevStateTime+", currentTime="+currentTime);
  	  				RectRegion region = new RectRegion(prevStateTime, currentTime, 0, 600);
 					switch (currentStateValue.intValue()) 
 					{
-						case DIAS_STATE_STOPPED:
+						case State.DIAS_STATE_STOPPED:
 							seriesCGMFormat.addRegion(region, regionStopped);
 							break;
-						case DIAS_STATE_OPEN_LOOP:
+						case State.DIAS_STATE_OPEN_LOOP:
 							seriesCGMFormat.addRegion(region, regionOpen);
 							break;
-						case DIAS_STATE_CLOSED_LOOP:
+						case State.DIAS_STATE_CLOSED_LOOP:
 							seriesCGMFormat.addRegion(region, regionClosed);
 							break;
-						case DIAS_STATE_SAFETY_ONLY:
+						case State.DIAS_STATE_SAFETY_ONLY:
 							seriesCGMFormat.addRegion(region, regionSafetyOnly);
 							break;
-						case DIAS_STATE_SENSOR_ONLY:
+						case State.DIAS_STATE_SENSOR_ONLY:
 							seriesCGMFormat.addRegion(region, regionSensorOnly);
 							break;
 					}
 					prevStateTime = currentTime;
- 	  				prevStateValue = currentStateValue;
  				}
  	 			ii++;
 	   		 } 
@@ -606,7 +558,6 @@ public class PlotsActivity extends Activity{
 		 	String[] projMeal = {"deliv_time","deliv_meal"};
 			Cursor c2 = getContentResolver().query(Biometrics.INSULIN_URI, projMeal, "deliv_time > "+earliest_plot_time.toString(), null, null);
 			Debug.i(TAG, FUNC_TAG, "MEAL BOLUS > c2.getCount=" + c2.getCount());
-			mealCount = c2.getCount();
 			ii = 0;
 			if(c2.moveToFirst()) 
 			{
@@ -619,7 +570,6 @@ public class PlotsActivity extends Activity{
 				} while (c2.moveToNext());
 			}
 			c2.close();
-			mealCount = ii;
 				
 			// Fetch Correction bolus data
 			Debug.i(TAG, FUNC_TAG, "Get Corr bolus data with " + Biometrics.INSULIN_URI);
@@ -628,19 +578,17 @@ public class PlotsActivity extends Activity{
 		 	String[] projCorr = {"deliv_time","deliv_corr"};
 			Cursor c3 = getContentResolver().query(Biometrics.INSULIN_URI, projCorr, "deliv_time > "+earliest_plot_time.toString(), null, null);
 			Debug.i(TAG, FUNC_TAG, "CORR BOLUS > c3.getCount=" + c3.getCount());
-			corrCount = c3.getCount();
 			ii = 0;
 			if(c3.moveToFirst()) {
 				do{ 
 					// Incoming time in seconds
-					double val = c3.getDouble(c3.getColumnIndex("deliv_corr"));
 					corrTimes.addElement(c3.getLong(c3.getColumnIndex("deliv_time")));
 					corrValues.addElement(c3.getDouble(c3.getColumnIndex("deliv_corr")));
+					Debug.i(TAG, FUNC_TAG, "CORR: "+c3.getDouble(c3.getColumnIndex("deliv_corr")));
 					ii++;
 				} while (c3.moveToNext());
 			}
 			c3.close();
-			corrCount = ii;
 				
 			bolusTimes = new Vector<Number>();
 			bolusValues = new Vector<Number>();
@@ -650,32 +598,39 @@ public class PlotsActivity extends Activity{
 			corrBolusValues = new Vector<Number>();
 			for (int nn=0; nn<mealTimes.size(); nn++) {
 				if (mealValues.get(nn).doubleValue() > 0) {
-//					double bolus_marker = BOLUS_INDICATOR_POINT;
 					double bolus_marker_initial = Math.min(mealValues.get(nn).doubleValue(), 12.0);
-					double bolus_marker = 12.0;
-					while (bolus_marker >=0) 
+					double bolus_marker = 0.0;
+					while (bolus_marker < 12) 
 					{
 						mealBolusTimes.addElement(mealTimes.get(nn));
 						mealBolusValues.addElement(bolus_marker);
-						if (bolus_marker > bolus_marker_initial+0.8)
-							bolus_marker=bolus_marker-0.8;
+						
+						if(bolus_marker < bolus_marker_initial-0.1)
+							bolus_marker+=0.1;
 						else
-							bolus_marker=bolus_marker-0.1;
+							bolus_marker+=0.8;
+						
+						if(bolus_marker > 12)
+							bolus_marker = 12;
 					}
 				}
 			}
 			for (int nn=0; nn<corrTimes.size(); nn++) {
 				if (corrValues.get(nn).doubleValue() > 0) {
-//					double bolus_marker = BOLUS_INDICATOR_POINT;
 					double bolus_marker_initial = Math.min(corrValues.get(nn).doubleValue(), 12.0);
-					double bolus_marker = 12.0;
-					while (bolus_marker >=0) {
+					double bolus_marker = 0.0;
+					while (bolus_marker < 12) 
+					{
 						corrBolusTimes.addElement(corrTimes.get(nn));
 						corrBolusValues.addElement(bolus_marker);
-						if (bolus_marker > bolus_marker_initial+0.8)
-							bolus_marker=bolus_marker-0.8;
+						
+						if(bolus_marker < bolus_marker_initial-0.1)
+							bolus_marker+=0.1;
 						else
-							bolus_marker=bolus_marker-0.1;
+							bolus_marker+=0.8;
+						
+						if(bolus_marker > 12)
+							bolus_marker = 12;
 					}
 				}
 			}
@@ -753,7 +708,7 @@ public class PlotsActivity extends Activity{
     			
     			// Set CGM upper bound and subdivisions
     			int cgmPlotSteps = (int)(Math.floor(minmax(cgmValues, true).doubleValue()/divisor)+2);
-    			int cgmPlotStepsMAX = (DIAS_STATE == DIAS_STATE_SENSOR_ONLY) ? 9 : 6;
+    			int cgmPlotStepsMAX = (DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY) ? 9 : 6;
     			if (cgmPlotSteps < cgmPlotStepsMAX)
     				cgmPlotSteps = cgmPlotStepsMAX;
     			
@@ -813,7 +768,6 @@ public class PlotsActivity extends Activity{
     					// Set imaginary values at 0 to extend stepline "infinitely"
     					if (ii == 0)
     						basalTimes.add(0);
-//    					basalTimes.add(currentDaySecs + 60*c.getLong(c.getColumnIndex("time"))+150);
     					basalTimes.add(currentDaySecs + 60*c.getLong(c.getColumnIndex("time"))+1);
     					basalValues.add(c.getDouble(c.getColumnIndex("value")));
     					if (ii == 0){
@@ -829,7 +783,6 @@ public class PlotsActivity extends Activity{
     			}
     			c.close();
     			seriesInsulin = new SimpleXYSeries(insulinTimes1, insulinValues1, "");
-//		    			seriesBolus = new SimpleXYSeries(bolusTimes, bolusValues, "");
     			seriesMealBolus = new SimpleXYSeries(mealBolusTimes, mealBolusValues, "");
     			seriesCorrBolus = new SimpleXYSeries(corrBolusTimes, corrBolusValues, "");
     			seriesBasal = new SimpleXYSeries(basalTimes, basalValues, "");
@@ -852,13 +805,12 @@ public class PlotsActivity extends Activity{
 				seriesInsulinFormat = new BarFormatter(Color.argb(255, 50, 150, 255), Color.argb(255, 50, 150, 255));
 				seriesBasalFormat = new StepFormatter(Color.argb(255, 150, 150, 255), Color.argb(0, 150, 150, 255));
 				seriesBasalFormat.setVertexPaint(new Paint(Color.argb(255, 100, 100, 100)));
+				
 				// bolus dot color
-//	    				seriesBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(200, 0, 255, 127), Color.argb(0, 0, 0, 0));
 				seriesMealBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(255, 0, 255, 0), Color.argb(0, 0, 0, 0));
 				seriesCorrBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(255, 255, 100, 0), Color.argb(0, 0, 0, 0));
 				insulinPlot.removeSeries(seriesBasal);
 				insulinPlot.addSeries(seriesInsulin, seriesInsulinFormat);
-//	    				insulinPlot.addSeries(seriesBolus, seriesBolusFormat);
 				insulinPlot.addSeries(seriesMealBolus, seriesMealBolusFormat);
 				insulinPlot.addSeries(seriesCorrBolus, seriesCorrBolusFormat);
 				insulinPlot.addSeries(seriesBasal, seriesBasalFormat);
@@ -967,7 +919,7 @@ public class PlotsActivity extends Activity{
 			updatePlots(true);
     	}
 		// Disable insulin plots in sensor-only mode if no insulin history
-		if (DIAS_STATE == DIAS_STATE_SENSOR_ONLY && insulinCount == 0) {
+		if (DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY && insulinCount == 0) {
 			//Hide the insulin plots
     		(this.findViewById(R.id.insPlotLayout)).setVisibility(View.GONE);		
     		
@@ -1068,6 +1020,7 @@ public class PlotsActivity extends Activity{
 			}
 			try {
 				corD = cor.getDouble(cor.getColumnIndex("deliv_corr"));
+				Debug.i(TAG, FUNC_TAG, "CORR INSULIN: "+corD);
 			} catch (CursorIndexOutOfBoundsException e){
 			} 
 			
@@ -1091,7 +1044,6 @@ public class PlotsActivity extends Activity{
  		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
  		if (cgmTime != null && cgmData != null) 
  		{
- 			lastCGMTime = cgmTime.longValue()/60;
  	 		if (!cgmTimes.contains(cgmTime)) 
  	 		{
  				Debug.i(TAG, FUNC_TAG, "New CGM=("+sdf.format(new Date(cgmTime.longValue()))+","+cgmData+")");
@@ -1112,24 +1064,23 @@ public class PlotsActivity extends Activity{
 					{
 						RectRegion region = new RectRegion(prevStateTime, currentTime, 0, 600);
 						switch (stateData.intValue()) {
-							case DIAS_STATE_STOPPED:
+							case State.DIAS_STATE_STOPPED:
 								seriesCGMFormat.addRegion(region, regionStopped);
 								break;
-							case DIAS_STATE_OPEN_LOOP:
+							case State.DIAS_STATE_OPEN_LOOP:
 								seriesCGMFormat.addRegion(region, regionOpen);
 								break;
-							case DIAS_STATE_CLOSED_LOOP:
+							case State.DIAS_STATE_CLOSED_LOOP:
 								seriesCGMFormat.addRegion(region, regionClosed);
 								break;
-							case DIAS_STATE_SAFETY_ONLY:
+							case State.DIAS_STATE_SAFETY_ONLY:
 								seriesCGMFormat.addRegion(region, regionSafetyOnly);
 								break;
-							case DIAS_STATE_SENSOR_ONLY:
+							case State.DIAS_STATE_SENSOR_ONLY:
 								seriesCGMFormat.addRegion(region, regionSensorOnly);
 								break;
 						}
 						prevStateTime = cgmTime;
-						prevStateValue = stateData;
 					}
 				}
 			}
@@ -1174,17 +1125,20 @@ public class PlotsActivity extends Activity{
  				if (mealData.doubleValue() > 0)
  				{
  					Debug.i(TAG, FUNC_TAG, "New Bolus DOT");
-//					double bolus_marker = BOLUS_INDICATOR_POINT;
 					double bolus_marker_initial = Math.min(mealData.doubleValue(), 12.0);
-					double bolus_marker = 12.0;
-					while (bolus_marker >=0) 
+					double bolus_marker = 0.0;
+					while (bolus_marker < 12) 
 					{
 						bolusTimes.addElement(mealTime);
 						bolusValues.addElement(bolus_marker);
-						if (bolus_marker > bolus_marker_initial+0.8)
-							bolus_marker=bolus_marker-0.8;
+						
+						if(bolus_marker < bolus_marker_initial-0.1)
+							bolus_marker+=0.1;
 						else
-							bolus_marker=bolus_marker-0.1;
+							bolus_marker+=0.8;
+						
+						if(bolus_marker > 12)
+							bolus_marker = 12;
 					}
  				}
  			}
@@ -1209,17 +1163,20 @@ public class PlotsActivity extends Activity{
  				if (corrData.doubleValue() > 0)
  				{
  					Debug.i(TAG, FUNC_TAG, "New Bolus DOT");
-//					double bolus_marker = BOLUS_INDICATOR_POINT;
 					double bolus_marker_initial = Math.min(corrData.doubleValue(), 12.0);
-					double bolus_marker = 12.0;
-					while (bolus_marker >=0) 
+					double bolus_marker = 0.0;
+					while (bolus_marker < 12) 
 					{
 						bolusTimes.addElement(corrTime);
 						bolusValues.addElement(bolus_marker);
-						if (bolus_marker > bolus_marker_initial+0.8)
-							bolus_marker=bolus_marker-0.8;
+						
+						if(bolus_marker < bolus_marker_initial-0.1)
+							bolus_marker+=0.1;
 						else
-							bolus_marker=bolus_marker-0.1;
+							bolus_marker+=0.8;
+						
+						if(bolus_marker > 12)
+							bolus_marker = 12;
 					}
  				}
  			}
@@ -1244,8 +1201,6 @@ public class PlotsActivity extends Activity{
  		
  		cgmCount = cgmTimes.size();
  		insulinCount = insulinTimes1.size();
- 		mealCount = mealTimes.size();
- 		corrCount = corrTimes.size();
 
  		updatePlots(snapPlotsToRight);
  	}
@@ -1278,22 +1233,19 @@ public class PlotsActivity extends Activity{
  		cgmPlot.setDomainBoundaries(cgmPlotBounds[LEFT], cgmPlotBounds[RIGHT],BoundaryMode.FIXED);
  		
  		// Disable insulin plots in sensor-only mode
-    	if (DIAS_STATE != DIAS_STATE_SENSOR_ONLY)
+    	if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY)
     	{
 	 		// Same thing over again with the insulin plot
 	 		XYPlot insulinPlot = (XYPlot) findViewById(R.id.insulinPlot);
 	 		insulinPlot.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 	 		
 	 		insulinPlot.removeSeries(seriesInsulin);
-//	 		insulinPlot.removeSeries(seriesBolus);
 	 		insulinPlot.removeSeries(seriesMealBolus);
 	 		insulinPlot.removeSeries(seriesCorrBolus);
 	 		seriesInsulin = new SimpleXYSeries(insulinTimes1, insulinValues1, "Basal U/hr");
-//	 		seriesBolus = new SimpleXYSeries(bolusTimes, bolusValues, ""); 
 	 		seriesMealBolus = new SimpleXYSeries(mealBolusTimes, mealBolusValues, ""); 
 	 		seriesCorrBolus = new SimpleXYSeries(corrBolusTimes, corrBolusValues, ""); 
 	 		insulinPlot.addSeries(seriesInsulin, seriesInsulinFormat);
-//	 		insulinPlot.addSeries(seriesBolus, seriesBolusFormat);
 	 		insulinPlot.addSeries(seriesMealBolus, seriesMealBolusFormat);
 	 		insulinPlot.addSeries(seriesCorrBolus, seriesCorrBolusFormat);
 	
@@ -1592,11 +1544,6 @@ public class PlotsActivity extends Activity{
 	 	}
     }
     
-    public void setTotalInsulinRange(int hours)
-    {
- 	   TOTAL_INSULIN_RANGE_IN_SECONDS = hours*60*60;
-    }
-	
 	/************************************************************************************
 	* Misc Functions
 	************************************************************************************/

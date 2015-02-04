@@ -65,7 +65,7 @@
     
     <parameter name="apc_enabled" value="true" type="boolean"> </parameter>
     <parameter name="brm_enabled" value="true" type="boolean"> </parameter>
-    
+
     <parameter name="tbr_enabled" value="true" type="boolean"> </parameter>
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
     <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>

@@ -8,7 +8,6 @@ public class State {
 	public static final int DIAS_STATE_CLOSED_LOOP = 2;
 	public static final int DIAS_STATE_SAFETY_ONLY = 3;
 	public static final int DIAS_STATE_SENSOR_ONLY = 4;
-	public static final int DIAS_STATE_BRM = 5;
 	
 	public static String stateToString(int state)
 	{
@@ -19,7 +18,6 @@ public class State {
 			case DIAS_STATE_CLOSED_LOOP: 	return "CLOSED LOOP";
 			case DIAS_STATE_SAFETY_ONLY:	return "SAFETY ONLY";
 			case DIAS_STATE_SENSOR_ONLY: 	return "SENSOR ONLY";
-			case DIAS_STATE_BRM: 			return "BRM";
 			default: 						return "UNKNOWN";
 		}
 	}

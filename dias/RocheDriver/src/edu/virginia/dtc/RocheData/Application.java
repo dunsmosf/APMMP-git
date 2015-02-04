@@ -1901,23 +1901,6 @@ public class Application
 			
 			drv.histRead = true;
 		}
-		
-		if(Params.getBoolean(Driver.serv.getContentResolver(), "connection_scheduling", false))
-		{			
-			if(RocheDriver.waking)
-			{
-				RocheDriver.waking = false;
-				drv.updateDevState(FSM.DEV_WAKE);
-			}
-		}
-		
-		if(Params.getBoolean(Driver.serv.getContentResolver(), "connection_scheduling", false) && Driver.firstRun)
-		{
-			//If this is the first run of the pump and we are scheduling our 
-			//connections, then turn the interface off after successful connection
-			Driver.firstRun = false;
-			InterfaceData.remotePumpBt.stop();
-		}
 	}
 	
 	private void reconcileInsulin()
