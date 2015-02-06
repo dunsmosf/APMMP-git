@@ -32,8 +32,8 @@ adb install "PumpService/bin/PumpService.apk"
 ::adb install "BRMserviceShell/bin/BRMserviceShell.apk"
 ::adb install "SSMserviceShell/bin/SSMserviceShell.apk"
 
-::adb install "BRMservice.apk"
 adb install "../controllers/USS/SSMservice/bin/SSMservice.apk"
+adb install "../controllers/USS/BRMservice/bin/BRMservice.apk"
 adb install "../controllers/HMS/HMSservice/bin/HMSservice.apk"
 
 ::SERVICES
@@ -45,6 +45,7 @@ adb install "MCMservice/bin/MCMservice.apk"
 adb install "standaloneDriver/bin/standaloneDriver.apk"
 ::adb install "RocheDriver/bin/RocheDriver.apk"
 ::adb install "BTLE_G4/bin/BTLE_G4.apk"
+adb install "BTLE_Tandem/bin/BTLE_Tandem.apk"
 adb install "BTLE_Share/bin/BTLE_Share.apk"
 
 """

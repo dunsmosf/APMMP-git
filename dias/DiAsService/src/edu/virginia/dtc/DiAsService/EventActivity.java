@@ -32,7 +32,6 @@ public class EventActivity extends FragmentActivity {
 	private int settings = Event.SET_LOG;
 	int id, code;
 	private BroadcastReceiver AlertDismissReceiver;
-	public static final int DIAS_SERVICE_COMMAND_STOP_AUDIBLE_ALARM = 3;
 	public static final int DIAS_SERVICE_COMMAND_SET_HYPO_MUTE_DURATION = 6;
 	public static final int DIAS_SERVICE_COMMAND_SET_HYPER_MUTE_DURATION = 7;
 	

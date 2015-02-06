@@ -79,109 +79,45 @@ import edu.virginia.dtc.SysMan.TempBasal;
 import edu.virginia.dtc.Tvector.Tvector;
 
 public class DiAsMain extends Activity implements OnGestureListener {
-	GestureDetector gestureScanner;
-	
-	// Power management
-	private PowerManager pm;
-	private PowerManager.WakeLock wl;
 	
     public static final String IO_TEST_TAG = "DiAsMainIO";
-    
-	private static final String VERSION_IDENTIFIER = 
-			"Diabetes Assistant v3.0\n" +
-			"Build 11-22-2013\n" +
-			"Copyright 2011-2013\n" +
-			"University of Virginia\n" +
-			"Center for Diabetes Technology";
-	
 	public final String TAG = "DiAsMain";
 	
 	/************************************************************************************************************************/
 	//  System Statics and Constants
 	/************************************************************************************************************************/
-
-    // APController type
-    private int APC_TYPE;
-    public static final int APC_TYPE_HMS = 1;
-    public static final int APC_TYPE_RCM = 2;
-    
-    // Define AP Controller behavior
-    private int APC_MEAL_CONTROL;
-    public static final int APC_NO_MEAL_CONTROL = 1;
-    public static final int APC_WITH_MEAL_CONTROL = 2;
     
 	// DiAsUI State variable and definitions of major display states
-	public static final int DIAS_UI_STATE_MAIN = 0;
-	public static final int DIAS_UI_STATE_PLOTS = 17;
-	public static final int DIAS_UI_STATE_BOLUS_INTERCEPTOR = 18;
-	
-	// Commands from DiAsService
-	public static final int DIASMAIN_UI_NULL = 0;
-	public static final int DIASMAIN_UI_INIT = 1;
-	public static final int DIASMAIN_UI_UPDATE_STATUS_LIGHTS = 2;
-	public static final int DIASMAIN_UI_UPDATE_STATUS_MESSAGE = 3;
-	public static final int DIASMAIN_UI_DISPLAY_CORRECTION_BOLUS_MESSAGE = 4;
-//	public static final int DIASMAIN_UI_DISPLAY_BOLUS_INTERCEPTOR_MESSAGE = 5;
-	public static final int DIASMAIN_UI_UPDATE_TRAFFIC_LIGHTS = 6;
-	public static final int DIASMAIN_UI_UPDATE_DIAS_STATE = 7;
-	public static final int DIASMAIN_UI_UPDATE_MEAL_BOLUS_FAILED = 9;
-//	public static final int DIASMAIN_UI_CLEAR_BOLUS_INTERCEPTOR_MESSAGE = 10;
-	public static final int DIASMAIN_UI_APC_RETURN_BOLUS = 13;
-	public static final int DIASMAIN_UI_CONNECTIVITY = 14;
+	private static final int DIAS_UI_STATE_MAIN = 0;
+	private static final int DIAS_UI_STATE_PLOTS = 17;
+	private static final int DIAS_UI_STATE_BOLUS_INTERCEPTOR = 18;
 	
 	// DiAsService Commands
-	public static final int DIAS_SERVICE_COMMAND_NULL = 0;
-	public static final int DIAS_SERVICE_COMMAND_STOP_AUDIBLE_ALARM = 3;
-	public static final int DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE = 4;
-	public static final int DIAS_SERVICE_COMMAND_SET_HYPO_FLAG_TIME = 6;
-//	public static final int DIAS_SERVICE_COMMAND_CANCEL_BOLUS = 8;
-//	public static final int DIAS_SERVICE_COMMAND_CONFIRM_BOLUS = 9;
-	public static final int DIAS_SERVICE_COMMAND_SEND_MEAL_BOLUS = 10;
-	public static final int DIAS_SERVICE_COMMAND_START_CLOSED_LOOP_CLICK = 11;
-	public static final int DIAS_SERVICE_COMMAND_STOP_CLICK = 12;
-	public static final int DIAS_SERVICE_COMMAND_START_OPEN_LOOP_CLICK = 13;
-	public static final int DIAS_SERVICE_COMMAND_RELOAD_SAFETY_SERVICE_PROFILES = 14;
-	public static final int DIAS_SERVICE_COMMAND_RELOAD_HMS_PROFILES = 15;
-	public static final int DIAS_SERVICE_COMMAND_SENSOR_CALIBRATION_COMPLETE = 17;
-	public static final int DIAS_SERVICE_COMMAND_SET_MINS_TO_NEXT_CALIBRATION = 18;
-	public static final int DIAS_SERVICE_COMMAND_SET_INSULIN_UNITS_REMAINING = 19;
-//	public static final int DIAS_SERVICE_COMMAND_APC_CALCULATE_BOLUS = 23;
-	public static final int DIAS_SERVICE_COMMAND_START_OPEN_LOOP_STOP_ALARM = 24;
-	public static final int DIAS_SERVICE_COMMAND_INITIALIZE = 42;
-	public static final int DIAS_SERVICE_COMMAND_EXIT = -978;
-	public static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;
-	public static final int DIAS_SERVICE_COMMAND_START_SAFETY_CLICK = 26;
-	public static final int DIAS_SERVICE_COMMAND_RECOVERY = 50;
-	
-    // safetyService status values
-    public static final int SAFETY_SERVICE_STATE_NORMAL = 0;
-    public static final int SAFETY_SERVICE_STATE_NOT_ENOUGH_DATA = 1;
-    public static final int SAFETY_SERVICE_STATE_CREDIT_REQUEST = 2;
-    public static final int SAFETY_SERVICE_STATE_BOLUS_INTERCEPT = 3;
-    public static final int SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE = 4;
-    public static final int SAFETY_SERVICE_STATE_RETURN_STATUS = 5;
-    public static final int SAFETY_SERVICE_STATE_PUMP_ERROR = -1;
+	private static final int DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE = 4;
+	private static final int DIAS_SERVICE_COMMAND_START_CLOSED_LOOP_CLICK = 11;
+	private static final int DIAS_SERVICE_COMMAND_STOP_CLICK = 12;
+	private static final int DIAS_SERVICE_COMMAND_START_OPEN_LOOP_CLICK = 13;
+	private static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;
+	private static final int DIAS_SERVICE_COMMAND_START_SAFETY_CLICK = 26;
 
     // Confirmation dialogs
- 	public static final int DIALOG_CLOSED_LOOP_NO_CGM = 254;	
- 	public static final int DIALOG_CONFIRM_STOP = 256;
- 	public static final int DIALOG_NEW_SUBJECT_CONFIRM = 257;	
- 	public static final int DIALOG_PASSWORD = 258;
- 	public static final int DIALOG_CONFIRM_CONFIG = 259;
- 	public static final int DIALOG_CONFIRM_EXERCISE = 260;
- 	public static final int DIALOG_CONFIRM_HYPO_TREATMENT = 261;
- 	public static final int DIALOG_CONFIRM_CALIBRATION = 262;
- 	public static final int DIALOG_BEGIN_CALIBRATION = 263;
- 	public static final int DIALOG_CONFIRM_CANCEL_TEMP_BASAL = 264;
+ 	private static final int DIALOG_CLOSED_LOOP_NO_CGM = 254;	
+ 	private static final int DIALOG_CONFIRM_STOP = 256;
+ 	private static final int DIALOG_NEW_SUBJECT_CONFIRM = 257;	
+ 	private static final int DIALOG_PASSWORD = 258;
+ 	private static final int DIALOG_CONFIRM_CONFIG = 259;
+ 	private static final int DIALOG_CONFIRM_EXERCISE = 260;
+ 	private static final int DIALOG_CONFIRM_HYPO_TREATMENT = 261;
+ 	private static final int DIALOG_CONFIRM_CANCEL_TEMP_BASAL = 264;
  	
  	// Passworded button codes
- 	public static int BUTTON_CURRENT;
- 	public static final int BUTTON_NEW_SUBJECT = 0;
- 	public static final int BUTTON_OPEN_LOOP = 1;
- 	public static final int BUTTON_CLOSED_LOOP = 2;
- 	public static final int BUTTON_HOME = 3;
- 	public static final int BUTTON_SENSOR_ONLY = 4;
- 	public static final int BUTTON_SAFETY = 5;
+ 	private static int BUTTON_CURRENT;
+ 	private static final int BUTTON_NEW_SUBJECT = 0;
+ 	private static final int BUTTON_OPEN_LOOP = 1;
+ 	private static final int BUTTON_CLOSED_LOOP = 2;
+ 	private static final int BUTTON_HOME = 3;
+ 	private static final int BUTTON_SENSOR_ONLY = 4;
+ 	private static final int BUTTON_SAFETY = 5;
     
     // Activity Result IDs
     private static final int DEFAULT_MEAL = 1;
@@ -190,13 +126,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     private static final int SMBG = 4;
     private static final int TEMP_BASAL = 5;
     
-    // Alarm Activity IDs
-    private static final int HYPO_ALARM = 0;
-    private static final int NO_CGM_ALARM = 1;
-    
-    // Misc Constants
-    private final int BATTERY_SHUTDOWN_THRESHOLD = 10;
-	
  	/************************************************************************************************************************/
 	//  System Variables
 	/************************************************************************************************************************/
@@ -206,28 +135,28 @@ public class DiAsMain extends Activity implements OnGestureListener {
   	private long SIM_TIME;
   	private int DIAS_UI_STATE;
   	
-  	private int DIAS_STATE, PREV_DIAS_STATE;
-  	private int BATTERY, PREV_BATTERY;
-  	private double CGM_VALUE, PREV_CGM_VALUE;
-  	private int CGM_STATE, PREV_CGM_STATE;
-  	private int PUMP_STATE, PREV_PUMP_STATE;
-  	private boolean EXERCISING, PREV_EXERCISING;
-  	private boolean TEMPORARY_BASAL_RATE;
-  	private boolean ENABLE_IO, PREV_ENABLE_IO;
+  	private int DIAS_STATE;
+  	private int BATTERY;
+  	private double CGM_VALUE;
+  	private int CGM_STATE;
+  	private int PUMP_STATE;
+  	private boolean EXERCISING;
+  	private boolean ENABLE_IO;
   	
-  	private boolean PHONE_CALIB;
     
   	//VARIABLES		******************************************************************************
   	
 	private final DiAsMain main = this;
 	
-	public BroadcastReceiver ServiceReceiver;				// Listens for information broadcasts from DiAsService
+	private GestureDetector gestureScanner;
+	
+	private BroadcastReceiver ServiceReceiver;				// Listens for information broadcasts from DiAsService
 	private boolean ServiceReceiverIsRegistered = false;
 	
-	public BroadcastReceiver TickReceiver;					// Listens for Time Tick broadcasts from DiAsService
+	private BroadcastReceiver TickReceiver;					// Listens for Time Tick broadcasts from DiAsService
 	private boolean TickReceiverIsRegistered = false;
 
-	public boolean noCgmInClosedLoopAlarmPlaying;
+	private boolean noCgmInClosedLoopAlarmPlaying;
 	
 	// No CGM Watchdog timer
 	private Timer NoCgmWatchdogTimer;
@@ -235,28 +164,18 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	private TimerTask NoCgmWatchdogTimerTask;
 	private static double NO_CGM_WATCHDOG_TIMEOUT_SECONDS = 300;
 	
-	// Correction bolus dialog
-	AlertDialog correctionBolusDialog = null;
-	String correctionBolusMessage = "The system plans to inject...";
-	public static final int DIALOG_CORRECTION_BOLUS = 16;
-	
-	// Credit confirmation dialog
-	private double creditBolusMax = 0.0;
-	
 	// Used in dialogs
-	public TextView textViewPassword;
-	public EditText editTextPassword;
+	private TextView textViewPassword;
+	private EditText editTextPassword;
 	
 	private boolean alarmActivityRunning = false;
 	
 	// CGM data gap constants
-	//TODO: fix these calibrated and other connection booleans to be from states
 	private boolean insulinSetupComplete = false;
 	
 	private int midFrameW, midFrameH;
 	
 	private SystemObserver sysObserver;
-	private CgmDetailsObserver cgmObserver;
 	
 	/************************************************************************************************************************/
 	//  Overridden Activity Functions
@@ -280,23 +199,11 @@ public class DiAsMain extends Activity implements OnGestureListener {
         noCgmInClosedLoopAlarmPlaying = false;
         alarmActivityRunning = false;
         
-        APC_TYPE = APC_TYPE_HMS;
-        APC_MEAL_CONTROL = APC_NO_MEAL_CONTROL;
-        TEMPORARY_BASAL_RATE = false;			
-		
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
-		
-		// Keep the CPU running even after the screen dims
-//		pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-//		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-//		wl.acquire();  
 		
 		// This is the main method of UI update now, it listens to changes on the SYSTEM table
 		sysObserver = new SystemObserver(new Handler());
 		getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
-		
-		cgmObserver = new CgmDetailsObserver(new Handler());
-		getContentResolver().registerContentObserver(Biometrics.CGM_DETAILS_URI, true, cgmObserver);
 		
         registerReceivers();
         
@@ -310,12 +217,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
    	    
         if(main.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
         {
-	        // Initialize the correction bolus message
-//	        initCorrectionBolusMessage();
-	        
-	        // Don't initially show the bolus interceptor messages and buttons
-//	        hideBolusInterceptorMessage();
-	        
 		 	updateDiasMainState(DIAS_UI_STATE_MAIN);
         }
         
@@ -353,8 +254,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
             Debug.i(TAG, FUNC_TAG, "Landscape");
             setContentView(R.layout.mainlinear);
             
-//	        initCorrectionBolusMessage();
-//	        hideBolusInterceptorMessage();
 		 	updateDiasMainState(DIAS_UI_STATE_MAIN);
 		 	update();
         } 
@@ -380,28 +279,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		
 		c.close();
     }    
-    
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus)
-    {
-    	final String FUNC_TAG = "onWindowFocusChanged";
-    	super.onWindowFocusChanged(hasFocus);
-    	
-    	if(hasFocus)
-    	{
-//    		//Gather Middle frame height and width (and for some reason add a little more?)
-//    		midFrameW = ((LinearLayout)this.findViewById(R.id.linearMid)).getMeasuredWidth();
-//    		midFrameW += (0.07*midFrameW);
-//    		midFrameH = ((LinearLayout)this.findViewById(R.id.linearMid)).getMeasuredHeight();
-//    		midFrameH += (0.07*midFrameH);
-//
-//    		// Force parameters for Nexus 5
-//    		//midFrameW = 1152;
-//    		//midFrameH = 1075;
-//
-//    		Debug.i(TAG, FUNC_TAG, "MID FRAME WIDTH "+midFrameW+" MID FRAME HEIGHT "+midFrameH);
-    	}
-    }
     
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) 
@@ -477,9 +354,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		
 		if(sysObserver != null)
 			getContentResolver().unregisterContentObserver(sysObserver);
-		
-		if(cgmObserver != null)
-			getContentResolver().unregisterContentObserver(cgmObserver);
     }    
     
     @Override
@@ -549,9 +423,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     public void onLongPress(MotionEvent e) {
     }
 
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX,
-            float distanceY) {
-    	final String FUNC_TAG = "onScroll";
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
         return true;
     }
 
@@ -569,27 +441,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     protected Dialog onCreateDialog(int id) 
     {
         Dialog dialog;
-        switch(id) 
-        {
-/*        
-	        case DIALOG_CORRECTION_BOLUS:
-	            AlertDialog.Builder cBolus = new AlertDialog.Builder(this);
-	            // Change button order to match Negative-Positive conventions
-	            cBolus.setMessage(correctionBolusMessage)
-	                   .setCancelable(false)
-	                   .setPositiveButton("Cancel", new DialogInterface.OnClickListener() {
-	                       public void onClick(DialogInterface dialog, int id) {
-	                    	   cancelBolus(null);
-	                       }
-	                   })
-	                   .setNegativeButton("Accept", new DialogInterface.OnClickListener() {
-	                       public void onClick(DialogInterface dialog, int id) {
-	                    	   acceptBolus(null);
-	                       }
-	                   });
-	            dialog = cBolus.create();
-	            break;
-*/	            
+        switch(id) {     
 	        case DIALOG_CONFIRM_STOP:       
 	            AlertDialog.Builder stopBuild = new AlertDialog.Builder(this);
 	            String state = "";
@@ -1026,41 +878,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	        
     	        switch (command) 
     	        {
-/*    	        
-        	        case DIASMAIN_UI_NULL:
-    	        		Debug.i(TAG, FUNC_TAG, "DIASMAIN_UI_NULL");
-    	        		break;
-        	        case DIASMAIN_UI_UPDATE_STATUS_LIGHTS:
-    	    			//CGM_is_calibrated = intent.getBooleanExtra("CGM_is_calibrated", false);
-    	    			//Pump_connected = intent.getBooleanExtra("Pump_connected", false);
-    	    			break;
-        	        case DIASMAIN_UI_UPDATE_TRAFFIC_LIGHTS:
-	    				Debug.i(TAG, FUNC_TAG, "DIASMAIN_UI_UPDATE_TRAFFIC_LIGHTS");
-	    				break;
-        	        case DIASMAIN_UI_UPDATE_DIAS_STATE:
-    	        		APC_TYPE = intent.getIntExtra("APC_TYPE", APC_TYPE_HMS);
-    	        		APC_MEAL_CONTROL = intent.getIntExtra("APC_MEAL_CONTROL", APC_NO_MEAL_CONTROL);
-    	        		Debug.i(TAG, FUNC_TAG, "DIASMAIN_UI_UPDATE_DIAS_STATE = "+DIAS_STATE+", APC_TYPE="+APC_TYPE);
-    	        		//CGM_is_calibrated = intent.getBooleanExtra("CGM_is_calibrated", false);
-    	        		//Pump_connected = intent.getBooleanExtra("Pump_connected", false);
-    					break;
-        	        case DIASMAIN_UI_UPDATE_STATUS_MESSAGE:
-        				break;
-        	        case DIASMAIN_UI_DISPLAY_CORRECTION_BOLUS_MESSAGE:
-        				Debug.i(TAG, FUNC_TAG, "DIASMAIN_UI_DISPLAY_CORRECTION_BOLUS_MESSAGE");
-        				displayCorrectionBolusMessage(intent.getDoubleExtra("bolusCorrection", 0.0));
-        				break;
-        	        case DIASMAIN_UI_UPDATE_MEAL_BOLUS_FAILED:
-        				Debug.i(TAG, FUNC_TAG, "DIASMAIN_UI_UPDATE_MEAL_BOLUS_FAILED");
-        				Toast.makeText(main, "System busy, please try again", Toast.LENGTH_SHORT).show();
-        	        	break;
-        	        case DIAS_SERVICE_COMMAND_EXIT:
-        				Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_COMMAND_EXIT");
-        				finish();
-        				break;
-        	        case DIASMAIN_UI_APC_RETURN_BOLUS:
-    	        		break;
-*/    	        		
         	        default:
          				Bundle b = new Bundle();
          	    		b.putString("description", "DiAsMain > unexpected command: "+command);
@@ -1130,81 +947,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	//  UI and System Update Functions
 	/************************************************************************************************************************/
     
-    class CgmDetailsObserver extends ContentObserver 
-    {	
-    	private int count;
-    	
-    	public CgmDetailsObserver(Handler handler) 
-    	{
-    		super(handler);
-    		
-    		final String FUNC_TAG = "Cgm Details Observer";
-    		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		
-    		count = 0;
-    		
-    		Debug.i(TAG, FUNC_TAG, "Checking current phone calibration!");
-    		
-    		Cursor c = getContentResolver().query(Biometrics.CGM_DETAILS_URI, null, null, null, null);
-           	
-	       	if(c!=null)
-	       	{
-	       		if(c.moveToLast())
-	       		{
-	       			int pc = c.getInt(c.getColumnIndex("phone_calibration"));
-	       			if(pc > 0)
-	       				PHONE_CALIB = true;
-	       			else
-	       				PHONE_CALIB = false;
-	       			c.close();
-	       		}
-	       		else
-	       		{
-	       			c.close();
-	       			return;
-	       		}
-	       	}
-	       	else
-	       		return;
-    	}
-
-       @Override
-       public void onChange(boolean selfChange) 
-       {
-    	   this.onChange(selfChange, null);
-       }		
-
-       public void onChange(boolean selfChange, Uri uri) 
-       {
-    	   	final String FUNC_TAG = "onChange";
-    	   
-    	   	count++;
-    	   	Debug.i(TAG, FUNC_TAG, "Cgm Details Observer: "+count);
-    	   
-    	   	Cursor c = getContentResolver().query(Biometrics.CGM_DETAILS_URI, null, null, null, null);
-       	
-	       	if(c!=null)
-	       	{
-	       		if(c.moveToLast())
-	       		{
-	       			int pc = c.getInt(c.getColumnIndex("phone_calibration"));
-	       			if(pc > 0)
-	       				PHONE_CALIB = true;
-	       			else
-	       				PHONE_CALIB = false;
-	       			c.close();
-	       		}
-	       		else
-	       		{
-	       			c.close();
-	       			return;
-	       		}
-	       	}
-	       	else
-	       		return;
-       }		
-    }
-    
     class SystemObserver extends ContentObserver 
     {	
     	private int count;
@@ -1236,7 +978,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
        }		
     }
     
-    public void update()
+    private void update()
     {
     	final String FUNC_TAG = "update";
   	
@@ -1260,7 +1002,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     		return;
     }
     
-    public void updateUI(Cursor c)
+    private void updateUI(Cursor c)
     {
     	final String FUNC_TAG = "updateUI";
     	
@@ -1325,14 +1067,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     		Debug.w(TAG, FUNC_TAG, "The activity is in portrait mode...");
     	
     	//Update constants for system
-    	PREV_DIAS_STATE = DIAS_STATE;
-    	PREV_CGM_VALUE = CGM_VALUE;
-    	PREV_CGM_STATE = CGM_STATE;
-    	PREV_PUMP_STATE = PUMP_STATE;
-    	PREV_BATTERY = BATTERY;
-    	PREV_ENABLE_IO = ENABLE_IO;
-    	PREV_EXERCISING = EXERCISING;
-    	
     	DIAS_STATE = diasState;
     	CGM_VALUE = cgmValue;
     	PUMP_STATE = pumpState;
@@ -1421,7 +1155,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
     }
     
-    public void updateDiasMain() 
+    private void updateDiasMain() 
     {
 		final String FUNC_TAG = "updateDiasMain";
 		long start = System.currentTimeMillis();
@@ -1483,7 +1217,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
   	   	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
     }
     
-    public void updateTrafficLights(int diasState, int hypoLight, int hyperLight, boolean alarmHypo)
+    private void updateTrafficLights(int diasState, int hypoLight, int hyperLight, boolean alarmHypo)
     {
     	final String FUNC_TAG = "updateTrafficLights";
     	long start = System.currentTimeMillis();
@@ -1527,8 +1261,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 						removeDialog(DIALOG_CONFIRM_STOP);
 						removeDialog(DIALOG_CONFIRM_EXERCISE);
 						removeDialog(DIALOG_CONFIRM_HYPO_TREATMENT);
-						
-//						showAlarmActivity(HYPO_ALARM);
 					}
 					
 					// Make Hypo frame glow red to be super obvious that there is a problem
@@ -1717,21 +1449,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
     }
     
-    private boolean pumpReady()
-    {
-    	Debug.i(TAG, "pumpReady", "PUMP_STATE: "+PUMP_STATE);
-    	
-    	switch(PUMP_STATE)
-	    {
-    		case Pump.RECONNECTING:
-	    	case Pump.CONNECTED:
-	    	case Pump.CONNECTED_LOW_RESV:
-    			return true;
-	    	default:
-	    		return false;
-    	}
-    }
-    
     private boolean pumpReadyNoReco()
     {
     	Debug.i(TAG, "pumpReady", "PUMP_STATE: "+PUMP_STATE);
@@ -1763,21 +1480,11 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	}
     }
     
-    private boolean batteryReady()
-    {
-    	Debug.i(TAG, "batteryReady", "Battery: "+BATTERY);
-    	
-    	if(BATTERY > BATTERY_SHUTDOWN_THRESHOLD)
-    		return true;
-    	else
-    		return false;
-    }
-    
     /************************************************************************************************************************/
 	//  UI Helper Functions
 	/************************************************************************************************************************/
     
-    public void updateDiasMainState(int state)		
+    private void updateDiasMainState(int state)		
     {
     	//This is a bit of a retro-fit for the system, since these updates only effect the UI its fine,
     	//they aren't involved with system wide changes in data.  It was updated to be called only when
@@ -1794,7 +1501,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	updateDiasMain();		//This just allows us to more easily track changes to the UI
     }
        
-	public void initTrafficLights() 
+	private void initTrafficLights() 
 	{
 		makeTrafficLightsInvisible();
 		ImageView hypoLightOff = (ImageView)this.findViewById(R.id.hypoLightOff);
@@ -1803,7 +1510,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		hyperLightOff.setVisibility(View.VISIBLE);
 	}
 	
-    public void makeTrafficLightsInvisible() 
+    private void makeTrafficLightsInvisible() 
     {
 		ImageView hypoLightRed = (ImageView)this.findViewById(R.id.hypoLightRed);
 		ImageView hypoLightYellow = (ImageView)this.findViewById(R.id.hypoLightYellow);
@@ -1819,7 +1526,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		hyperLightGreen.setVisibility(View.INVISIBLE);
      }
     
-    public void initCGMMessage() 
+    private void initCGMMessage() 
     {
  	   TextView textViewCGMMessage = (TextView)this.findViewById(R.id.textViewCGM);		   
        textViewCGMMessage.setText("");
@@ -1831,40 +1538,30 @@ public class DiAsMain extends Activity implements OnGestureListener {
    
    	public void stopClick(View view) 
    	{
-		soundClick();
    		showDialog(DIALOG_CONFIRM_STOP);
-   		
-   		//TODO: check this, but it shouldn't be possible since the pop-up activity will have precedence
- 		//Button alarmStopButton = (Button)this.findViewById(R.id.buttonStopAudibleAlarm);
- 		//alarmStopButton.setVisibility(ImageView.INVISIBLE);
 	}
    	
    	public void openLoopClick(View view){
-		soundClick();
 	 	BUTTON_CURRENT = BUTTON_OPEN_LOOP;
 	 	onCreateDialog(DIALOG_CONFIRM_CONFIG);
    	}
    	
    	public void closedLoopClick(View view){
-		soundClick();
 	 	BUTTON_CURRENT = BUTTON_CLOSED_LOOP;
 	 	onCreateDialog(DIALOG_CONFIRM_CONFIG);
    	}
    	   	
    	public void safetyClick(View view){
-		soundClick();
 	 	BUTTON_CURRENT = BUTTON_SAFETY;
 	 	onCreateDialog(DIALOG_CONFIRM_CONFIG);
    	}
    	   	
    	public void sensorOnlyClick(View view){
-		soundClick();
 	 	BUTTON_CURRENT = BUTTON_SENSOR_ONLY;
 	 	onCreateDialog(DIALOG_CONFIRM_CONFIG);
    	}
    	   	
    	public void newSubjectClick(View view){
-		soundClick();
 	 	BUTTON_CURRENT = BUTTON_NEW_SUBJECT;
    		showDialog(DIALOG_NEW_SUBJECT_CONFIRM);
    	}
@@ -1873,12 +1570,9 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	final String FUNC_TAG = "hypoTreatmentClick";
     	
  	   Debug.i(TAG, FUNC_TAG, "tapclink1");
- 	   soundClick();
  	   Bundle b = new Bundle();
  	   b.putString("description", "Hypo treatment first button pressed");
  	   Event.addEvent(getApplicationContext(), Event.EVENT_UI_HYPO_BUTTON_PRESSED, Event.makeJsonString(b), Event.SET_CUSTOM);
-  	
- 	   //showDialog(DIALOG_CONFIRM_HYPO_TREATMENT);
     }
     
     public void addBgClick() 
@@ -1897,7 +1591,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     {
     	final String FUNC_TAG = "temporaryBasalStartClick";
  	   	Debug.i(TAG, FUNC_TAG, "tapclink1");
- 	   	soundClick();
+
  	   	if (temporaryBasalRateActive()) {
 	   		Bundle b = new Bundle();
 			b.putString("description", FUNC_TAG+" while temporaryBasalRateActive==true");
@@ -1927,7 +1621,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     {
     	final String FUNC_TAG = "temporaryBasalCancelClick";
  	   	Debug.i(TAG, FUNC_TAG, "tapclink1");
- 	   	soundClick();
+
  	   	if (temporaryBasalRateActive()) {
  	   		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP) {
  	 	 	   	showDialog(DIALOG_CONFIRM_CANCEL_TEMP_BASAL);
@@ -1935,9 +1629,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   		else if ((DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) && 
  	   			Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) //&& temporaryBasalRateActivityAvailable()) 
  	   		{
- 			    //Intent intentBroadcast = new Intent("edu.virginia.dtc.intent.action.TEMP_BASAL");
- 			    //intentBroadcast.putExtra("command", TempBasal.TEMP_BASAL_CANCEL);
- 		        //sendBroadcast(intentBroadcast);
  		        showDialog(DIALOG_CONFIRM_CANCEL_TEMP_BASAL); // cancel TBR in DiAs Ui
  	   		}
  	   		else {
@@ -1956,37 +1647,15 @@ public class DiAsMain extends Activity implements OnGestureListener {
     public void exerciseClick(View view) {
     	final String FUNC_TAG = "exerciseClick";
  	   	Debug.i(TAG, FUNC_TAG, "tapclink1");
- 	   	soundClick();
  	   	showDialog(DIALOG_CONFIRM_EXERCISE);
-    }
-            
-    public void startOpenLoopStopAlarmClick(View view) {
-    	final String FUNC_TAG = "startOpenLoopStopAlarmClick";
-    	
- 	   	Debug.i(TAG, FUNC_TAG, "");
- 		Intent intent1 = new Intent();
- 		intent1.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
- 		intent1.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_START_OPEN_LOOP_STOP_ALARM);
- 		startService(intent1);
     }
     
    	public void mealClick(View view) {
    		final String FUNC_TAG = "mealClick";
-   		
-	 	soundClick();
 	 	
 	 	if(PUMP_STATE == Pump.CONNECTED || PUMP_STATE == Pump.CONNECTED_LOW_RESV)
 	 	{
 		 		Debug.i(TAG, FUNC_TAG, "Starting MealActivity!");
-		 		
-//		 		Intent mealIntent = new Intent();
-//		 		mealIntent.setComponent(new ComponentName("edu.virginia.dtc.MealActivity", "edu.virginia.dtc.MealActivity.MealActivity"));
-//		 		mealIntent.putExtra("height", midFrameH);
-//		 		mealIntent.putExtra("width", midFrameW);
-//		 		
-//		 		Debug.i(TAG, "IO_TEST", "Sending Meal Activity Intent! ("+mealIntent.toString()+")");
-//		 		
-//		 		startActivity(mealIntent);
 		 		
 		 		Intent meal = new Intent("DiAs.MealActivity");
 		 		sendBroadcast(meal);
@@ -2001,9 +1670,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
    	public void plotsClick(View view) 
     {   		
    		final String FUNC_TAG = "plotsClick";
-   		
-    	soundClick();
-    	Debug.i(TAG, FUNC_TAG, "before plotsClick");
     	 
     	Intent plotsDisplay = new Intent();
  		plotsDisplay.setComponent(new ComponentName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.PlotsActivity"));
@@ -2019,7 +1685,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
  		Debug.i(TAG, FUNC_TAG, "after plotsClick");
      }
    		
-   	public void checkVisible(Button b, int v)
+   	private void checkVisible(Button b, int v)
    	{
    		if(b.getVisibility() == v)
    			return;
@@ -2027,7 +1693,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
    			b.setVisibility(v);
    	}
    	   	
-   	public void checkVisible(FrameLayout f, int v)
+   	private void checkVisible(FrameLayout f, int v)
    	{
    		if(f.getVisibility() == v)
    			return;
@@ -2035,7 +1701,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
    			f.setVisibility(v);
    	}
    	   	
-   	public void checkVisible(LinearLayout l, int v)
+   	private void checkVisible(LinearLayout l, int v)
    	{
    		if(l.getVisibility() == v)
    			return;
@@ -2043,7 +1709,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
    			l.setVisibility(v);
    	}
    	   	
-   	public void mainGroupShow() 
+   	private void mainGroupShow() 
    	{
    	   final String FUNC_TAG = "mainGroupShow";
    	   
@@ -2102,7 +1768,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   
  	   Debug.i(TAG, FUNC_TAG, "CLenable: "+CLenable+" OLenable: "+OLenable+" mode:"+Mode.getMode(getContentResolver()));
  	   
- 	   // Update button visibility
  	   switch (DIAS_STATE) 
  	   {
  	   		case State.DIAS_STATE_STOPPED:
@@ -2116,7 +1781,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(infoExtra, LinearLayout.INVISIBLE);
  	   			
  	   			checkVisible(buttonMeal, Button.GONE);
-// 	   			checkVisible(buttonCalibration, Button.INVISIBLE);
  	   			checkVisible(buttonStartTemporaryBasal, Button.INVISIBLE);
  	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
  	   			checkVisible(buttonHypoTreatment, Button.INVISIBLE);
@@ -2129,13 +1793,11 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			
  	   			Debug.i(TAG, FUNC_TAG, "InsulinComplete: "+insulinSetupComplete);
  	   			
- 	   			//if (pumpReadyNoReco() && insulinSetupComplete && batteryReady())
  	   			if (pumpReadyNoReco() && insulinSetupComplete)
  	   			{
  	   				checkVisible(frame2, FrameLayout.VISIBLE);
  	   				checkVisible(buttonSensorOnly, Button.GONE);
  	   				if(OLenable) checkVisible(buttonOpenLoop, Button.VISIBLE);
- 	   				//if (cgmReady() && insulinSetupComplete && batteryReady())
  	   				if (cgmReady() && insulinSetupComplete)
  	   				{
  	   					checkVisible(frame3, FrameLayout.VISIBLE);
@@ -2153,7 +1815,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   					checkVisible(buttonSafety, Button.INVISIBLE);
  	 				}
  	   			}
- 	   			//else if (cgmReady() && batteryReady())
  	   			else if (cgmReady()) 	   			
  	   			{
  	   				checkVisible(frame3, FrameLayout.VISIBLE);
@@ -2184,7 +1845,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		   			buttonExercise.setText("");
 		   		}
 	   			checkVisible(buttonExercise, ToggleButton.VISIBLE);
-// 	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false) && temporaryBasalRateActivityAvailable()) {
  	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
  	   				checkVisible(frame3, FrameLayout.VISIBLE);
  	   				if (temporaryBasalRateActive()) {
@@ -2202,14 +1862,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	 	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
  	   			}
 	   			
-/*
- 	   			checkVisible(buttonCalibration, Button.INVISIBLE);
-	   			if (cgmReady()) 
-	   			{
-	   				if(PHONE_CALIB)
-	   					checkVisible(buttonCalibration, Button.VISIBLE);
-	   			}
-*/	   			
 	   			checkVisible(buttonHypoTreatment, Button.VISIBLE);
 	   			checkVisible(buttonMeal, Button.VISIBLE);
 	   			checkVisible(infoScreen, LinearLayout.VISIBLE);
@@ -2242,7 +1894,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			}
  	   			
  	   			checkVisible(buttonExercise, ToggleButton.VISIBLE);
-// 	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false) && temporaryBasalRateActivityAvailable()) {
  	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
  	   				checkVisible(frame3, FrameLayout.VISIBLE);
  	   				if (temporaryBasalRateActive()) {
@@ -2259,14 +1910,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	 	   			checkVisible(buttonStartTemporaryBasal, Button.INVISIBLE);
  	 	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
  	   			}
-/* 	   			
- 	   			checkVisible(buttonCalibration, Button.INVISIBLE);
- 	   			if (cgmReady()) 
- 	   			{
- 	   				if(PHONE_CALIB)
- 	   				checkVisible(buttonCalibration, Button.VISIBLE);
- 	   			}
-*/ 	   			
  	   			
  	   			checkVisible(buttonHypoTreatment, Button.VISIBLE);
  	   			checkVisible(buttonMeal, Button.VISIBLE);
@@ -2310,15 +1953,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  		   		}
  	   			
  	   			checkVisible(buttonExercise, ToggleButton.VISIBLE);
-/* 	   			
- 	   			checkVisible(buttonCalibration, Button.INVISIBLE);
- 	   			
- 	   			if (cgmReady()) 
- 	   			{
- 	   				if(PHONE_CALIB)
- 	   					checkVisible(buttonCalibration, Button.VISIBLE);
- 	   			}
-*/ 	   			
  	   			
  	   			checkVisible(buttonHypoTreatment, Button.VISIBLE);
  	   			checkVisible(buttonMeal, Button.VISIBLE);
@@ -2327,7 +1961,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(infoExtra, LinearLayout.VISIBLE);
  	   			checkVisible(buttonPlots, Button.VISIBLE);
  	   			
- 				//if (cgmReady() && batteryReady()) 
  	   			if (cgmReady()) 
  				{
  					if(CLenable)
@@ -2359,14 +1992,9 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(buttonExercise, ToggleButton.INVISIBLE);
  	   			checkVisible(buttonStartTemporaryBasal, Button.INVISIBLE);
  	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
-// 	   			checkVisible(buttonCalibration, Button.INVISIBLE);
- 	   			// =====
- 	   			//if (pumpReadyNoReco() && insulinSetupComplete && batteryReady())
  	   			if (pumpReadyNoReco() && insulinSetupComplete)
 	   			{
  	   				Debug.i(TAG, FUNC_TAG, "=== Pump in Sensor Only");
-	   				//checkVisible(frame2, FrameLayout.VISIBLE);
-	   				//checkVisible(buttonSensorOnly, Button.GONE);
 	   				if(OLenable)
 	   				{
 	   					checkVisible(buttonOpenLoop, Button.VISIBLE);
@@ -2374,7 +2002,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	   				if (cgmReady())
 	   				{
 	   					Debug.i(TAG, FUNC_TAG, "=== Pump+CGM in Sensor Only");
-	   					//checkVisible(frame3, FrameLayout.VISIBLE);
 	   					if(CLenable) checkVisible(buttonClosedLoop, Button.VISIBLE);
 	   					if(CLenable) checkVisible(buttonSafety, Button.VISIBLE);
 	   				}
@@ -2382,39 +2009,18 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	   			else if (cgmReady())
 	   			{
 	   				Debug.i(TAG, FUNC_TAG, "=== CGM in Sensor Only");
-/*	   				
-	   				if(PHONE_CALIB)
-	   				{
- 	   					checkVisible(buttonCalibration, Button.VISIBLE);
-	   				}
-*/	   				
-	   				//if(batteryReady()) 
 	   				if(true) 
 	   				{
 	   					Debug.i(TAG, FUNC_TAG, "=== CGM+Battery in Sensor Only");
-		   				//checkVisible(frame3, FrameLayout.VISIBLE);
 		   				checkVisible(buttonOpenLoop, Button.INVISIBLE);
 		   				checkVisible(buttonClosedLoop, Button.INVISIBLE);
-		   				//checkVisible(buttonSafety, Button.INVISIBLE);
-		   				//checkVisible(buttonSensorOnly, Button.VISIBLE);
 	   				}
 	   			}
- 	   			// =====
- 	   			/*if (cgmReady()) 
- 	   			{
- 	   				
- 	   				if(pumpReady() && insulinSetupComplete && batteryReady())
- 	   				{
- 	   					if(OLenable) checkVisible(buttonOpenLoop, Button.VISIBLE);
- 	   					if(CLenable) checkVisible(buttonClosedLoop, Button.VISIBLE);
- 	   				}
- 	   			}*/
  	   			checkVisible(buttonHypoTreatment, Button.VISIBLE);
  	   			checkVisible(buttonMeal, Button.GONE);
  	   			checkVisible(infoScreen, LinearLayout.VISIBLE);
  	   			checkVisible(infoCGMStatus, LinearLayout.VISIBLE);
  	   			checkVisible(infoExtra, LinearLayout.VISIBLE);
- 	   			//checkVisible(buttonClosedLoop, Button.INVISIBLE);
  	   			checkVisible(buttonPlots, Button.VISIBLE);
  				checkVisible(buttonStop, Button.VISIBLE);
  				break;
@@ -2426,19 +2032,11 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
     }
    	    
-   	public void mainGroupHide() 
-   	{
- 	   FrameLayout frameMidHighButtons = (FrameLayout)findViewById(R.id.frameMidHighButtons);
-   	   FrameLayout frameMidLowButtons = (FrameLayout)findViewById(R.id.frameMidLowButtons);
-   	   frameMidHighButtons.setVisibility(FrameLayout.INVISIBLE);
-   	   frameMidLowButtons.setVisibility(FrameLayout.INVISIBLE);
-     }
-   	   	
    	/************************************************************************************************************************/
 	//  Button Confirmation Functions (Pop-up Yes/No dialogs)
 	/************************************************************************************************************************/
    	   	
-   	public void stopConfirm() {
+   	private void stopConfirm() {
    		final String FUNC_TAG = "stopConfirm";
    		
    		Debug.i(TAG, "IO_TEST", "Stop Confirm Button Click!");
@@ -2450,7 +2048,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		startService(intent1); 		
    	}
    	   	
-   	public void openLoopConfirm(){
+   	private void openLoopConfirm(){
    		final String FUNC_TAG = "openLoopConfirm";
    		
    		Debug.i(TAG, "IO_TEST", "Pump Mode Confirm Button Click!");
@@ -2462,7 +2060,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		startService(intent1);		
    	}
    	   	
-   	public void safetyConfirm(){
+   	private void safetyConfirm(){
    		final String FUNC_TAG = "openLoopConfirm";
    		
    		Debug.i(TAG, "IO_TEST", "Safety Confirm Button Click!");
@@ -2474,21 +2072,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		startService(intent1);		
    	}
    	   	
-   	public void closedLoopConfirm(){
-		// Get the offset in minutes into the current day in the current time zone (based on cell phone time zone setting)
-		TimeZone tz = TimeZone.getDefault();
-		int UTC_offset_secs = tz.getOffset(getTimeSeconds()*1000)/1000;
-		int timeNowMins = (int)((getTimeSeconds()+UTC_offset_secs)/60)%1440;
-		
+   	private void closedLoopConfirm(){
 		Debug.i(TAG, "IO_TEST", "Closed Loop Confirm Button Click!");
-		
-		//TODO: check that DiAs Service is responsible for this, as it should be
-//		if ( FDA_MANDATED_SAFETY_ONLY_OPERATION_ENABLED && timeIsInSafetyRange(timeNowMins)) {
-//	   		DIAS_STATE = State.DIAS_STATE_SAFETY_ONLY;
-//		}
-//		else {
-//	   		DIAS_STATE = State.DIAS_STATE_CLOSED_LOOP;
-//		}
 		
 		final Intent intent1 = new Intent();
 		intent1.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
@@ -2496,8 +2081,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		startService(intent1);		
    	}
    	   	
-   	public void sensorOnlyConfirm(){
-   		
+   	private void sensorOnlyConfirm(){
    		Debug.i(TAG, "IO_TEST", "Sensory Only Confirm Button Click!");
    		
 		Intent intent1 = new Intent();
@@ -2506,7 +2090,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		startService(intent1);		 		
    	}
    	   	
-   	public void goToSetupScreen(int screen){
+   	private void goToSetupScreen(int screen){
    		final String FUNC_TAG = "configConfirm";
    		
 		Debug.i(TAG, FUNC_TAG, "screen="+screen);		
@@ -2520,7 +2104,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		android.os.Process.killProcess(pid);		
 	}
    	   	
-   	public void exerciseConfirm(){ 
+   	private void exerciseConfirm(){ 
    		final String FUNC_TAG = "exerciseConfirm";
    		
         Button exercise = (Button) findViewById(R.id.buttonExercise);
@@ -2559,7 +2143,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
         }
      }
    	   	
-   	public void hypoTreatmentConfirm(boolean didTreatHypo)
+   	private void hypoTreatmentConfirm(boolean didTreatHypo)
     {
    		final String FUNC_TAG = "hypoTreatmentConfirm";
    		
@@ -2572,64 +2156,25 @@ public class DiAsMain extends Activity implements OnGestureListener {
    		}   	
     }
    	     
-    public void homeConfirm(){
+    private void homeConfirm(){
  		Intent homeIntent =  new Intent(Intent.ACTION_MAIN, null);
  		homeIntent.addCategory(Intent.CATEGORY_HOME);
  		homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
  		startActivity(homeIntent);
  		sendBroadcast(new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS));    	
      }
-    
-   	/************************************************************************************************************************/
-	//  UI Alarm Pop-up Functions (Hypo, No CGM, etc.)
-	/************************************************************************************************************************/
-   	
-   	public void showAlarmActivity(int alarmType)
-   	{
-   		final String FUNC_TAG = "showAlarmActivity";
-   		
-   		if(!alarmActivityRunning)
-   		{
-	   		Debug.i(TAG, FUNC_TAG, "Alarm sounding!  Opening AlarmActivity... (ID: "+alarmType+")");
-	   		alarmActivityRunning = true;
-	   		
-	   		Intent alarmDisplay = new Intent();
-	 		alarmDisplay.setComponent(new ComponentName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.AlarmActivity"));
-	 		alarmDisplay.putExtra("height", midFrameH);
-	 		alarmDisplay.putExtra("width", midFrameW);
-	 		alarmDisplay.putExtra("state", DIAS_STATE);
-	 		alarmDisplay.putExtra("alarmType", alarmType);
-	 		startActivityForResult(alarmDisplay, ALARM);
-   		}
-   		else
-   			Debug.i(TAG, FUNC_TAG, "Alarm activity already running!");
-   	}
 	
     /************************************************************************************************************************/
 	//  Utility Functions (Sounds, DB checks, time, etc.)
 	/************************************************************************************************************************/
     
-    public void newSubject()
+    private void newSubject()
    	{
     	final String FUNC_TAG = "newSubject";
     	//This is called when a new subject is started (Context Menu button)
     	
-		//DIAS_STATE = State.DIAS_STATE_STOPPED;
 		// Delete everything in the biometricsContentProvider
 		main.getContentResolver().delete(Uri.parse("content://"+ Biometrics.PROVIDER_NAME + "/all"), null, null);
-		
-		/*
-		// Start setup
-		Debug.i(TAG, FUNC_TAG, "New Subject Click: Start DiAsSetup1");
-		Intent i = new Intent();
-		i.setClassName("edu.virginia.dtc.supervisor", "edu.virginia.dtc.supervisor.Supervisor");
-		i.putExtra("setupScreenIDNumber", 0);
-		i.putExtra("configurationMode", false);
-		i.putExtra("wakeupMode", false);
-		int pid = android.os.Process.myPid();
-		startActivity(i);
-		android.os.Process.killProcess(pid);
-		*/
 		
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Reboot required")
@@ -2645,17 +2190,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		
    	}
     
-    public void soundClink() {
-   	 	MediaPlayer mMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.tapclink1);
-   	 	mMediaPlayer.start();    	 
-    }
-
-    public void soundClick() {
-//   	 	MediaPlayer mMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.tapclick);
-//   	 	mMediaPlayer.start();    	 
-    }
-
-    public boolean inSimMode()
+    private boolean inSimMode()
     {
     	if(SIM_TIME > 0)
     		return true;
@@ -2663,10 +2198,9 @@ public class DiAsMain extends Activity implements OnGestureListener {
     		return false;
     }
     
-	public boolean inBrmRange(int timeNowMins) 
+	private boolean inBrmRange(int timeNowMins) 
 	{
 		final String FUNC_TAG = "inBrmRange";
-//		Tvector safetyRanges = DiAsSubjectData.getInstance().subjectSafety;
 		Tvector safetyRanges = new Tvector(12);
 		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, this)) {
 			for (int i = 0; i < safetyRanges.count(); i++) 
@@ -2691,7 +2225,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		}
 	}
 	
-	public boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
+	private boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
 		boolean retvalue = false;
 		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
 		long t, t2 = 0;
@@ -2715,7 +2249,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		return retvalue;
 	}
 
-	public long getTimeSeconds() 
+	private long getTimeSeconds() 
 	{
 		if (SIM_TIME > 0) 
 			return SIM_TIME;			//Simulated time passed on timer tick
@@ -2764,8 +2298,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		}
 	}
     
-    public boolean standaloneDriverAvailable()
-   	{
+    private boolean standaloneDriverAvailable() {
    		//Does a quick scan to check if the StandaloneDriver application is installed, if so it returns true
    		final PackageManager pm = this.getPackageManager();
 		List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
@@ -2780,7 +2313,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
    		return false;
    	}
     
-    public boolean temporaryBasalRateActivityAvailable()
+    private boolean temporaryBasalRateActivityAvailable()
    	{		
    		//Does a quick scan to check if the APCService temporaryBasalRateActivity is supported by the ControllerPackage, if so it returns true
     	String controllerPackageName = new String("edu.virginia.dtc.APCservice");
@@ -2883,7 +2416,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	//  Log Functions
 	/************************************************************************************************************************/
     
- 	public void log_action(String service, String action) {
+ 	private void log_action(String service, String action) {
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
         i.putExtra("Service", service);
         i.putExtra("Status", action);

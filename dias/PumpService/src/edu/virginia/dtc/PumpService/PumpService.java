@@ -18,13 +18,11 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.DeadObjectException;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -52,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.State;
@@ -62,24 +59,22 @@ public class PumpService extends Service {
 	
     // Debugging
     private static final String TAG = "PumpService";
-    private static final String VERSION_NUMBER = "1.10";
-    public static final String IO_TEST_TAG = "PumpServiceIO";
 	private static final boolean QUERY_LOG = true;
 	
-	public static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;
+	private static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;
 	
 	// DiAs State Variable and Definitions - state for the system as a whole
-	public int DIAS_STATE, PREV_DIAS_STATE;
-	public int PUMP_STATE = Pump.NONE;
+	private int DIAS_STATE;
+	private int PUMP_STATE = Pump.NONE;
 	
-    public static final String INSULIN_BASAL_BOLUS = "basal_bolus";
-    public static final String INSULIN_MEAL_BOLUS = "meal_bolus";
-    public static final String INSULIN_CORR_BOLUS = "corr_bolus";
+    private static final String INSULIN_BASAL_BOLUS = "basal_bolus";
+    private static final String INSULIN_MEAL_BOLUS = "meal_bolus";
+    private static final String INSULIN_CORR_BOLUS = "corr_bolus";
     
     private PowerManager pm;
     private PowerManager.WakeLock wl;
     
-	public StateData state_data;
+	private StateData state_data;
 	
 	private double current_delivered_U = 0.0;
 	
@@ -89,17 +84,12 @@ public class PumpService extends Service {
 	private long TIMEOUT_ADDITION = 30000;				// Additional time for timeout from pump service
 	private int TBR_TIMEOUT = 45;						// Timeout for TBR setup in seconds
 	
-	// If the sum of all remaining unrequested boluses exceeds this threshold then the system will immediately request another bolus after receiving command confirmation
-	public double BOLUS_THRESHOLD = 0.3;	
-	
 	// Requested but not yet delivered insulin values.  Used to account for delivered insulin 
 	double undelivered_basal_insulin, undelivered_corr_insulin, undelivered_meal_insulin;
     
     private final Messenger ssmMessenger = new Messenger(new ssmMessageHandler());
     private Messenger ssmMessageTx = null;
     
-    private String logFile = "";
-    private boolean logReady = true;
     private boolean asynchronous = false;
     
     private int tbrTimeouts = 0;
@@ -107,14 +97,15 @@ public class PumpService extends Service {
     
     private BroadcastReceiver TickReceiver;
     
-    public static ScheduledExecutorService bolusTimeoutScheduler = Executors.newSingleThreadScheduledExecutor();
-	public static ScheduledFuture<?> deliveryTimer, commandTimer, tbrTimer, wakeTimer;
+    private static ScheduledExecutorService bolusTimeoutScheduler = Executors.newSingleThreadScheduledExecutor();
+	private static ScheduledFuture<?> deliveryTimer, commandTimer, tbrTimer;
 	
 	private int consecutiveMissedBolus = 0;
 	
 	private SystemObserver sysObserver;
 	
-	PumpService me;
+	private PumpSystem PUMP;
+	private PumpService me;
 	
 	public Runnable tbrTimeOut = new Runnable()
 	{
@@ -184,7 +175,14 @@ public class PumpService extends Service {
 			
 			Event.addEvent(me, Event.EVENT_PUMP_MISSED_BOLUS, Event.makeJsonString(b), eventSetting);
 			
-			retryBolus(PUMP.sent_meal_U, PUMP.sent_corr_U, PUMP.sent_basal_U);
+			PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
+			PUMP.sent_corr_U = 0;
+			PUMP.sent_meal_U = 0;
+			
+    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
+    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
+			PUMP.acc_corr_U = 0;
+			PUMP.acc_meal_U = 0;
 		}
 	};
 	
@@ -229,13 +227,16 @@ public class PumpService extends Service {
 			
 			evaluateMissedBoluses();
 			
-			retryBolus(PUMP.sent_meal_U, PUMP.sent_corr_U, PUMP.sent_basal_U);
+			PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
+			PUMP.sent_corr_U = 0;
+			PUMP.sent_meal_U = 0;
+			
+    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
+    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
+			PUMP.acc_corr_U = 0;
+			PUMP.acc_meal_U = 0;
 		}
 	};
-    
-    private PumpSystem PUMP;
-    private Thread logThread;
-	private boolean logStop, logRunning;
     
     @Override
     public void onCreate() {
@@ -249,7 +250,6 @@ public class PumpService extends Service {
         PUMP.driverReceiver = new Messenger(new driverMessageHandler());
         
         DIAS_STATE = State.DIAS_STATE_STOPPED;
-        PREV_DIAS_STATE = State.DIAS_STATE_STOPPED;
         
 		current_delivered_U = 0.0;
 		asynchronous = false;
@@ -269,11 +269,11 @@ public class PumpService extends Service {
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
         int icon = R.drawable.icon;
-        CharSequence tickerText = "Pump Service v"+VERSION_NUMBER;
+        CharSequence tickerText = "Pump Service";
         long when = System.currentTimeMillis();
         Notification notification = new Notification(icon, tickerText, when);
         Context context = getApplicationContext();
-        CharSequence contentTitle = "Pump Service v"+VERSION_NUMBER;
+        CharSequence contentTitle = "Pump Service";
         CharSequence contentText = "Insulin Delivery";
         Intent notificationIntent = new Intent(this, PumpService.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
@@ -291,15 +291,6 @@ public class PumpService extends Service {
         // Listens to changes on the SYSTEM table
         sysObserver = new SystemObserver(new Handler());
         getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
-        
-        logRunning = logStop = false;
-		if(Params.getBoolean(getContentResolver(), "logcatToSd", false))
-		{
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is enabled!");
-			startLogThread();
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is disabled!");
     }
     
     @Override
@@ -369,20 +360,6 @@ public class PumpService extends Service {
         
         if(sysObserver != null)
 			getContentResolver().unregisterContentObserver(sysObserver);
-        
-        logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
     }
     
     @Override
@@ -405,18 +382,6 @@ public class PumpService extends Service {
       		switch(msg.what)
       		{
       			case Pump.DRIVER2PUMP_SERVICE_PARAMETERS:
-      				/*
-      				response = msg.getData();
-      				PUMP.low_reservoir_level = response.getInt("low_reservoir_threshold_U");
-      				PUMP.reservoir_size = response.getInt("reservoir_size_U");
-      				PUMP.infusion_rate = response.getDouble("infusion_rate_U/sec");
-      				PUMP.conversion = response.getDouble("unit_conversion");
-      				PUMP.conversion_unit = response.getString("unit_name");
-      				PUMP.min_bolus = response.getDouble("min_bolus_U");
-      				PUMP.max_bolus = response.getDouble("max_bolus_U");
-      				PUMP.min_quanta = response.getDouble("min_quanta_U");
-      				*/
-      				
       				Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, null, null, null, null);
       				if (c.moveToLast())
       				{
@@ -1224,120 +1189,6 @@ public class PumpService extends Service {
     	}
     }
     
-    public void retryBolus(double meal, double correction, double basal)
-    {
-    	final String FUNC_TAG = "retryBolus";
-    	
-    	int retryCount = -1;
-    	
-    	Debug.i(TAG, FUNC_TAG, "Retrying bolus ID: "+PUMP.retryId+"!  Meal: "+meal+" Corr: "+correction+" Basal: "+basal);
-    	
-//    	double notify_thresh = Params.getDouble(this.getContentResolver(), "bolus_notify_threshold_units", 1.0);
-//    	
-//    	Debug.i(TAG, FUNC_TAG, "Notify threshold is "+notify_thresh+" U");
-    	
-//    	if((meal+correction+basal) > notify_thresh)
-//    	{
-//    		Bundle b = new Bundle();
-//    		b.putString("description", "Bolus missed!");
-//    		b.putString("amount", String.valueOf(meal+correction+basal));	
-//    		Event.addEvent(me, Event.EVENT_PUMP_MISSED_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
-//    	}
-    	
-    	if(PUMP.retries)		//Check if the pump supports retrying
-    	{
-    		//Check the insulin table in reverse for the Retry ID
-//    		Cursor c=getContentResolver().query(INSULIN_URI, null, null, null, null);
-//    		c.moveToLast();
-//			while (c.getCount() != 0 && c.isBeforeFirst() == false) 
-//			{
-//    			int id = c.getInt(c.getColumnIndex("identifier"));
-//    			Debug.i(TAG, FUNC_TAG, "ID: "+id+" found in table!");
-//    			if(id == PUMP.retryId)
-//    			{  
-//    				retryCount = c.getInt(c.getColumnIndex("num_retries"));
-//    			}
-//    			c.moveToPrevious();
-//			}
-//			c.close();
-//    		
-//			Debug.i(TAG, FUNC_TAG, "Retry Count: "+retryCount+" Max Retries: "+PUMP.max_retries);
-//			
-//			if(retryCount != -1 && retryCount < PUMP.max_retries)
-//			{
-//	    		//Run bolus command again
-//	    		double bolus_total_U = meal + correction + basal;
-//	    		retryCount++;
-//	    		
-//	    		Debug.i(TAG, FUNC_TAG, "Bolus for "+bolus_total_U+" U resent, retry number "+retryCount+"!");
-//	    		
-//	    		Bundle data = new Bundle();
-//				data.putDouble("bolus", bolus_total_U*PUMP.conversion);
-//				data.putInt("bolusId", PUMP.retryId);										//Use retry ID here so we don't rewrite things
-//	    		
-//	    		if(bolus_total_U < 1)				//If the bolus is less than 1U then we can automatically retry
-//	    		{
-//					sendPumpBolus(PUMP.driverTransmitter, PUMP_SERVICE2DRIVER_BOLUS, data);
-//					
-//					updatePumpState(Pump.PUMP_STATE_COMMAND_AWAITING_DEVICE_RESPONSE);
-//					
-//					updateRequestedInsulin(data.getInt("bolusId"), retryCount);
-//	    		}
-//	    		else								//Otherwise the bolus is greater or equal to 1U and we need to inform the user 
-//	    		{
-//	    			Debug.i(TAG, FUNC_TAG, "Launching retry activity...");
-//	    			
-//	    			Intent retryActivity = new Intent();
-//	    	 		retryActivity.setClass(me, RetryActivity.class);
-//	    	 		retryActivity.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//	    	 		retryActivity.putExtra("bolus", bolus_total_U);				//Don't convert for the pop-up version
-//	    	 		retryActivity.putExtra("bolusId", PUMP.retryId);
-//	    	 		me.startActivity(retryActivity);
-//	    			
-//	    	 		Debug.i(TAG, FUNC_TAG, "Updating retry count!");
-//	    	 		
-//	    			updateRequestedInsulin(data.getInt("bolusId"), retryCount);
-//	    		}
-//			}
-//			else
-//			{
-//				PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
-//				PUMP.sent_corr_U = 0;
-//				PUMP.sent_meal_U = 0;
-//				
-//	    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
-//	    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
-//				PUMP.acc_corr_U = 0;
-//				PUMP.acc_meal_U = 0;
-//				
-//				//Be sure to return the Pump state to idle
-//				updatePumpState(Pump.PUMP_STATE_COMMAND_IDLE);
-//				
-//				Debug.i(TAG, FUNC_TAG, "Retry ID not found or over the maximum retries...resetting bolus memory!");
-//			}
-    	}
-    	else
-    	{
-    		Debug.i(TAG, FUNC_TAG, "Retries not enabled!");
-    		
-    		PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
-			PUMP.sent_corr_U = 0;
-			PUMP.sent_meal_U = 0;
-			
-    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
-    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
-			PUMP.acc_corr_U = 0;
-			PUMP.acc_meal_U = 0;
-			
-			//Be sure to return the Pump state to idle
-			//updatePumpState(Pump.PUMP_STATE_COMMAND_IDLE);
-    	}
-    	
-    	//reportCommandStatusToSafetyService(Pump.PUMP_STATE_COMMAND_COMPLETE);
-    	
-    	Debug.i(TAG, FUNC_TAG, "Retry function end...");
-    }
-    
     private void evaluateMissedBoluses()
     {
     	final String FUNC_TAG = "evaluateMissedBoluses";
@@ -1824,7 +1675,7 @@ public class PumpService extends Service {
 		if(messenger!=null)
 		{
 			double bolus = data.getDouble("bolus");
-			//Toast.makeText(getApplicationContext(), "Sending "+String.format("%.2f",bolus)+" U", Toast.LENGTH_SHORT).show();
+			Toast.makeText(getApplicationContext(), "Commanding "+String.format("%.2f",bolus)+" Units", Toast.LENGTH_SHORT).show();
 		
 			Debug.i(TAG, FUNC_TAG, "Sending "+String.format("%.2f",bolus)+" U");
 			
@@ -1845,49 +1696,6 @@ public class PumpService extends Service {
 		else
 			Debug.i(TAG, FUNC_TAG, "Messenger NULL!");
 	}
-	
-//	private void wakeDriver()
-//	{
-//		final String FUNC_TAG = "wakeDriver";
-//		
-//		Debug.e(TAG, FUNC_TAG, "There is an error with the pump...");
-//		updatePumpState(Pump.PUMP_STATE_PUMP_ERROR);
-//		
-//		//Fire event!
-//		Bundle b = new Bundle();
-//		b.putString("description", "Pump Error!");
-//		Event.addEvent(this, Event.EVENT_PUMP_STOPPED, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
-//		
-//		//Start driver!
-//		Debug.e(TAG, FUNC_TAG, "Restarting pump...");
-//		
-//		Cursor c = getContentResolver().query(Biometrics.HARDWARE_CONFIGURATION_URI, null, null, null, null);
-//		if(c!=null)
-//		{
-//			if(c.moveToFirst())
-//			{
-//				String pump = c.getString(c.getColumnIndex("running_pump"));
-//				
-//				Intent driver = new Intent();
-//				if(pump != null && !pump.equalsIgnoreCase(""))
-//				{
-//					Debug.w(TAG, FUNC_TAG, "Previously running pump was found: "+pump);
-//					String p_pump = pump.substring(0, pump.lastIndexOf('.'));
-//					Debug.w(TAG, FUNC_TAG, "Pump Package name: "+p_pump);
-//					
-//					driver.setClassName(p_pump, pump);
-//					driver.putExtra("auto", true);
-//					this.startService(driver);
-//				}
-//				else
-//					Debug.i(TAG, FUNC_TAG, "No previously running Pump!");
-//			}
-//		}
-//		else
-//			Debug.i(TAG, FUNC_TAG, "Cursor is null!");
-//		
-//		c.close();
-//	}
 	
 	/**********************************************************************************************************
 	 * Content Provider Access Functions
@@ -1947,15 +1755,6 @@ public class PumpService extends Service {
 
 		//  Write values to the database in the INSULIN table
 		Debug.i(TAG, FUNC_TAG, "storeZeroDeliveredInsulin");
-		
-		/*
-		valuesdelivered.put(TIME, getCurrentTimeSeconds());
-		valuesdelivered.put(INSULINRATE1, 0.0);
-		valuesdelivered.put(INSULINBOLUS1, 0.0);				// Store the total bolus delivered here
-		valuesdelivered.put(INSULIN_BASAL_BOLUS,  0.0);
-		valuesdelivered.put(INSULIN_CORR_BOLUS,  0.0);		    	
-		valuesdelivered.put(INSULIN_MEAL_BOLUS,  0.0);
-		*/
 		
 		ContentValues values = new ContentValues();
 	    
@@ -2212,57 +2011,6 @@ public class PumpService extends Service {
     	}
     }
 	
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/pumpServiceLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
-		}
-	}
-	
 	class SystemObserver extends ContentObserver 
     {	
     	private int count;
@@ -2297,32 +2045,11 @@ public class PumpService extends Service {
 	       	{
 	       		if(c.moveToLast())
 	       		{
-	       			int diasState = c.getInt(c.getColumnIndex("diasState"));
+	       			DIAS_STATE = c.getInt(c.getColumnIndex("diasState"));
 	       			PUMP_STATE = c.getInt(c.getColumnIndex("pumpState"));
-	       			
-	       			PREV_DIAS_STATE = DIAS_STATE;
-	       			DIAS_STATE = diasState;
-	       			
        			}
 	       		c.close();
 	       	}
        }		
     }
-	
-	class MealBolus
-	{
-		private double first_meal, first_corr, second_meal, second_corr;
-		private boolean first_sent, second_sent;
-		private boolean first_delivered, second_delivered;
-		private long first_id, second_id;
-		
-		public MealBolus()
-		{
-			first_meal = first_corr = 0.0;
-			second_meal = second_corr = 0.0;
-			first_sent = second_sent = false;
-			first_delivered = second_delivered = false;
-			first_id = second_id = -1;
-		}
-	}
 }

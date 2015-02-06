@@ -186,12 +186,6 @@ public class StandaloneUI extends Activity {
 		final AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
 		Message msg;
 		
-		Intent cgmIntent = new Intent();
-	    cgmIntent.setClassName("edu.virginia.dtc.CgmService", "edu.virginia.dtc.CgmService.CgmService");
-	    
-	    Intent pumpIntent = new Intent();
-	    pumpIntent.setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService");
-	    
 	    drv = Driver.getInstance();
 	    switch(item.getGroupId())
 	    {
@@ -263,8 +257,6 @@ public class StandaloneUI extends Activity {
 					case 6:		//Disconnect
 						Debug.i(TAG, FUNC_TAG,"Disconnecting CGM");
 						drv.cgm.state = CGM.CGM_NONE;
-						cgmIntent.putExtra("CGMCommand", CGM_SERVICE_CMD_DISCONNECT);
-						startService(cgmIntent);
 						drv.cgmList.clear();
 						this.findViewById(R.id.button1).setEnabled(true);
 						break;
@@ -296,10 +288,7 @@ public class StandaloneUI extends Activity {
 						break;
 					case 5://Disconnect
 						Debug.i(TAG, FUNC_TAG,"Disconnecting Pump");
-						//drv.pump.state = Pump.DISCONNECTED;
 						drv.updatePumpState(Pump.DISCONNECTED);
-						//pumpIntent.putExtra("PumpCommand", PUMP_SERVICE_CMD_DISCONNECT);
-						//startService(pumpIntent);
 						drv.pumpList.clear();
 						this.findViewById(R.id.button2).setEnabled(true);
 						break;

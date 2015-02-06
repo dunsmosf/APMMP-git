@@ -82,37 +82,29 @@ public class BTLE_Tandem_Driver extends Service{
 	//*******************************************************
 	private static final String TAG = "BTLE_Tandem_Driver";
 	
-	public static final String Driver_Name = "BTLE_Tandem";
+	private static final String Driver_Name = "BTLE_Tandem";
 	public static final String UI_Intent = "Driver.UI.BTLE_Tandem";
-	public static final String Pump_Intent = "Driver.Pump.BTLE_Tandem";
+	private static final String Pump_Intent = "Driver.Pump.BTLE_Tandem";
 	
-	public static final UUID CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-	public static final UUID UUID_SERV = 		UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");
-	public static final UUID WRITE_UUID_CHAR = 	UUID.fromString("0000fff3-0000-1000-8000-00805f9b34fb");
-	public static final UUID READ_UUID_CHAR = 	UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");
+	private static final UUID CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+	private static final UUID UUID_SERV = 		UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");
+	private static final UUID WRITE_UUID_CHAR = 	UUID.fromString("0000fff3-0000-1000-8000-00805f9b34fb");
+	private static final UUID READ_UUID_CHAR = 	UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");
 	
-	// Log Action Prioritys
-	private static final int LOG_ACTION_UNINITIALIZED = 0;
-	private static final int LOG_ACTION_INFORMATION = 1;
-	private static final int LOG_ACTION_DEBUG = 2;
-	private static final int LOG_ACTION_NOT_USED = 3;
-	private static final int LOG_ACTION_WARNING = 4;
-	private static final int LOG_ACTION_SERIOUS = 5;
-	
-	public final static String ACTION_GATT_CONNECTED = "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA = "com.example.bluetooth.le.EXTRA_DATA";
+	private final static String ACTION_GATT_CONNECTED = "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
+    private final static String ACTION_GATT_DISCONNECTED = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
+    private final static String ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
+    private final static String ACTION_DATA_AVAILABLE = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
+    private final static String EXTRA_DATA = "com.example.bluetooth.le.EXTRA_DATA";
     
     // Parse constants
- 	public static final int INVALID = -1;
- 	public static final int GET_TYPE = 1;
- 	public static final int GET_LENGTH = 2;
- 	public static final int GET_CARGO = 3;
- 	public static final int GET_TIMESTAMP = 4;
- 	public static final int GET_CHECKSUM = 5;
- 	public static final int COMPLETE = 6;
+ 	private static final int INVALID = -1;
+ 	private static final int GET_TYPE = 1;
+ 	private static final int GET_LENGTH = 2;
+ 	private static final int GET_CARGO = 3;
+ 	private static final int GET_TIMESTAMP = 4;
+ 	private static final int GET_CHECKSUM = 5;
+ 	private static final int COMPLETE = 6;
  	
  	private static double INFUSION_RATE = 0.285714;					//Rate of 1U/35s 
  	
@@ -120,8 +112,8 @@ public class BTLE_Tandem_Driver extends Service{
     
  	//GLOBAL VARIABLES
  	//*******************************************************
- 	public static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-	public static ScheduledFuture<?> bolusRetry, bolusExpire, warningTimer, disconnectTimer, reconTimer;
+ 	private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private static ScheduledFuture<?> bolusRetry, bolusExpire, warningTimer, disconnectTimer, reconTimer;
  	
     private final Messenger messengerFromUI = new Messenger(new incomingUIHandler());
     private Messenger messengerToUI = null;
@@ -151,7 +143,7 @@ public class BTLE_Tandem_Driver extends Service{
 	public static boolean scanning, buttons, discovered;
 	public static String devMac;
 	public static List<listDevice> devices;
-	public static BluetoothGatt btleGatt;
+	private static BluetoothGatt btleGatt;
 	public static String status, btleStatus, fluid;
 	
 	private TandemFormats tandem;
@@ -163,10 +155,10 @@ public class BTLE_Tandem_Driver extends Service{
 	
 	private static final int TX_THREAD_SLEEP = 2000;
 	private static final int RW_LATCH_TIMEOUT = 10;
-	public static Queue<OutPacket> txMessages;
+	private static Queue<OutPacket> txMessages;
 	private static volatile Thread transmit;
-	public static boolean txRunning, txStop;
-	public CountDownLatch rwLatch = new CountDownLatch(0); 
+	private static boolean txRunning, txStop;
+	private CountDownLatch rwLatch = new CountDownLatch(0); 
 	
 	//Parsing variables
 	private int parseStatus;
@@ -174,9 +166,7 @@ public class BTLE_Tandem_Driver extends Service{
 	private Header hdr = null;
 	private ByteBuffer packet = null;
 	private long start;
-	
-	private Thread logThread;
-	private boolean logStop, logRunning;
+
 	
 	private List<String> prefixes;
 	
@@ -610,20 +600,6 @@ public class BTLE_Tandem_Driver extends Service{
 		
 		Debug.i(TAG, FUNC_TAG, "");
 		
-		logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
 		txStop = true;
 		//Close transmit thread
 		if(transmit != null)
@@ -689,57 +665,6 @@ public class BTLE_Tandem_Driver extends Service{
         	Debug.w(TAG, FUNC_TAG, "Not retrying because we intentionally disconnected!");
         	btleGatt.disconnect();
         }
-	}
-	
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/tandemLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
-		}
 	}
 	
 	private void getAddressPrefixes()
@@ -974,8 +899,6 @@ public class BTLE_Tandem_Driver extends Service{
 					pumpValues.put("infusion_rate_U_sec", INFUSION_RATE);
 					pumpValues.put("reservoir_size_U", 300.0);
 					pumpValues.put("low_reservoir_threshold_U", 50.0);				//Low reservoir message will show at 50U remaining
-					pumpValues.put("unit_name", "micro-liters");
-					pumpValues.put("unit_conversion", 10.0);
 					pumpValues.put("queryable", 1);
 					
 					pumpValues.put("temp_basal", 0);							//Indicates if Temp Basals are possible
@@ -1000,10 +923,10 @@ public class BTLE_Tandem_Driver extends Service{
 					Debug.i(TAG, FUNC_TAG,"Receiving bolus command!");
 
 					double bolus_req = msg.getData().getDouble("bolus");		//Convert the bolus from U to uL for tandem pump
-					float bolus_req_ul = (float)(bolus_req);
+					float bolus_req_ul = (float)(bolus_req*10);
 					byte[] buffer;
 					
-					Debug.i(TAG, FUNC_TAG,"Bolus requested for "+bolus_req/10+"U ("+bolus_req_ul+"uL)");
+					Debug.i(TAG, FUNC_TAG,"Bolus requested for "+bolus_req+"U ("+bolus_req_ul+"uL)");
 					bolusing = true;
 					confirming = false;
 					
@@ -1014,7 +937,7 @@ public class BTLE_Tandem_Driver extends Service{
 					buffer = tandem.new RequestBolus().Build(bolusId, (float)bolus_req_ul);
 					sendTandemData(RequestBolus.TYPE, buffer, RequestBolus.RESP_CNT);
 					
-					Debug.i(TAG, FUNC_TAG, "Bolus ID: "+bolusId+" of "+bolus_req/10+"U");
+					Debug.i(TAG, FUNC_TAG, "Bolus ID: "+bolusId+" of "+bolus_req+"U");
 					
 					bolusInfusionTime = (long)((bolus_req/INFUSION_RATE)*1000);		//Use the bolus in units
 					bolusInfusionTime += 180000;										//Add 3 minutes to timeout (this seems excessive)
