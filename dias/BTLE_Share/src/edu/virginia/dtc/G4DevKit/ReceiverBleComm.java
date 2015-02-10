@@ -31,18 +31,17 @@ public class ReceiverBleComm  implements IReceiverComm
 {
 	private static final String TAG = "ReceiverBleComm";
 	
-	public static final UUID CHARACTERISTIC_CONFIG_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+	private static final UUID CHARACTERISTIC_CONFIG_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 	
 	private static final int NONE = 0;
 	private static final int RECONNECTING = 1;
 	private static final int CONNECTED = 2;
 	private static final int DISCONNECTED = 3;
 	
-	public static final UUID AUTH_CHAR = 		UUID.fromString("f0acacac-ebfa-f96f-28da-076c35a521db");
-	public static final UUID CRADLE_CHAR = 		UUID.fromString("f0acb0cd-ebfa-f96f-28da-076c35a521db");
-	public static final UUID HBT_CHAR = 		UUID.fromString("f0ac2b18-ebfa-f96f-28da-076c35a521db");
-	public static final UUID SRV_CHAR = 		UUID.fromString("f0acb20a-ebfa-f96f-28da-076c35a521db");
-    public static final UUID CLT_CHAR = 		UUID.fromString("f0acb20b-ebfa-f96f-28da-076c35a521db");
+	private static final UUID AUTH_CHAR = 		UUID.fromString("f0acacac-ebfa-f96f-28da-076c35a521db");
+	private static final UUID HBT_CHAR = 		UUID.fromString("f0ac2b18-ebfa-f96f-28da-076c35a521db");
+	private static final UUID SRV_CHAR = 		UUID.fromString("f0acb20a-ebfa-f96f-28da-076c35a521db");
+	private static final UUID CLT_CHAR = 		UUID.fromString("f0acb20b-ebfa-f96f-28da-076c35a521db");
 	
     private static BluetoothManager btleManager;
 	private static BluetoothAdapter btleAdapter; 
@@ -153,7 +152,7 @@ public class ReceiverBleComm  implements IReceiverComm
 		
 		this.service = c;
 		
-		if(mac.equalsIgnoreCase(ReceiverBleComm.mac) && code.equalsIgnoreCase(ReceiverBleComm.code))
+		if(mac.equalsIgnoreCase(ReceiverBleComm.mac) && code.equalsIgnoreCase(ReceiverBleComm.code) && (state == RECONNECTING || state == CONNECTED))
 		{
 			Debug.w(TAG, FUNC_TAG, "This is the current device in use!");
 			return;

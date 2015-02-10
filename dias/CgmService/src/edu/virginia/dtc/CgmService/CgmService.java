@@ -22,6 +22,7 @@ import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.SysMan.State;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -96,11 +97,6 @@ public class CgmService extends Service {
     
 	// DiAs State Variable and Definitions - state for the system as a whole
 	public int DIAS_STATE;
-	public static final int DIAS_STATE_UNKNOWN = -1;
-	public static final int DIAS_STATE_STOPPED = 0;
-	public static final int DIAS_STATE_OPEN_LOOP = 1;
-	public static final int DIAS_STATE_CLOSED_LOOP = 2;
-	public static final int DIAS_STATE_SAFETY_ONLY = 3;
     
 	// Power management
 	private PowerManager pm;
@@ -114,9 +110,6 @@ public class CgmService extends Service {
 	
 	private SystemObserver sysObserver;
 
-	private Thread logThread;
-	private boolean logStop, logRunning;
-	
     @Override
     public void onCreate() {
     	final String FUNC_TAG = "onCreate";
@@ -129,7 +122,7 @@ public class CgmService extends Service {
         Debug.i("CGM", FUNC_TAG,"CGM");
         log_action(TAG, "onCreate", LOG_ACTION_INFORMATION);
         
-        DIAS_STATE = DIAS_STATE_UNKNOWN;
+        DIAS_STATE = State.DIAS_STATE_STOPPED;
         
         // Register to receive Supervisor Control Algorithm Tick
         BroadcastReceiver AlgTickReceiver = new BroadcastReceiver() {
@@ -167,15 +160,6 @@ public class CgmService extends Service {
 		
 		sysObserver = new SystemObserver(new Handler());
 		getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
-		
-		logRunning = logStop = false;
-		if(Params.getBoolean(getContentResolver(), "logcatToSd", false))
-		{
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is enabled!");
-			startLogThread();
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is disabled!");
     }
 
     @Override
@@ -241,28 +225,6 @@ public class CgmService extends Service {
     	final String FUNC_TAG = "onDestroy";
 
         super.onDestroy();
-        
-        log_action(TAG, "onDestroy", LOG_ACTION_INFORMATION);
-        Toast toast = Toast.makeText(this, "CGM Service Stopped", Toast.LENGTH_SHORT);
-        toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-        toast.show();
-
-        if(D) 
-        	Debug.e(TAG, FUNC_TAG, "--- ON DESTROY ---");
-        
-        logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
     } 
     
     @Override
@@ -512,7 +474,7 @@ public class CgmService extends Service {
     		}
     		
     		public void onServiceDisconnected(ComponentName className) {
-    			Debug.i(TAG, FUNC_TAG,"onServiceDisconnected...");
+    			Debug.e(TAG, FUNC_TAG,"onServiceDisconnected...");
     		}
     	};
     	
@@ -524,57 +486,6 @@ public class CgmService extends Service {
     /*****************************************************************************************************
      * Miscellaneous Utility Functions
      ****************************************************************************************************/
-
-    private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/cgmServiceLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
-		}
-	}
     
 	public long getCurrentTimeSeconds() {
 		final String FUNC_TAG = "getCurrentTimeSeconds";

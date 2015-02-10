@@ -74,22 +74,6 @@
             android:gravity="center_horizontal" 
             android:layout_marginBottom="10dp">
 
-            <Button
-                android:id="@+id/button3"
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:onClick="onReconClick"
-                android:text="Cycle" />
-
-            <Button
-                android:id="@+id/Button01"
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:onClick="onServiceClick"
-                android:text="Services" />
-
         </LinearLayout>
 
         <TextView

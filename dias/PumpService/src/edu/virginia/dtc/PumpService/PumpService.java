@@ -74,8 +74,6 @@ public class PumpService extends Service {
     private PowerManager pm;
     private PowerManager.WakeLock wl;
     
-	private StateData state_data;
-	
 	private double current_delivered_U = 0.0;
 	
 	private double bolus_max = 0;						// This is from safety service
@@ -263,8 +261,6 @@ public class PumpService extends Service {
         Debug.i(TAG, FUNC_TAG, "onCreate");
         log_action(TAG, "onCreate", Debug.LOG_ACTION_INFORMATION);
      
-		state_data = new StateData();
-		
         // Set up a Notification for this Service
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
@@ -995,17 +991,6 @@ public class PumpService extends Service {
 					Debug.i(TAG, FUNC_TAG, "CMD_DELIVER_BOLUS > START OF BOLUS COMMAND --------------------------------------------------------------");
 					
 					deliverBolus(asynchronous, pre_authorized, bolus_max, basal_bolus, meal_bolus, corr_bolus);
-					break;
-				case Pump.PUMP_SERVICE_CMD_SET_BASAL_RATE:
-					if (PUMP.state == Pump.PUMP_STATE_IDLE || PUMP.state == Pump.PUMP_STATE_COMPLETE) 
-					{
-						state_data.basal_rate = paramBundle.getDouble("basal_rate", -1.0);
-						Debug.i(TAG, FUNC_TAG, "PUMP_SERVICE_CMD_SET_RATE > basal_rate="+state_data.basal_rate);		//The basal rate that should be set in the pump is stored in state_data.basal_rate
-					}
-					else 
-					{
-						Debug.i(TAG, FUNC_TAG, "PUMP_SERVICE_CMD_SET_RATE > Error: Not ready for command, PUMP_STATE="+PUMP.state);
-					}
 					break;
 				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS:
 					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS");
