@@ -23,7 +23,7 @@ adb install "DiAsUI/bin/DiAsUI.apk"
 adb install "networkService/bin/networkService.apk"
 adb install "PumpService/bin/PumpService.apk"
 
-::SHELLS
+::SHELLS/CONTROLLERS
 ::-------------------------------------------------------------------
 ::adb install "ConstraintServiceShell/bin/ConstraintServiceShell.apk"
 ::adb install "ExerciseServiceShell/bin/ExerciseServiceShell.apk"
@@ -35,9 +35,6 @@ adb install "PumpService/bin/PumpService.apk"
 adb install "../controllers/USS/SSMservice/bin/SSMservice.apk"
 adb install "../controllers/USS/BRMservice/bin/BRMservice.apk"
 adb install "../controllers/HMS/HMSservice/bin/HMSservice.apk"
-
-::SERVICES
-::-------------------------------------------------------------------
 adb install "MCMservice/bin/MCMservice.apk"
 
 ::DRIVERS

@@ -168,8 +168,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	private TextView textViewPassword;
 	private EditText editTextPassword;
 	
-	private boolean alarmActivityRunning = false;
-	
 	// CGM data gap constants
 	private boolean insulinSetupComplete = false;
 	
@@ -197,7 +195,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
         ServiceReceiverIsRegistered = false;
         TickReceiverIsRegistered = false;
         noCgmInClosedLoopAlarmPlaying = false;
-        alarmActivityRunning = false;
         
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		
@@ -314,7 +311,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	    			}
 	    			cancelNoCgmWatchdogTimer();
 	    		}
-	    		alarmActivityRunning = false;
 	    		updateDiasMainState(DIAS_UI_STATE_MAIN);
 	    		break;
 	    	case SMBG:

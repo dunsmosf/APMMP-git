@@ -282,7 +282,7 @@ public class biometricsContentProvider extends ContentProvider {
     
     private static final String DATABASE_TABLE_TEMPORARY_BASAL_CREATE =
     "create table IF NOT EXISTS " + Biometrics.TEMP_BASAL_TABLE_NAME
-    + "(start_time long, scheduled_end_time long, actual_end_time long, percent_of_profile_basal_rate int, status_code int, owner int,"
+    + "(_id integer primary key autoincrement, start_time long, scheduled_end_time long, actual_end_time long, percent_of_profile_basal_rate int, status_code int, owner int,"
     + "send_attempts_server int, received_server boolean);";
     
     private static final String DATABASE_TABLE_STATE_CREATE =
