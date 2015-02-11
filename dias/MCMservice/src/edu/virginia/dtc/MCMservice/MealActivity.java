@@ -1,5 +1,11 @@
 package edu.virginia.dtc.MCMservice;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import edu.virginia.dtc.MCMservice.MCMservice.SystemObserver;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
@@ -13,8 +19,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -33,6 +41,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MealActivity extends Activity{
 	
@@ -68,6 +77,22 @@ public class MealActivity extends Activity{
     public static boolean iobChecked, injectEnabled;
     
     public static String info = "";
+    
+    private SystemObserver sysObserver;
+    
+    private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private static ScheduledFuture<?> inactivityTimer;
+	
+	private static final int INACTIVITY_TIMEOUT = 60;
+	
+	private Runnable inactivity = new Runnable() {
+		final String FUNC_TAG = "inactivity";
+		
+		public void run() {
+			Debug.w(TAG, FUNC_TAG, "Inactivity timer elapsed...closing meal screen!");
+			finish();
+		}
+	};
     
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -108,6 +133,10 @@ public class MealActivity extends Activity{
 		initializeScreen();
 		startMCM();
 		updateUi();
+		resetInactivityTimer();
+		
+		sysObserver = new SystemObserver(new Handler());
+		getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
 	}
 	
 	@Override
@@ -116,6 +145,9 @@ public class MealActivity extends Activity{
 		final String FUNC_TAG = "onDestroy";
 
 		inProgress = true;
+		
+		if(sysObserver != null)
+			getContentResolver().unregisterContentObserver(sysObserver);
 		
 		try {
     		Message msg = Message.obtain(null, Meal.UI_CLOSED, 0, 0);
@@ -148,6 +180,16 @@ public class MealActivity extends Activity{
             }
         }
     }
+	
+	private void resetInactivityTimer()
+	{
+		if(inactivityTimer != null)
+			inactivityTimer.cancel(true);
+		
+		Debug.i(TAG, "resetInactivityTimer", "Resetting timer to "+INACTIVITY_TIMEOUT+" seconds!");
+		
+		inactivityTimer = scheduler.schedule(inactivity, INACTIVITY_TIMEOUT, TimeUnit.SECONDS);
+	}
 	
     private void updateUi()
     {
@@ -233,9 +275,14 @@ public class MealActivity extends Activity{
     	
     	if(input.length() <= 0)
     		carbs = 0.0;
-    	else
-    		carbs = Double.parseDouble(input);
-    	
+    	else {
+ 			try {
+ 				carbs = Double.parseDouble(input);
+ 			} catch(NumberFormatException c) {
+ 				carbs = 0.0;
+ 			}
+    	}
+    		
     	reportChangeToMcm();
     }
     
@@ -274,8 +321,13 @@ public class MealActivity extends Activity{
  		
  		if(input.length() <= 0)
  			bg = 0.0;
- 		else
- 			bg = Double.parseDouble(input);
+ 		else {
+ 			try {
+ 				bg = Double.parseDouble(input);
+ 			} catch(NumberFormatException c) {
+ 				bg = 0.0;
+ 			}
+ 		}
 		
 		reportChangeToMcm();
  	}
@@ -313,8 +365,13 @@ public class MealActivity extends Activity{
  	{
  		if(input.length() <= 0)
  			corrInsulin = 0.0;
- 		else
- 			corrInsulin = Double.parseDouble(input);
+ 		else {
+ 			try {
+ 				corrInsulin = Double.parseDouble(input);
+ 			} catch(NumberFormatException c) {
+ 				corrInsulin = 0.0;
+ 			}
+ 		}
  		
  		reportChangeToMcm();
  	}
@@ -396,6 +453,8 @@ public class MealActivity extends Activity{
         catch (RemoteException e) {
     		e.printStackTrace();
         }
+		
+		resetInactivityTimer();
 	}
 	
 	private void initializeScreen()
@@ -532,6 +591,52 @@ public class MealActivity extends Activity{
 	{
 		return System.currentTimeMillis()/1000;			// Seconds since 1/1/1970 in UTC
 	}
+	
+	class SystemObserver extends ContentObserver 
+    {	
+    	private int count;
+    	
+    	public SystemObserver(Handler handler) 
+    	{
+    		super(handler);
+    		
+    		final String FUNC_TAG = "System Observer";
+    		Debug.i(TAG, FUNC_TAG, "Constructor");
+    		
+    		count = 0;
+    	}
+
+       @Override
+       public void onChange(boolean selfChange) 
+       {
+    	   this.onChange(selfChange, null);
+       }		
+
+       @Override
+       public void onChange(boolean selfChange, Uri uri) 
+       {
+    	   final String FUNC_TAG = "onChange";
+    	   
+    	   count++;
+    	   
+    	   Cursor c = getContentResolver().query(Biometrics.SYSTEM_URI, null, null, null, null);
+    	   if(c!=null)
+    	   {
+    		   if(c.moveToLast())
+    		   {
+    			   int PUMP_STATE = c.getInt(c.getColumnIndex("pumpState"));
+    			   
+    			   if(!(PUMP_STATE == Pump.CONNECTED || PUMP_STATE == Pump.CONNECTED_LOW_RESV))
+    			   {
+    				   Debug.e(TAG, FUNC_TAG, "Pump is disconnected!  State: "+Pump.stateToString(PUMP_STATE));
+    				   Toast.makeText(getApplicationContext(), "Sorry, the pump is disconnected and a meal bolus cannot be processed!", Toast.LENGTH_LONG).show();
+    				   finish();
+    			   }
+    		   }
+    		   c.close();
+    	   }
+       }		
+    }
 	
 	/************************************************************************************
 	* Log Functions

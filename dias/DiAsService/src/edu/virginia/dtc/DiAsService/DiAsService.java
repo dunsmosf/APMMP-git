@@ -1612,10 +1612,30 @@ public class DiAsService extends Service
     public void checkServices()
     {
     	final String FUNC_TAG = "checkServices";
+    	final long TIMEOUT = 7 * 60;
     	
     	Debug.i(TAG, FUNC_TAG, "Configuration: "+FSM.configToString(CONFIG));
     	
-    	//TODO: Setup checking of system
+    	long check = (System.currentTimeMillis()/1000) - TIMEOUT;
+    	Debug.i(TAG, FUNC_TAG, "Checking calculation times are greater than "+check+" seconds...");
+    	
+    	switch(CONFIG)
+    	{
+	    	case FSM.APC_BRM:
+	    		if(Apc.last_calc_time < check)
+	    			Debug.e(TAG, FUNC_TAG, "APC hasn't been called in "+TIMEOUT+" seconds!");
+	    		if(Brm.last_calc_time < check)
+	    			Debug.e(TAG, FUNC_TAG, "BRM hasn't been called in "+TIMEOUT+" seconds!");
+	    		break;
+	    	case FSM.APC_ONLY:
+	    		if(Apc.last_calc_time < check)
+	    			Debug.e(TAG, FUNC_TAG, "APC hasn't been called in "+TIMEOUT+" seconds!");
+	    		break;
+	    	case FSM.BRM_ONLY:
+	    		if(Brm.last_calc_time < check)
+	    			Debug.e(TAG, FUNC_TAG, "BRMdi hasn't been called in "+TIMEOUT+" seconds!");
+	    		break;
+    	}
     }
 
 	// ******************************************************************************************************************************

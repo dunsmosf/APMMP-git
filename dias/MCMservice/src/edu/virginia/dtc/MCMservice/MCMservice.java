@@ -60,6 +60,8 @@ public class MCMservice extends Service
   	private StateObserver stateObserver;
   	
   	private boolean systemBusy = false;
+  	
+  	private Context me;
 	
 	private BroadcastReceiver mealActivityReceiver = new BroadcastReceiver()
 	{
@@ -97,6 +99,8 @@ public class MCMservice extends Service
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
         final int MCM_ID = 100;
+        
+        me = this;
         
         startForeground(MCM_ID, notification);
         
@@ -669,6 +673,7 @@ public class MCMservice extends Service
     				   Debug.e(TAG, FUNC_TAG, "Pump is disconnected!  State: "+Pump.stateToString(PUMP_STATE));
     				   //Toast.makeText(getApplicationContext(), "Sorry, the pump is disconnected and a meal bolus cannot be processed!", Toast.LENGTH_LONG).show();
     				   //TODO: add some thing to close the UI when this occurs
+    				   
     			   }
     		   }
     		   c.close();
