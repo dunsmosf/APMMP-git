@@ -14,6 +14,10 @@ import java.util.Vector;
 
 import com.androidplot.Plot;
 import com.androidplot.series.XYSeries;
+import com.androidplot.ui.AnchorPosition;
+import com.androidplot.ui.DynamicTableModel;
+import com.androidplot.ui.SizeLayoutType;
+import com.androidplot.ui.SizeMetrics;
 import com.androidplot.xy.BarFormatter;
 import com.androidplot.xy.BarRenderer;
 import com.androidplot.xy.BoundaryMode;
@@ -26,6 +30,7 @@ import com.androidplot.xy.XPositionMetric;
 import com.androidplot.xy.XYPlot;
 import com.androidplot.xy.XYRegionFormatter;
 import com.androidplot.xy.XYStepMode;
+import com.androidplot.xy.YLayoutStyle;
 import com.androidplot.xy.YValueMarker;
 
 import edu.virginia.dtc.SysMan.Biometrics;
@@ -78,13 +83,13 @@ public class PlotsActivity extends Activity{
     private long MAX_PLOT_STORAGE_DURATION_SECONDS = 24*3600;					// Store only 24 hours of plots data
 	private Vector<Number> cgmTimes, cgmValues, insulinTimes, insulinValues,
 		insulinTimes1, insulinValues1, mealTimes, mealValues, corrTimes, corrValues,
-		deliveredTimes, deliveredValues, bolusTimes, bolusValues, stateValues,
+		bolusTimes, bolusValues, stateValues,
 		mealBolusTimes, mealBolusValues, corrBolusTimes, corrBolusValues;
 	
 	private int cgmCount, insulinCount;
-	private XYSeries seriesCGM, seriesInsulin, seriesBasal, seriesMeal, seriesCorr, seriesDeliveredInsulin, seriesMealBolus, seriesCorrBolus;
+	private XYSeries seriesCGM, seriesInsulin, seriesBasal, seriesMealBolus, seriesCorrBolus;
 	private LineAndPointFormatter seriesCGMFormat, seriesBasalFormat, seriesMealBolusFormat, seriesCorrBolusFormat;
-	private BarFormatter seriesInsulinFormat, seriesMealFormat, seriesCorrFormat, seriesDeliveredInsulinFormat;
+	private BarFormatter seriesInsulinFormat;
 	
 	private XYRegionFormatter 
 		regionStopped = new XYRegionFormatter(Color.argb(100, 255, 0, 0)),
@@ -115,10 +120,6 @@ public class PlotsActivity extends Activity{
 	// Makes plots always rebuild on first loading program
 	private	Number currentStateValue = -1;
 	private	Number prevStateTime = 0;
-	
-	// Plot edit dialogs
-	private static final int DIALOG_PLOTS_EDIT = 0;
-	private static final int DIALOG_PLOTS_TIME_REGION = 1;
 	
 	private long currentTime;					// The current time in UTC seconds - may be real or simulated depending upon the SupervisorService mode
 	
@@ -175,18 +176,6 @@ public class PlotsActivity extends Activity{
 	}
 	
 	@Override
-    public void onWindowFocusChanged(boolean hasFocus)
-    {
-		final String FUNC_TAG = "onWindowFocusChanged";
-    	super.onWindowFocusChanged(hasFocus);
-    	
-    	if(hasFocus)
-    	{
-    		Debug.i(TAG, FUNC_TAG, "M_HEIGHT: "+this.findViewById(R.id.plotLayout).getHeight()+" M_WIDTH: "+this.findViewById(R.id.plotLayout).getWidth());
-    	}
-    }
-	
-	@Override
 	public void onStart()
 	{
 		super.onStart();
@@ -195,7 +184,6 @@ public class PlotsActivity extends Activity{
 	@Override
 	public void onDestroy()
 	{
-		final String FUNC_TAG = "onDestroy";
 		super.onDestroy();
 		
 		unregisterReceiver(TickReceiver);
@@ -203,8 +191,6 @@ public class PlotsActivity extends Activity{
 
 	private void initScreen()
 	{
-		final String FUNC_TAG = "initScreen";
-		
 		WindowManager.LayoutParams params = getWindow().getAttributes();
 		params.height = WindowManager.LayoutParams.MATCH_PARENT;
 		params.width = WindowManager.LayoutParams.MATCH_PARENT;
@@ -220,8 +206,6 @@ public class PlotsActivity extends Activity{
 	 	cgmPlot.setVisibility(View.INVISIBLE);
 	 	XYPlot insulinPlot = (XYPlot) findViewById(R.id.insulinPlot);
 	 	insulinPlot.setVisibility(View.INVISIBLE);
-	 	XYPlot highInsulinPlot = (XYPlot) findViewById(R.id.highInsulinPlot);
-	 	highInsulinPlot.setVisibility(View.INVISIBLE);
 	 	
 		// Set initial bounds for plots
 		cgmPlotBounds[LOWER] = 0;
@@ -253,11 +237,9 @@ public class PlotsActivity extends Activity{
 		// Set touch listeners for plots
 		cgmPlot.setLongClickable(true);
 		insulinPlot.setLongClickable(true);
-		highInsulinPlot.setLongClickable(true);
 		
 		ZoomScrollListener cgmListener = new ZoomScrollListener(this, true, true, false);
 		ZoomScrollListener insListener = new ZoomScrollListener(this, true, false, true);
-		ZoomScrollListener highInsListener = new ZoomScrollListener(this, true, false, true);
 		
 		cgmPlot.setOnTouchListener(cgmListener);
 		cgmPlot.setOnLongClickListener(cgmListener);
@@ -265,27 +247,30 @@ public class PlotsActivity extends Activity{
 		insulinPlot.setOnTouchListener(insListener);
 		insulinPlot.setOnLongClickListener(insListener);
 		
-		highInsulinPlot.setOnTouchListener(highInsListener);
-		highInsulinPlot.setOnLongClickListener(highInsListener);
-		
 		// Create blank containers for plot data
 		cgmTimes = new Vector<Number>();
 		cgmValues = new Vector<Number>();
+		
 		stateValues = new Vector<Number>();
+		
 		insulinTimes = new Vector<Number>();
 		insulinValues = new Vector<Number>();
+		
 		insulinTimes1 = new Vector<Number>();
 		insulinValues1 = new Vector<Number>();
+		
 		mealTimes = new Vector<Number>();
 		mealValues = new Vector<Number>();
+		
 		corrTimes = new Vector<Number>();
 		corrValues = new Vector<Number>();
-		deliveredTimes = new Vector<Number>();
-		deliveredValues = new Vector<Number>();
+		
 		bolusTimes = new Vector<Number>();
 		bolusValues = new Vector<Number>();
+		
 		mealBolusTimes = new Vector<Number>();
 		mealBolusValues = new Vector<Number>();
+		
 		corrBolusTimes = new Vector<Number>();
 		corrBolusValues = new Vector<Number>();
 	}
@@ -317,7 +302,7 @@ public class PlotsActivity extends Activity{
 		Debug.i(TAG, FUNC_TAG, "CGM > c.getCount="+c.getCount());
 		
 		cgmCount = c.getCount();
-		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+		new SimpleDateFormat("HH:mm:ss");
 		int ii = 0;
 		prevStateTime = 0;
 		
@@ -501,8 +486,7 @@ public class PlotsActivity extends Activity{
 			if(c2.moveToFirst()) 
 			{
 				do{ 
-					// Incoming time in seconds
-					double val = c2.getDouble(c2.getColumnIndex("deliv_meal"));
+					c2.getDouble(c2.getColumnIndex("deliv_meal"));
 					mealTimes.addElement(c2.getLong(c2.getColumnIndex("deliv_time")));
 					mealValues.addElement(c2.getDouble(c2.getColumnIndex("deliv_meal")));
 					ii++;
@@ -724,7 +708,6 @@ public class PlotsActivity extends Activity{
     			seriesInsulin = new SimpleXYSeries(insulinTimes1, insulinValues1, "");
     			seriesMealBolus = new SimpleXYSeries(mealBolusTimes, mealBolusValues, "");
     			seriesCorrBolus = new SimpleXYSeries(corrBolusTimes, corrBolusValues, "");
-    			seriesBasal = new SimpleXYSeries(basalTimes, basalValues, "");
     			XYPlot insulinPlot = (XYPlot) findViewById(R.id.insulinPlot);
 				insulinPlot.setClickable(true);
 				insulinPlot.getGraphWidget().getGridBackgroundPaint().setColor(Color.BLACK);
@@ -752,7 +735,6 @@ public class PlotsActivity extends Activity{
 				insulinPlot.addSeries(seriesInsulin, seriesInsulinFormat);
 				insulinPlot.addSeries(seriesMealBolus, seriesMealBolusFormat);
 				insulinPlot.addSeries(seriesCorrBolus, seriesCorrBolusFormat);
-				insulinPlot.addSeries(seriesBasal, seriesBasalFormat);
 				// Scale basal insulin bars to time region
 				((BarRenderer) insulinPlot.getRenderer(BarRenderer.class)).setBarWidth((float)(11*(double)10800/TIME_REGION_IN_SECONDS));
 				// Draw a domain tick for each hour interval
@@ -768,7 +750,25 @@ public class PlotsActivity extends Activity{
 				insulinPlot.setRangeStep(XYStepMode.SUBDIVIDE, 7);
 				
 				// Deal with legend
-				insulinPlot.getLegendWidget().setVisible(false);
+				insulinPlot.getLegendWidget().setVisible(true);
+				Paint p = insulinPlot.getLegendWidget().getTextPaint();
+				p.setTextSize(30);
+				
+				insulinPlot.getLegendWidget().setTextPaint(p);
+				insulinPlot.getLegendWidget().setTableModel(new DynamicTableModel(1,3));
+				insulinPlot.getLegendWidget().setSize(new SizeMetrics(160, SizeLayoutType.ABSOLUTE, 220, SizeLayoutType.ABSOLUTE));
+				
+				Paint bgPaint = new Paint();
+		        bgPaint.setColor(Color.GRAY);
+		        bgPaint.setStyle(Paint.Style.FILL);
+		        bgPaint.setAlpha(140);
+		        insulinPlot.getLegendWidget().setBackgroundPaint(bgPaint);
+		        
+		        insulinPlot.getLegendWidget().setPadding(10, 10, 10, 10);       
+		        
+		        // reposition the grid so that it rests above the bottom-left
+		        // edge of the graph widget:
+		        insulinPlot.position(insulinPlot.getLegendWidget(), 70, XLayoutStyle.ABSOLUTE_FROM_LEFT, 50, YLayoutStyle.ABSOLUTE_FROM_TOP, AnchorPosition.LEFT_TOP);
 
 				// Get values at the extremities of the plot to prevent removing points
 				// During scaling
@@ -791,66 +791,6 @@ public class PlotsActivity extends Activity{
 				insulinPlot.disableAllMarkup();
 				insulinPlot.setVisibility(View.VISIBLE);
 
-				XYPlot highInsulinPlot = (XYPlot) findViewById(R.id.highInsulinPlot);
-				highInsulinPlot.setClickable(true);
-				highInsulinPlot.getGraphWidget().getGridBackgroundPaint().setColor(Color.BLACK);
-				highInsulinPlot.getGraphWidget().getGridLinePaint().setColor(0x6000ff80);
-				highInsulinPlot.getGraphWidget().getGridLinePaint().setAlpha(128);
-				highInsulinPlot.getGraphWidget().getDomainOriginLinePaint().setColor(Color.BLACK);
-				highInsulinPlot.getGraphWidget().getRangeOriginLinePaint().setColor(Color.BLACK);
-				highInsulinPlot.getGraphWidget().setPaddingRight(5);			
-
-				highInsulinPlot.setBorderStyle(Plot.BorderStyle.SQUARE, null, null);
-				highInsulinPlot.getBorderPaint().setStrokeWidth(1);
-				highInsulinPlot.getBorderPaint().setAntiAlias(false);
-				highInsulinPlot.getBorderPaint().setColor(Color.WHITE);
-
-				// Use meal bolus data and correction bolus data separately
-				seriesMeal = new SimpleXYSeries(mealTimes, mealValues, "");
-				seriesCorr = new SimpleXYSeries(corrTimes, corrValues, "");
-				seriesDeliveredInsulin = new SimpleXYSeries(deliveredTimes, deliveredValues, "");
-				// Meal bolus color
-				seriesMealFormat = new BarFormatter(Color.argb(200, 150, 50, 255), Color.argb(200, 150, 50, 255));
-				// Corr bolus color
-				seriesCorrFormat = new BarFormatter(Color.argb(200, 0, 255, 127), Color.argb(200, 0, 255, 127));
-				// Delivered insulin color
-				seriesDeliveredInsulinFormat = new BarFormatter(Color.argb(200, 200, 100, 20), Color.argb(200, 200, 100, 20));
-				highInsulinPlot.addSeries(seriesMeal, seriesMealFormat);
-				highInsulinPlot.addSeries(seriesCorr, seriesCorrFormat);
-				highInsulinPlot.addSeries(seriesDeliveredInsulin, seriesDeliveredInsulinFormat);
-				if (TIME_REGION_IN_SECONDS > 10800)
-					((BarRenderer) highInsulinPlot.getRenderer(BarRenderer.class)).setBarWidth((float)(11*(double)10800/TIME_REGION_IN_SECONDS));
-				else
-					((BarRenderer) highInsulinPlot.getRenderer(BarRenderer.class)).setBarWidth(11f);
-
-				// Draw a domain tick for each hour interval
-				highInsulinPlot.setDomainStep(XYStepMode.SUBDIVIDE, 7);	
-
-				// Customize our domain/range labels
-				highInsulinPlot.getDomainLabelWidget().setVisible(false);
-				highInsulinPlot.getRangeLabelWidget().setVisible(false);
-		
-				// Get rid of decimal points in our range labels:
-				highInsulinPlot.setRangeValueFormat(new DecimalFormat("0.00"));
-				highInsulinPlot.setDomainValueFormat(new MyDateFormat());
-				highInsulinPlot.setRangeStep(XYStepMode.SUBDIVIDE, 6);
-				
-				// Deal with legend
-				highInsulinPlot.getLegendWidget().setVisible(false);
-		
-				// Get values at the extremities of the plot from regular insulin plot
-				highInsulinPlotBounds[VALUEOFMINX] = insulinPlotBounds[VALUEOFMINX];
-				highInsulinPlotBounds[VALUEOFMAXX] = insulinPlotBounds[VALUEOFMAXX];
-				highInsulinPlotBounds[VALUEOFMAXY] = insulinPlotBounds[VALUEOFMAXY];
-				// Set plot bounds; time bounds should be the same on all plots
-				highInsulinPlotBounds[RIGHT] = cgmPlotBounds[RIGHT];
-				highInsulinPlotBounds[LEFT] = cgmPlotBounds[LEFT];
-				highInsulinPlot.setRangeBoundaries(highInsulinPlotBounds[LOWER], highInsulinPlotBounds[UPPER], BoundaryMode.FIXED);
-				highInsulinPlot.setDomainBoundaries(highInsulinPlotBounds[LEFT], highInsulinPlotBounds[RIGHT], BoundaryMode.FIXED);
-				// By default, AndroidPlot displays developer guides to aid in laying out your plot.
-				// To get rid of them call disableAllMarkup()
-				highInsulinPlot.disableAllMarkup();
-				highInsulinPlot.setVisibility(View.VISIBLE);
 				// Make plot screens visible
 				plotExpand(activePlot);    		
 	    	}
@@ -1182,8 +1122,8 @@ public class PlotsActivity extends Activity{
 	 		insulinPlot.removeSeries(seriesMealBolus);
 	 		insulinPlot.removeSeries(seriesCorrBolus);
 	 		seriesInsulin = new SimpleXYSeries(insulinTimes1, insulinValues1, "Basal U/hr");
-	 		seriesMealBolus = new SimpleXYSeries(mealBolusTimes, mealBolusValues, ""); 
-	 		seriesCorrBolus = new SimpleXYSeries(corrBolusTimes, corrBolusValues, ""); 
+	 		seriesMealBolus = new SimpleXYSeries(mealBolusTimes, mealBolusValues, "Meal U"); 
+	 		seriesCorrBolus = new SimpleXYSeries(corrBolusTimes, corrBolusValues, "Correction U"); 
 	 		insulinPlot.addSeries(seriesInsulin, seriesInsulinFormat);
 	 		insulinPlot.addSeries(seriesMealBolus, seriesMealBolusFormat);
 	 		insulinPlot.addSeries(seriesCorrBolus, seriesCorrBolusFormat);
@@ -1197,45 +1137,9 @@ public class PlotsActivity extends Activity{
 	 		insulinPlot.setRangeBoundaries(insulinPlotBounds[LOWER], insulinPlotBounds[UPPER], BoundaryMode.FIXED);
 	 		insulinPlot.setDomainBoundaries(insulinPlotBounds[LEFT], insulinPlotBounds[RIGHT], BoundaryMode.FIXED);
 	 		
-	 		// Same thing over again with the high insulin plot
-	 		XYPlot highInsulinPlot = (XYPlot) findViewById(R.id.highInsulinPlot);
-	 		highInsulinPlot.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-	 		
-	 		highInsulinPlot.removeSeries(seriesMeal);
-	 		highInsulinPlot.removeSeries(seriesCorr);
-	 		highInsulinPlot.removeSeries(seriesDeliveredInsulin);
-	 		seriesMeal = new SimpleXYSeries(mealTimes, mealValues, "Meal U");
-	 		seriesCorr = new SimpleXYSeries(corrTimes, corrValues, "Correction U");
-	 		seriesDeliveredInsulin = new SimpleXYSeries(deliveredTimes, deliveredValues, "");
-	 		highInsulinPlot.addSeries(seriesMeal, seriesMealFormat);
-	 		highInsulinPlot.addSeries(seriesCorr, seriesCorrFormat);
-			highInsulinPlot.addSeries(seriesDeliveredInsulin, seriesDeliveredInsulinFormat);
-	
-	 		// All plot X-axis time bounds should be the same
-	 		if (snapPlotsToRight) 
-	 		{
-	 			highInsulinPlotBounds[RIGHT] = cgmPlotBounds[RIGHT];
-	 			highInsulinPlotBounds[LEFT] = cgmPlotBounds[LEFT];
-	 		}
-	 		
-	 		// Scale bolus plot to the highest bolus value, if it's greater than 2.0
-	 		if (!mealValues.isEmpty() || !corrValues.isEmpty())
-	 			// Set the upper bound of the bolus plot to 10% higher than the max value, rounded to the nearest 0.20, with a minimum of 2
-	 			highInsulinPlotBounds[UPPER] = (double) Math.max(2f, Math.ceil((1.1*(Math.max(minmax(mealValues, true).doubleValue(), minmax(corrValues, true).doubleValue())))*5)/5);
-	 		
-	 		highInsulinPlot.setRangeBoundaries(highInsulinPlotBounds[LOWER], highInsulinPlotBounds[UPPER], BoundaryMode.FIXED);
-	 		highInsulinPlot.setDomainBoundaries(highInsulinPlotBounds[LEFT], highInsulinPlotBounds[RIGHT], BoundaryMode.FIXED);
-	 		
 	 		// Scale the insulin/bolus plot bars depending on the time region
 	 		((BarRenderer) insulinPlot.getRenderer(BarRenderer.class)).setBarWidth((float)(11*(double)10800/TIME_REGION_IN_SECONDS));
-			if (TIME_REGION_IN_SECONDS > 10800){
-				((BarRenderer) highInsulinPlot.getRenderer(BarRenderer.class)).setBarWidth((float)(11*(double)10800/TIME_REGION_IN_SECONDS));
-			} else {
-				((BarRenderer) highInsulinPlot.getRenderer(BarRenderer.class)).setBarWidth(11f);
-			}
-			
 	 		insulinPlot.invalidate();
-	 		highInsulinPlot.invalidate();
     	}
  		cgmPlot.invalidate();
  	}
@@ -1247,7 +1151,7 @@ public class PlotsActivity extends Activity{
  	{
  		boolean over = false;
  		int id = plot.getId();
- 		XYPlot plot2 = null, plot3 = null;
+ 		XYPlot plot2 = null;
  		double[] bounds = null, bounds2 = null, bounds3 = null;
  		
  		// Set up local variables depending on the input plot
@@ -1257,7 +1161,6 @@ public class PlotsActivity extends Activity{
  			bounds2 = insulinPlotBounds;
  			bounds3 = highInsulinPlotBounds;
  			plot2 = (XYPlot) findViewById(R.id.insulinPlot);
- 			plot3 = (XYPlot) findViewById(R.id.highInsulinPlot);
  		} 
  		else if (id == R.id.insulinPlot) 
  		{
@@ -1265,16 +1168,7 @@ public class PlotsActivity extends Activity{
  			bounds2 = cgmPlotBounds;
  			bounds3 = highInsulinPlotBounds;
  			plot2 = (XYPlot) findViewById(R.id.cgmPlot);
- 			plot3 = (XYPlot) findViewById(R.id.highInsulinPlot);
  		} 
- 		else if (id == R.id.highInsulinPlot)
- 		{
- 			bounds = highInsulinPlotBounds;
- 			bounds2 = insulinPlotBounds;
- 			bounds3 = cgmPlotBounds;
- 			plot2 = (XYPlot) findViewById(R.id.insulinPlot);
- 			plot3 = (XYPlot) findViewById(R.id.cgmPlot); 			
- 		}
  		
  		// Perform different actions depending on which bound is to be changed
  		switch (boundIndex) 
@@ -1321,7 +1215,6 @@ public class PlotsActivity extends Activity{
 	 			
 	 			plot.setDomainBoundaries(bounds[LEFT], bounds[RIGHT], BoundaryMode.FIXED);
 	 			plot2.setDomainBoundaries(bounds2[LEFT], bounds2[RIGHT], BoundaryMode.FIXED);
-	 			plot3.setDomainBoundaries(bounds3[LEFT], bounds3[RIGHT], BoundaryMode.FIXED);
 	 			break;
  		}
  		
@@ -1339,7 +1232,6 @@ public class PlotsActivity extends Activity{
  		// Tell Android to redraw plots
  		plot.invalidate();
  		plot2.invalidate();
- 		plot3.invalidate();
  		return over;
  	}
 	 	
@@ -1349,7 +1241,7 @@ public class PlotsActivity extends Activity{
  		final String FUNC_TAG = "snapToNearestPlotStep";
  		
  		int id = plot.getId();
- 		XYPlot plot2 = null, plot3 = null;
+ 		XYPlot plot2 = null;
  		double[] bounds = null, bounds2 = null, bounds3 = null;
  		
  		// Set up local variables depending on the input plot
@@ -1359,7 +1251,6 @@ public class PlotsActivity extends Activity{
  			bounds2 = insulinPlotBounds;
  			bounds3 = highInsulinPlotBounds;
  			plot2 = (XYPlot) findViewById(R.id.insulinPlot);
- 			plot3 = (XYPlot) findViewById(R.id.highInsulinPlot);
  		} 
  		else if (id == R.id.insulinPlot) 
  		{
@@ -1367,16 +1258,7 @@ public class PlotsActivity extends Activity{
  			bounds2 = cgmPlotBounds;
  			bounds3 = highInsulinPlotBounds;
  			plot2 = (XYPlot) findViewById(R.id.cgmPlot);
- 			plot3 = (XYPlot) findViewById(R.id.highInsulinPlot);
  		} 
- 		else if (id == R.id.highInsulinPlot)
- 		{
- 			bounds = highInsulinPlotBounds;
- 			bounds2 = insulinPlotBounds;
- 			bounds3 = cgmPlotBounds;
- 			plot2 = (XYPlot) findViewById(R.id.insulinPlot);
- 			plot3 = (XYPlot) findViewById(R.id.cgmPlot); 			
- 		}
  		
 		double newBound = bounds[RIGHT];
 		
@@ -1404,12 +1286,10 @@ public class PlotsActivity extends Activity{
 		
 		plot.setDomainBoundaries(bounds[LEFT], bounds[RIGHT], BoundaryMode.FIXED);
 		plot2.setDomainBoundaries(bounds2[LEFT], bounds2[RIGHT], BoundaryMode.FIXED);
-		plot3.setDomainBoundaries(bounds3[LEFT], bounds3[RIGHT], BoundaryMode.FIXED);
 		
  		// Tell Android to redraw plots
  		plot.invalidate();
  		plot2.invalidate();
- 		plot3.invalidate();
  		
  		Debug.i(TAG, FUNC_TAG, "SNAPTOSTEP > R=("+bounds[RIGHT]+")L=("+bounds[LEFT]+")NEW="+newBound);
  	}
@@ -1467,19 +1347,11 @@ public class PlotsActivity extends Activity{
     	activePlot = ViewID; 	
     	
     	XYPlot insulinPlot = (XYPlot) findViewById(R.id.insulinPlot);
-	 	XYPlot highInsulinPlot = (XYPlot) findViewById(R.id.highInsulinPlot);
 	 	
 	 	if (activePlot == R.id.insulinPlot)
 	 	{
 	 		Debug.i(TAG, FUNC_TAG, "Hiding High Insulin Plot");
 	 		insulinPlot.setVisibility(LinearLayout.VISIBLE);
-	 		highInsulinPlot.setVisibility(LinearLayout.GONE);
-	 	}
-	 	else if (activePlot == R.id.highInsulinPlot)
-	 	{
-	 		Debug.i(TAG, FUNC_TAG, "Hiding Insulin Plot");
-	 		highInsulinPlot.setVisibility(LinearLayout.VISIBLE);
-	 		insulinPlot.setVisibility(LinearLayout.GONE);
 	 	}
     }
     
