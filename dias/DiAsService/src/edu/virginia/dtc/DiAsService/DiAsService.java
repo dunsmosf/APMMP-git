@@ -140,6 +140,9 @@ public class DiAsService extends Service
 	private BroadcastReceiver Power = null;
 	private BroadcastReceiver ProfileReceiver = null;
 	private BroadcastReceiver BatteryStatsReceiver = null;
+	private BroadcastReceiver pingReceiver = null;
+	
+	private long pingTimeSent = -1;
 	
 	private double nextSimulatedPumpValue = 0.0;								// Used to handle simulated pump input from a file
 	private int Timer_Ticks_Per_Control_Tick = 1;								// Multiple of SupervisorService algorithm ticks that is counted to before calling APController
@@ -197,6 +200,7 @@ public class DiAsService extends Service
 	// Track time stamps and exercise state
 	private boolean currentlyExercising = false;
 	private boolean previouslyExercising = false;
+	
 	private long exerciseFlagTimeStart;
 	private long exerciseFlagTimeStop;
 	
@@ -357,13 +361,11 @@ public class DiAsService extends Service
         			//Check Hyper Alarm
         			checkForHyper();
         			
-        			if(SYNC.state == FSM.SSM_CALL)
-        			{
+        			if(SYNC.state == FSM.SSM_CALL) {
     					changeSyncState(FSM.SSM_RESPONSE);
         			}
         			
-        			if(ASYNC.state == FSM.MCM_REQUEST)
-        			{
+        			if(ASYNC.state == FSM.MCM_REQUEST) {
         				changeAsyncState(FSM.SSM_RESPONSE);
         			}
         			break;
@@ -1018,6 +1020,39 @@ public class DiAsService extends Service
 		//Start CGM check
 		cgmObserver.onChange(false);
         
+		pingReceiver = new BroadcastReceiver() {
+			final int TIMEOUT = 10;
+			final String FUNC_TAG = "pingReceiver";
+			
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				Debug.i(TAG, FUNC_TAG, "Ping response...");
+				
+				if(pingTimeSent > 0) {
+					long timeout = pingTimeSent - TIMEOUT;
+					long now = System.currentTimeMillis()/1000;
+					int type = intent.getIntExtra("controller", -1);
+					
+					switch(type)
+					{
+						case FSM.APC:
+							Debug.i(TAG, FUNC_TAG, "APC responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Apc.bound);
+							break;
+						case FSM.BRM:
+							Debug.i(TAG, FUNC_TAG, "BRM responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Brm.bound);
+							break;
+						case FSM.SSM:
+							Debug.i(TAG, FUNC_TAG, "SSM responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Ssm.bound);
+							break;
+						case FSM.MCM:
+							Debug.i(TAG, FUNC_TAG, "MCM responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Mcm.bound);
+							break;
+					}
+				}
+			}
+		};
+		this.registerReceiver(pingReceiver, new IntentFilter("edu.virginia.dtc.PING_RESPONSE"));
+		
         // **************************************************************************************************************
      	// Connectivity Receivers
         // **************************************************************************************************************
@@ -1177,6 +1212,11 @@ public class DiAsService extends Service
      		@Override
             public void onReceive(Context context, Intent intent) 
      		{
+     			long tick = intent.getLongExtra("tick", -1);
+     			
+     			if(tick == 1)
+     				pingServices();
+     			
         		int OLD_DIAS_STATE = DIAS_STATE;
         		
     			if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY && DIAS_STATE != State.DIAS_STATE_STOPPED) {
@@ -1271,8 +1311,6 @@ public class DiAsService extends Service
     					}
     				}
     			}
-    			
-    			checkServices();
     			
     			if(initialized)
     				changeSyncState(FSM.START);
@@ -1609,33 +1647,17 @@ public class DiAsService extends Service
         startForeground(DIAS_ID, notification);
     }
     
-    public void checkServices()
+    public void pingServices()
     {
-    	final String FUNC_TAG = "checkServices";
-    	final long TIMEOUT = 7 * 60;
+    	final String FUNC_TAG = "pingServices";
     	
     	Debug.i(TAG, FUNC_TAG, "Configuration: "+FSM.configToString(CONFIG));
     	
-    	long check = (System.currentTimeMillis()/1000) - TIMEOUT;
-    	Debug.i(TAG, FUNC_TAG, "Checking calculation times are greater than "+check+" seconds...");
+    	pingTimeSent = System.currentTimeMillis()/1000;
     	
-    	switch(CONFIG)
-    	{
-	    	case FSM.APC_BRM:
-	    		if(Apc.last_calc_time < check)
-	    			Debug.e(TAG, FUNC_TAG, "APC hasn't been called in "+TIMEOUT+" seconds!");
-	    		if(Brm.last_calc_time < check)
-	    			Debug.e(TAG, FUNC_TAG, "BRM hasn't been called in "+TIMEOUT+" seconds!");
-	    		break;
-	    	case FSM.APC_ONLY:
-	    		if(Apc.last_calc_time < check)
-	    			Debug.e(TAG, FUNC_TAG, "APC hasn't been called in "+TIMEOUT+" seconds!");
-	    		break;
-	    	case FSM.BRM_ONLY:
-	    		if(Brm.last_calc_time < check)
-	    			Debug.e(TAG, FUNC_TAG, "BRMdi hasn't been called in "+TIMEOUT+" seconds!");
-	    		break;
-    	}
+    	//Send PING broadcast
+    	Intent ping = new Intent("edu.virginia.dtc.PING");
+    	this.sendBroadcast(ping);
     }
 
 	// ******************************************************************************************************************************

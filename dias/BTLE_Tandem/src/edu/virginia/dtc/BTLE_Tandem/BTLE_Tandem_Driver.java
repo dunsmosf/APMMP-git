@@ -684,6 +684,8 @@ public class BTLE_Tandem_Driver extends Service{
 		int k = 0;
 		boolean timeout = true;
 		
+		if(reconTimer != null)
+			reconTimer.cancel(true);
         if(warningTimer != null)
 			warningTimer.cancel(true);
 		if(disconnectTimer != null)

@@ -300,25 +300,14 @@ public class StandaloneDriver extends Service {
 					if(drv.cgm != null)
 					{
 						drv.cgm.state = CGM.CGM_NORMAL;
+						drv.cgmList.add("CGM \n"+drv.cgm.status);
 					}
 
 					if(drv.pump != null)
 					{
 						drv.updatePumpState(Pump.CONNECTED);
+						drv.pumpList.add("PUMP \n"+drv.pump.status);
 					}
-					
-					Intent intent = new Intent("edu.virginia.dtc.DEVICE_RESULT");
-					int pumps = 0, cgms = 0;
-					if(drv.pump!=null)
-						pumps = 1;
-					if(drv.cgm!=null)
-						cgms = 1;
-					
-					intent.putExtra("cgms", cgms);
-					intent.putExtra("pumps", pumps);
-					intent.putExtra("started", cgms > 0 || pumps > 0);
-					intent.putExtra("name", "Standalone");
-					sendBroadcast(intent);
 					
 					reportUIChange();
 				}

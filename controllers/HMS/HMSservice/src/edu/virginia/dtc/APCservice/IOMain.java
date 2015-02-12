@@ -16,7 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
 
+import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.Tvector.Tvector;
@@ -206,13 +208,24 @@ public class IOMain extends Service {
     public Messenger mMessengerToClient = null;
     /* Target we publish for clients to send commands to IncomingHandlerFromClient. */
     final Messenger mMessengerFromClient = new Messenger(new IncomingHMSHandler());
+    
+    private BroadcastReceiver pingReceiver = new BroadcastReceiver()
+    {
+    	final String FUNC_TAG = "pingReceiver";
+    	
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Debug.i(TAG, FUNC_TAG, "Ping received...sending response!");
+			
+			Intent response = new Intent("edu.virginia.dtc.PING_RESPONSE");
+			response.putExtra("controller", FSM.APC);
+			sendBroadcast(response);
+		}
+    };
  
     /* When binding to the service, we return an interface to our messenger for sending messages to the service. */
     @Override
     public IBinder onBind(Intent intent) {
-//        Toast toast = Toast.makeText(getApplicationContext(), TAG+" binding to Application", Toast.LENGTH_SHORT);
-//		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-//		toast.show();
         return mMessengerFromClient.getBinder();
     }
     
@@ -461,9 +474,6 @@ public class IOMain extends Service {
 	
 	@Override
 	public void onCreate() {
-//		Toast toast = Toast.makeText(this, TAG+" onCreate: Service Created", Toast.LENGTH_SHORT);
-//		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-//		toast.show();
 		DIAS_STATE = DIAS_STATE_STOPPED;
 		DIAS_STATE_PREVIOUS = DIAS_STATE_STOPPED;
         log_action(TAG, "onCreate");
@@ -486,9 +496,6 @@ public class IOMain extends Service {
 		params = new Params();
 		context = getApplicationContext();
 		
-
-		
-		
         // Set up a Notification for this Service
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
@@ -504,13 +511,17 @@ public class IOMain extends Service {
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
         final int APC_ID = 3;
-//        mNotificationManager.notify(APC_ID, notification);
+        
+        // mNotificationManager.notify(APC_ID, notification);
         // Make this a Foreground Service
         startForeground(APC_ID, notification);
+        
 		// Keep the CPU running even after the screen dims
 		pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-		wl.acquire();  
+		wl.acquire();
+
+		this.registerReceiver(pingReceiver, new IntentFilter("edu.virginia.dtc.PING"));
     }
 
 	@Override

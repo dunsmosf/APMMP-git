@@ -2,6 +2,12 @@ package edu.virginia.dtc.SysMan;
 
 public class FSM {
 	
+	//Controller Types
+	public static final int APC = 1;
+	public static final int BRM = 2;
+	public static final int SSM = 3;
+	public static final int MCM = 4;
+	
 	public static final int NONE = 0;
 	public static final int APC_ONLY = 1;
 	public static final int BRM_ONLY = 2;
