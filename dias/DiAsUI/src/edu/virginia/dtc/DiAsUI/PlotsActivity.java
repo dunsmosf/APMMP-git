@@ -200,70 +200,6 @@ public class PlotsActivity extends Activity{
 		
 		unregisterReceiver(TickReceiver);
 	}
-	
-	// Creates a menu each time the menu button is pressed, different depending on current UI state
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-    	menu.clear();
-        MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.plots, menu);
-		return true;
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) 
-        {
-    		case R.id.menuPlotsTimeRegion:
-    			showDialog(DIALOG_PLOTS_TIME_REGION);
-    			return true;
-    		case R.id.menuPlotsCancel:
-    			finish();
-    			return true;
-    		default:
-    			return super.onOptionsItemSelected(item);
-        }
-    }
-    
-    protected Dialog onCreateDialog(int id) {
-        Dialog dialog;
-        switch(id) 
-        {
-        	case DIALOG_PLOTS_EDIT:
-	        	CharSequence[] items = {"Time region", "Plots", "Rebuild", "Close"};
-	
-	        	AlertDialog.Builder pEdit = new AlertDialog.Builder(getApplicationContext());
-	        	pEdit.setTitle("Edit Plot Parameters");
-	        	pEdit.setItems(items, new DialogInterface.OnClickListener() {
-	        	    public void onClick(DialogInterface dialog, int item) {
-	        	    	showDialog(item+1);
-	        	    	if (item == 2){
-	        	    		plotsShow(true);
-	        	    	}
-	        	    	dismissDialog(DIALOG_PLOTS_EDIT);
-	        	    }
-	        	});
-	        	dialog = pEdit.create();
-	        	break;
-	        case DIALOG_PLOTS_TIME_REGION:
-	        	final int[] timeRegions = {30*60, 60*60, 2*60*60, 3*60*60, 4*60*60, 6*60*60, 8*60*60, 12*60*60, 24*60*60};
-	        	final CharSequence[] trItems = {"30 Minutes", "1 Hour", "2 Hours", "3 Hours", "4 Hours", "6 Hours", "8 Hours", "12 Hours", "24 Hours"};
-	
-	        	AlertDialog.Builder trEdit = new AlertDialog.Builder(this);
-	        	trEdit.setTitle("Edit Time Region");
-	        	trEdit.setItems(trItems, new DialogInterface.OnClickListener() {
-	        	    public void onClick(DialogInterface dialog, int item) {
-	        	    	setTimeRegionInSeconds(timeRegions[item]);
-	        	    	updatePlots(true);
-	        	    }
-	        	});
-	        	dialog = trEdit.create();
-	        	break;
-	        default:
-	            dialog = null;
-        }
-        return dialog;
-    }
 
 	private void initScreen()
 	{
@@ -271,9 +207,12 @@ public class PlotsActivity extends Activity{
 		
 		WindowManager.LayoutParams params = getWindow().getAttributes();
 		params.height = WindowManager.LayoutParams.MATCH_PARENT;
-		params.width = getIntent().getIntExtra("width", 100);
-		params.height = getIntent().getIntExtra("height", 100);
-		params.height -= (0.03*params.height);		//Have to take off the stupid 3% for sizing to work
+		params.width = WindowManager.LayoutParams.MATCH_PARENT;
+		
+//		params.width = getIntent().getIntExtra("width", 100);
+//		params.height = getIntent().getIntExtra("height", 100);
+//		params.height -= (0.03*params.height);		//Have to take off the stupid 3% for sizing to work
+		
 		this.getWindow().setAttributes(params);
 		
 		// Make plots invisible to start

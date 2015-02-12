@@ -81,9 +81,6 @@ public class PumpService extends Service {
 	private long TIMEOUT_ADDITION = 30000;				// Additional time for timeout from pump service
 	private int TBR_TIMEOUT = 45;						// Timeout for TBR setup in seconds
 	
-	// Requested but not yet delivered insulin values.  Used to account for delivered insulin 
-	double undelivered_basal_insulin, undelivered_corr_insulin, undelivered_meal_insulin;
-    
     private final Messenger ssmMessenger = new Messenger(new ssmMessageHandler());
     private Messenger ssmMessageTx = null;
     
@@ -250,10 +247,6 @@ public class PumpService extends Service {
         
 		current_delivered_U = 0.0;
 		asynchronous = false;
-        
-        undelivered_basal_insulin = 0.0;
-        undelivered_corr_insulin = 0.0;
-        undelivered_meal_insulin = 0.0;
         
         PUMP.state = Pump.PUMP_STATE_IDLE;
         
@@ -1295,7 +1288,7 @@ public class PumpService extends Service {
 					toast4.show();
 					
 					//If the value isn't above the minimum bolus then store the zero delivered insulin
-					storeZeroDeliveredInsulin();
+					storeZeroDeliveredInsulin(asynchronous);
 					
 					unackCount = countUnacknowledgedInsulin();
 					if(unackCount > 0)
@@ -1337,7 +1330,7 @@ public class PumpService extends Service {
 			if(!isDelivering)
 				updatePumpState(Pump.PUMP_STATE_ACC);
 			
-			storeZeroDeliveredInsulin();
+			storeZeroDeliveredInsulin(asynchronous);
 			
 			unackCount = countUnacknowledgedInsulin();
 			if(unackCount > 0)
@@ -1698,7 +1691,7 @@ public class PumpService extends Service {
 		}
 	}
 	
-	private void storeZeroDeliveredInsulin() {
+	private void storeZeroDeliveredInsulin(boolean async) {
 		final String FUNC_TAG = "storeZeroDeliveredInsulin";
 
 		//  Write values to the database in the INSULIN table
@@ -1719,6 +1712,11 @@ public class PumpService extends Service {
 		values.put("deliv_basal", 0.0);
 		values.put("deliv_meal", 0.0);
 		values.put("deliv_corr", 0.0);
+		
+		if(async)
+			values.put("type", Pump.TYPE_ASYNC);
+		else
+			values.put("type", Pump.TYPE_SYNC);
 		
 		values.put("status", Pump.DELIVERED);						// Since this is zero, it is more of a placeholder and cannot be queried thus it is automatically delivered, since it never gets sent
 		
@@ -1805,9 +1803,6 @@ public class PumpService extends Service {
 			}
 		}
 		
-		// Write values to the database in the INSULIN table
-		Debug.i(TAG, FUNC_TAG, "storeDeliveredInsulin > undelivered insulin after processing:  basal="+undelivered_basal_insulin+", corr="+undelivered_corr_insulin+", meal="+undelivered_meal_insulin);
-		
 		// Fetch the most recent record in the INSULIN table
 		Cursor c=getContentResolver().query(Biometrics.INSULIN_URI, null, null, null, null);
 		int _id = 0;
@@ -1881,23 +1876,6 @@ public class PumpService extends Service {
 		}
 		
 		c.close();
-	}
-	
-	private void updateRequestedInsulin(int bolusId, int retryCount)
-	{
-		final String FUNC_TAG = "updateRequestedInsulin";
-		
-		ContentValues c = new ContentValues();
-		c.put("num_retries", retryCount);
-		
-		try 
-	    {
-	    	getContentResolver().update(Biometrics.INSULIN_URI, c, "identifier = '"+bolusId+"'", null);
-	    }
-	    catch (Exception e) 
-	    {
-	    	Debug.e("Error", FUNC_TAG,(e.getMessage() == null) ? "null" : e.getMessage());
-	    }
 	}
 	
 	private void storeRequestedInsulin(boolean asynchronous, double basal_req_U, double meal_req_U, double corr_req_U, double current_total_U, int bolusId, int retryCount) 

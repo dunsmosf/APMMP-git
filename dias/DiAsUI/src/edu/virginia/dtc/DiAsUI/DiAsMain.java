@@ -86,11 +86,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	/************************************************************************************************************************/
 	//  System Statics and Constants
 	/************************************************************************************************************************/
-    
-	// DiAsUI State variable and definitions of major display states
-	private static final int DIAS_UI_STATE_MAIN = 0;
-	private static final int DIAS_UI_STATE_PLOTS = 17;
-	private static final int DIAS_UI_STATE_BOLUS_INTERCEPTOR = 18;
 	
 	// DiAsService Commands
 	private static final int DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE = 4;
@@ -120,9 +115,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	private static final int BUTTON_SAFETY = 5;
     
     // Activity Result IDs
-    private static final int DEFAULT_MEAL = 1;
     private static final int PLOTS = 2;
-    private static final int ALARM = 3;
     private static final int SMBG = 4;
     private static final int TEMP_BASAL = 5;
     
@@ -133,7 +126,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     //GLOBALS		******************************************************************************
     
   	private long SIM_TIME;
-  	private int DIAS_UI_STATE;
   	
   	private int DIAS_STATE;
   	private int BATTERY;
@@ -212,9 +204,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
    	    else 
    	    	update();
    	    
-        if(main.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
-        {
-		 	updateDiasMainState(DIAS_UI_STATE_MAIN);
+        if(main.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        	updateDiasMain();
         }
         
         final View tv = ((LinearLayout)this.findViewById(R.id.linearMid));
@@ -251,7 +242,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
             Debug.i(TAG, FUNC_TAG, "Landscape");
             setContentView(R.layout.mainlinear);
             
-		 	updateDiasMainState(DIAS_UI_STATE_MAIN);
+            updateDiasMain();
 		 	update();
         } 
         else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT)
@@ -278,47 +269,10 @@ public class DiAsMain extends Activity implements OnGestureListener {
     }    
     
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) 
-    {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     	final String FUNC_TAG = "onActivityResult";
     	
-    	//Determine the activity that is returning a result
-    	switch(requestCode)
-    	{
-	    	case DEFAULT_MEAL:
-	    		Debug.i(TAG, FUNC_TAG, "DEFAULT_MEAL");
-	    		updateDiasMainState(DIAS_UI_STATE_MAIN);
-	    		break;
-	    	case PLOTS:
-	    		Debug.i(TAG, FUNC_TAG, "PLOTS");
-	    		updateDiasMainState(DIAS_UI_STATE_MAIN);
-	    		break;
-	    	case ALARM:
-	    		Debug.i(TAG, FUNC_TAG, "ALARM");
-	    		if(resultCode == RESULT_OK)
-	    		{
-	    			int closingMode = data.getIntExtra("loopMode", State.DIAS_STATE_STOPPED);
-	    			switch(closingMode)
-	    			{
-		    			case State.DIAS_STATE_STOPPED:
-		    				Debug.i(TAG, FUNC_TAG, "ALARM > Mode: STOPPED");
-		    				stopConfirm();
-		    				break;
-		    			case State.DIAS_STATE_OPEN_LOOP:
-		    				Debug.i(TAG, FUNC_TAG, "ALARM > Mode: OPEN LOOP");
-		    				openLoopConfirm();
-		    				break;
-	    			}
-	    			cancelNoCgmWatchdogTimer();
-	    		}
-	    		updateDiasMainState(DIAS_UI_STATE_MAIN);
-	    		break;
-	    	case SMBG:
-	    		updateDiasMainState(DIAS_UI_STATE_MAIN);
-	    		break;
-	    	case TEMP_BASAL:
-	    		break;
-    	}
+    	updateDiasMain();
     }
     
     @Override
@@ -365,8 +319,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     {
     	final String FUNC_TAG = "onResume";
         super.onResume();        
-        
-        Debug.i(TAG, FUNC_TAG, "DIAS UI on resume > "+DIAS_UI_STATE);
         
         if (!isMyServiceRunning()) 
         {
@@ -715,32 +667,28 @@ public class DiAsMain extends Activity implements OnGestureListener {
         
         Debug.i(TAG, "onPrepareOptionsMenu", "Context Menu"+menu.size());
         
-        switch(DIAS_UI_STATE)
-        {
-    		case DIAS_UI_STATE_MAIN:			//There isn't an alternative state since the plots are in their own activity now
-    			switch(DIAS_STATE)
-    			{
-    				case State.DIAS_STATE_STOPPED:
-    					inflater.inflate(R.menu.mainstopped, menu);
-    					retCode = true;
-    					break;
-    				case State.DIAS_STATE_OPEN_LOOP:
-    					inflater.inflate(R.menu.mainopen, menu);
-    					retCode = true;
-    					break;
-    				case State.DIAS_STATE_SENSOR_ONLY:
-    					inflater.inflate(R.menu.mainsensoronly, menu);
-    					retCode = true;
-    					break;
-    				case State.DIAS_STATE_CLOSED_LOOP:
-    				case State.DIAS_STATE_SAFETY_ONLY:
-    					inflater.inflate(R.menu.mainclosed, menu);
-    					retCode = true;
-    					break;
-    			}
-    			break;
-        }
-        
+		//There isn't an alternative state since the plots are in their own activity now
+		switch(DIAS_STATE)
+		{
+			case State.DIAS_STATE_STOPPED:
+				inflater.inflate(R.menu.mainstopped, menu);
+				retCode = true;
+				break;
+			case State.DIAS_STATE_OPEN_LOOP:
+				inflater.inflate(R.menu.mainopen, menu);
+				retCode = true;
+				break;
+			case State.DIAS_STATE_SENSOR_ONLY:
+				inflater.inflate(R.menu.mainsensoronly, menu);
+				retCode = true;
+				break;
+			case State.DIAS_STATE_CLOSED_LOOP:
+			case State.DIAS_STATE_SAFETY_ONLY:
+				inflater.inflate(R.menu.mainclosed, menu);
+				retCode = true;
+				break;
+		}
+
         ioContextMenu(menu);
         
         return retCode;
@@ -795,15 +743,13 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		switch (keyCode)
 		{
 			case KeyEvent.KEYCODE_BACK:
-				updateDiasMainState(DIAS_UI_STATE_MAIN);
+				updateDiasMain();
 				retCode = true;
 				break;
 			case KeyEvent.KEYCODE_HOME:
 				// If already on HOME screen then prompt to exit to system
-				if (DIAS_UI_STATE == DIAS_UI_STATE_MAIN) {
-					BUTTON_CURRENT = BUTTON_HOME;
-					showDialog(DIALOG_PASSWORD);
-				}
+				BUTTON_CURRENT = BUTTON_HOME;
+				showDialog(DIALOG_PASSWORD);
 				retCode = true;
 				break;
 			case KeyEvent.KEYCODE_VOLUME_DOWN:
@@ -1057,7 +1003,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	    	
 	    	updateTrafficLights(diasState, hypoLight, hyperLight, alarmHypo);
 	    	
-	    	updateCgm(cgmValue, cgmTrend, cgmLastTime, cgmState, alarmNoCgm);
+	    	updateCgm(cgmValue, cgmTrend, cgmLastTime, cgmState);
     	}
     	else
     		Debug.w(TAG, FUNC_TAG, "The activity is in portrait mode...");
@@ -1108,7 +1054,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	long start = System.currentTimeMillis();
     	long stop;
     	
-    	String dias_state = "", ui_state = "";
+    	String dias_state = "";
 		
     	switch(diasState)
     	{
@@ -1131,21 +1077,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
 				dias_state = "WHAT/"+diasState;
 				break;
     	}
-
-		switch (DIAS_UI_STATE) 
-		{
-			case DIAS_UI_STATE_MAIN:
-				ui_state = "MAIN";
-				break;
-			case DIAS_UI_STATE_PLOTS:
-				ui_state = "PLOTS";
-				break;
-			case DIAS_UI_STATE_BOLUS_INTERCEPTOR:
-				ui_state = "BOLUS_INTERCEPTOR";
-				break;
-		}
 		
-		Debug.i(TAG, FUNC_TAG, "Current state: " + dias_state + " --- " + ui_state);
+		Debug.i(TAG, FUNC_TAG, "Current state: " + dias_state);
 		
     	stop = System.currentTimeMillis();
     	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
@@ -1159,22 +1092,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 
 		Debug.i(TAG, FUNC_TAG, "Updating Dias Main...");
 		
-		if (DIAS_STATE == State.DIAS_STATE_STOPPED) 
-		{
-			mainGroupShow();
-		} 
-		else if (DIAS_STATE != State.DIAS_STATE_STOPPED) 
-		{
-			switch (DIAS_UI_STATE) 
-			{
-				case DIAS_UI_STATE_MAIN:
-					mainGroupShow();    
-					break;
-				case DIAS_UI_STATE_PLOTS:
-					//mainGroupHide();
-					break;
-			}
-		}
+		mainGroupShow();    
 		
 		stop = System.currentTimeMillis();
     	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
@@ -1303,7 +1221,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
     }
     
-    private void updateCgm(double cgmValue, int cgmTrend, long cgmLastTime, int cgmState, boolean alarmNoCgm)
+    private void updateCgm(double cgmValue, int cgmTrend, long cgmLastTime, int cgmState)
     {
     	final String FUNC_TAG = "updateCgm";
     	long start = System.currentTimeMillis();
@@ -1376,23 +1294,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 				textViewCGM.setText("CGM Sensor Failed");
 				break;
 		}
-		
-		if (alarmNoCgm && !noCgmInClosedLoopAlarmPlaying) 
-		{
-			// Remove Dialog boxes that might be in the way
-			removeDialog(DIALOG_PASSWORD);
-			removeDialog(DIALOG_CONFIRM_STOP);
-			removeDialog(DIALOG_CONFIRM_EXERCISE);
-			removeDialog(DIALOG_CONFIRM_HYPO_TREATMENT);
-			
-			Debug.i(TAG, FUNC_TAG, "START OPEN LOOP");
-			
-			//showAlarmActivity(NO_CGM_ALARM);
-			
-			startNoCgmWatchdogTimer();
-		}
-		
-		noCgmInClosedLoopAlarmPlaying = alarmNoCgm;
 		
 		ImageView imageViewArrow = (ImageView)this.findViewById(R.id.imageViewArrow);
 
@@ -1479,23 +1380,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     /************************************************************************************************************************/
 	//  UI Helper Functions
 	/************************************************************************************************************************/
-    
-    private void updateDiasMainState(int state)		
-    {
-    	//This is a bit of a retro-fit for the system, since these updates only effect the UI its fine,
-    	//they aren't involved with system wide changes in data.  It was updated to be called only when
-    	//DIAS_UI_STATE was actually assigned something
-    	
-    	final String FUNC_TAG = "updateDiasMainState";
-    	
-    	Debug.i(TAG, FUNC_TAG, "Previous UI state: "+DIAS_UI_STATE);
-    	
-    	DIAS_UI_STATE = state;
-    	
-    	Debug.i(TAG, FUNC_TAG, "New UI state: "+state);
-    	
-    	updateDiasMain();		//This just allows us to more easily track changes to the UI
-    }
        
 	private void initTrafficLights() 
 	{
@@ -1676,8 +1560,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
  		plotsDisplay.putExtra("simTime", getTimeSeconds());
  		startActivityForResult(plotsDisplay, PLOTS);
     	 
- 		updateDiasMainState(DIAS_UI_STATE_PLOTS);	//Update the display so the UI mode catches
- 		
  		Debug.i(TAG, FUNC_TAG, "after plotsClick");
      }
    		
@@ -2251,47 +2133,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 			return SIM_TIME;			//Simulated time passed on timer tick
 		else 
 			return (long)(System.currentTimeMillis()/1000);
-	}
-	
-	private void startNoCgmWatchdogTimer() 
-	{
-		final String FUNC_TAG = "startNoCgmWatchdogTimer";
-		
-   		NoCgmWatchdogTimer = new Timer();
-   		NoCgmWatchdogTimerTask = new TimerTask() 
-   		{
-    		public void run() 
-    		{
-   			    Intent intent = new Intent();
-   				intent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
-   				intent.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_STOP_CLICK);
-   				startService(intent);
-   				main.removeDialog(DIALOG_CLOSED_LOOP_NO_CGM);					
-	    		log_action(TAG, "NoCgmWatchdogTimer > Timed Out");
-	        	Debug.i(TAG, FUNC_TAG, "Timed out");
-    		}
-		};
-		
-		long timeout;
-		
-		if (inSimMode())
-			timeout = (long)(NO_CGM_WATCHDOG_TIMEOUT_SECONDS/10)*1000;
-		else
-			timeout = (long)(NO_CGM_WATCHDOG_TIMEOUT_SECONDS)*1000;
-		
-		long timeout_seconds = timeout/1000;
-		NoCgmWatchdogTimer.schedule(NoCgmWatchdogTimerTask,timeout);
-		Debug.i(TAG, FUNC_TAG, "Started > , timeout="+timeout_seconds+" seconds");           				
-   }
-
-	private void cancelNoCgmWatchdogTimer() {
-		final String FUNC_TAG = "cancelNoCgmWatchdogTimer";
-		
-		if (NoCgmWatchdogTimer != null) 
-		{
-			NoCgmWatchdogTimer.cancel();
-			Debug.i(TAG, FUNC_TAG, "Canceled");       				
-		}
 	}
     
     private boolean standaloneDriverAvailable() {
