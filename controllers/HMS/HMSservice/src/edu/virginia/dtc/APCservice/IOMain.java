@@ -209,20 +209,6 @@ public class IOMain extends Service {
     /* Target we publish for clients to send commands to IncomingHandlerFromClient. */
     final Messenger mMessengerFromClient = new Messenger(new IncomingHMSHandler());
     
-    private BroadcastReceiver pingReceiver = new BroadcastReceiver()
-    {
-    	final String FUNC_TAG = "pingReceiver";
-    	
-		@Override
-		public void onReceive(Context context, Intent intent) {
-			Debug.i(TAG, FUNC_TAG, "Ping received...sending response!");
-			
-			Intent response = new Intent("edu.virginia.dtc.PING_RESPONSE");
-			response.putExtra("controller", FSM.APC);
-			sendBroadcast(response);
-		}
-    };
- 
     /* When binding to the service, we return an interface to our messenger for sending messages to the service. */
     @Override
     public IBinder onBind(Intent intent) {
@@ -520,8 +506,6 @@ public class IOMain extends Service {
 		pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();
-
-		this.registerReceiver(pingReceiver, new IntentFilter("edu.virginia.dtc.PING"));
     }
 
 	@Override

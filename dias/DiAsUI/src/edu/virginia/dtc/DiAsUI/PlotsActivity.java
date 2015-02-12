@@ -7,44 +7,44 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Vector;
 
 import com.androidplot.Plot;
-import com.androidplot.series.XYSeries;
 import com.androidplot.ui.AnchorPosition;
 import com.androidplot.ui.DynamicTableModel;
 import com.androidplot.ui.SizeLayoutType;
 import com.androidplot.ui.SizeMetrics;
+import com.androidplot.ui.XLayoutStyle;
+import com.androidplot.ui.XPositionMetric;
+import com.androidplot.ui.YLayoutStyle;
+import com.androidplot.util.PixelUtils;
 import com.androidplot.xy.BarFormatter;
 import com.androidplot.xy.BarRenderer;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.PointLabelFormatter;
+import com.androidplot.xy.PointLabeler;
 import com.androidplot.xy.RectRegion;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.StepFormatter;
-import com.androidplot.xy.XLayoutStyle;
-import com.androidplot.xy.XPositionMetric;
 import com.androidplot.xy.XYPlot;
 import com.androidplot.xy.XYRegionFormatter;
+import com.androidplot.xy.XYSeries;
 import com.androidplot.xy.XYStepMode;
-import com.androidplot.xy.YLayoutStyle;
 import com.androidplot.xy.YValueMarker;
 
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.State;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
@@ -53,29 +53,24 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Shader;
-import android.net.Uri;
+import android.graphics.Paint.Align;
 import android.os.Bundle;
 import android.text.format.Time;
-import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
 
 public class PlotsActivity extends Activity{
 	
-	public static final String TAG = "PlotsActivity";
-	public static final boolean DEBUG = true;
+	private static final String TAG = "PlotsActivity";
+	
+	private static final boolean CGM_LABELS = true;
+	private static final boolean BASAL_LABELS = false;
+	private static final boolean MEAL_LABELS = true;
+	private static final boolean CORR_LABELS = true;
 	
 	private int DIAS_STATE;
 	
@@ -87,8 +82,8 @@ public class PlotsActivity extends Activity{
 		mealBolusTimes, mealBolusValues, corrBolusTimes, corrBolusValues;
 	
 	private int cgmCount, insulinCount;
-	private XYSeries seriesCGM, seriesInsulin, seriesBasal, seriesMealBolus, seriesCorrBolus;
-	private LineAndPointFormatter seriesCGMFormat, seriesBasalFormat, seriesMealBolusFormat, seriesCorrBolusFormat;
+	private XYSeries seriesCGM, seriesInsulin, seriesMealBolus, seriesCorrBolus;
+	private LineAndPointFormatter seriesCGMFormat, seriesMealBolusFormat, seriesCorrBolusFormat;
 	private BarFormatter seriesInsulinFormat;
 	
 	private XYRegionFormatter 
@@ -101,7 +96,7 @@ public class PlotsActivity extends Activity{
 	private final boolean COLOR_REGIONS_BY_DIAS_STATE = true;
 	
 	// Static final indices to refer to data in the above arrays
-	public static final int LOWER = 0, UPPER = 1, LEFT = 2, RIGHT = 3, VALUEOFMINY = 4, VALUEOFMINX = 5, VALUEOFMAXY = 6, VALUEOFMAXX = 7, WEIGHT = 8;
+	public static final int LOWER = 0, UPPER = 1, LEFT = 2, RIGHT = 3, VALUEOFMINX = 5, VALUEOFMAXY = 6, VALUEOFMAXX = 7;
 	
 	// Colors for Regions
 	private static final int COLOR_SAFETY = Color.rgb(186, 85, 211);
@@ -192,6 +187,8 @@ public class PlotsActivity extends Activity{
 	private void initScreen()
 	{
 		WindowManager.LayoutParams params = getWindow().getAttributes();
+		
+		//TODO: check these attributes
 		params.height = WindowManager.LayoutParams.MATCH_PARENT;
 		params.width = WindowManager.LayoutParams.MATCH_PARENT;
 		
@@ -275,7 +272,7 @@ public class PlotsActivity extends Activity{
 		corrBolusValues = new Vector<Number>();
 	}
 	
-	public void plotsBuild() 
+	private void plotsBuild() 
 	{
 		final String FUNC_TAG = "plotsBuild";
 		
@@ -306,10 +303,32 @@ public class PlotsActivity extends Activity{
 		int ii = 0;
 		prevStateTime = 0;
 		
+		PointLabelFormatter p = new PointLabelFormatter();
+		Paint pt = new Paint();
+		pt.setColor(Color.WHITE);
+		pt.setTextSize(18);
+		pt.setTextAlign(Align.RIGHT);
+		p.setTextPaint(pt);
+		
 		seriesCGMFormat = new LineAndPointFormatter(Color.rgb(80, 80, 80), 		// Line color
 			Color.rgb(255, 255, 255), 											// Point color
-			Color.argb(100, 240, 240, 240)); 									// White fill
-	   	 
+			Color.argb(100, 240, 240, 240), null); 								// White fill
+		
+		seriesCGMFormat.getVertexPaint().setStrokeWidth(PixelUtils.dpToPix(2));
+
+		if(CGM_LABELS)
+		{
+			seriesCGMFormat.setPointLabelFormatter(p);
+			seriesCGMFormat.setPointLabeler(new PointLabeler(){
+				DecimalFormat df = new DecimalFormat("###.##");
+				
+				public String getLabel(XYSeries arg0, int arg1) {
+					//TODO: check this is ok for MMOL etc.
+					return df.format(arg0.getY(arg1));
+				}
+			});
+		}
+		
 	   	 if (c.moveToFirst()) 
 	   	 {
 	   		 do 
@@ -522,44 +541,44 @@ public class PlotsActivity extends Activity{
 			for (int nn=0; nn<mealTimes.size(); nn++) {
 				if (mealValues.get(nn).doubleValue() > 0) {
 					double bolus_marker_initial = Math.min(mealValues.get(nn).doubleValue(), 12.0);
-					double bolus_marker = 0.0;
-					while (bolus_marker < 12) 
-					{
+//					double bolus_marker = 0.0;
+//					while (bolus_marker < 12) 
+//					{
 						mealBolusTimes.addElement(mealTimes.get(nn));
-						mealBolusValues.addElement(bolus_marker);
+						mealBolusValues.addElement(bolus_marker_initial);
 						
-						if(bolus_marker < bolus_marker_initial-0.1)
-							bolus_marker+=0.1;
-						else
-							bolus_marker+=0.8;
-						
-						if(bolus_marker > 12)
-							bolus_marker = 12;
-					}
+//						if(bolus_marker < bolus_marker_initial-0.1)
+//							bolus_marker+=0.1;
+//						else
+//							bolus_marker+=0.8;
+//						
+//						if(bolus_marker > 12)
+//							bolus_marker = 12;
+//					}
 				}
 			}
 			for (int nn=0; nn<corrTimes.size(); nn++) {
 				if (corrValues.get(nn).doubleValue() > 0) {
 					double bolus_marker_initial = Math.min(corrValues.get(nn).doubleValue(), 12.0);
-					double bolus_marker = 0.0;
-					while (bolus_marker < 12) 
-					{
+//					double bolus_marker = 0.0;
+//					while (bolus_marker < 12) 
+//					{
 						corrBolusTimes.addElement(corrTimes.get(nn));
-						corrBolusValues.addElement(bolus_marker);
-						
-						if(bolus_marker < bolus_marker_initial-0.1)
-							bolus_marker+=0.1;
-						else
-							bolus_marker+=0.8;
-						
-						if(bolus_marker > 12)
-							bolus_marker = 12;
-					}
+						corrBolusValues.addElement(bolus_marker_initial);
+//						
+//						if(bolus_marker < bolus_marker_initial-0.1)
+//							bolus_marker+=0.1;
+//						else
+//							bolus_marker+=0.8;
+//						
+//						if(bolus_marker > 12)
+//							bolus_marker = 12;
+//					}
 				}
 			}
     }
 	
-	public void plotsShow(boolean rebuild) 
+	private void plotsShow(boolean rebuild) 
 	{
 		final String FUNC_TAG = "plotsShow";
 		
@@ -575,14 +594,20 @@ public class PlotsActivity extends Activity{
 			{
 				// ***** CGM Plot *****
 				seriesCGM = new SimpleXYSeries(cgmTimes, cgmValues, "");
+				
 				XYPlot cgmPlot = (XYPlot) findViewById(R.id.cgmPlot);
 				cgmPlot.setClickable(true);
 
 				cgmPlot.getGraphWidget().getGridBackgroundPaint().setColor(Color.BLACK);
-				cgmPlot.getGraphWidget().getGridLinePaint().setColor(0x6000ff80);
-				cgmPlot.getGraphWidget().getGridLinePaint().setAlpha(128);
+				
+				cgmPlot.getGraphWidget().getDomainGridLinePaint().setColor(0x6000ff80);
+				cgmPlot.getGraphWidget().getDomainGridLinePaint().setAlpha(128);
 				cgmPlot.getGraphWidget().getDomainOriginLinePaint().setColor(Color.BLACK);
+				
+				cgmPlot.getGraphWidget().getRangeGridLinePaint().setColor(0x6000ff80);
+				cgmPlot.getGraphWidget().getRangeGridLinePaint().setAlpha(128);
 				cgmPlot.getGraphWidget().getRangeOriginLinePaint().setColor(Color.BLACK);
+				
 				cgmPlot.getGraphWidget().setPaddingRight(5);
 
 				cgmPlot.setBorderStyle(Plot.BorderStyle.SQUARE, null, null);
@@ -610,7 +635,7 @@ public class PlotsActivity extends Activity{
     			
     			// Deal with legend
     			cgmPlot.getLegendWidget().setVisible(false);
-
+    			
     			// Get values at the extremities of the plot to prevent removing points during scaling
     			Debug.i(TAG, FUNC_TAG, "cgmValues.size()="+cgmValues.size()+", cgmTimes.size()="+cgmTimes.size()+", cgmCount="+cgmCount);
     			
@@ -651,8 +676,9 @@ public class PlotsActivity extends Activity{
 
     			// By default, AndroidPlot displays developer guides to aid in laying out your plot.
     			// To get rid of them call disableAllMarkup():
-    			cgmPlot.disableAllMarkup();
+    			cgmPlot.setMarkupEnabled(false);
     			cgmPlot.setVisibility(View.VISIBLE);
+    			
     			cgmPlot.addMarker(new YValueMarker(70, // y-val to mark
     					"", 							// marker label
     					new XPositionMetric( 			// object instance to set text positioning on the marker
@@ -669,7 +695,6 @@ public class PlotsActivity extends Activity{
     					), Color.WHITE, // line paint color
     					Color.BLACK // text paint color
     			));
-
 	    	}
     	    if (insulinValues.size() > 0) 
     	    {
@@ -708,11 +733,12 @@ public class PlotsActivity extends Activity{
     			seriesInsulin = new SimpleXYSeries(insulinTimes1, insulinValues1, "");
     			seriesMealBolus = new SimpleXYSeries(mealBolusTimes, mealBolusValues, "");
     			seriesCorrBolus = new SimpleXYSeries(corrBolusTimes, corrBolusValues, "");
+    			
     			XYPlot insulinPlot = (XYPlot) findViewById(R.id.insulinPlot);
 				insulinPlot.setClickable(true);
 				insulinPlot.getGraphWidget().getGridBackgroundPaint().setColor(Color.BLACK);
-				insulinPlot.getGraphWidget().getGridLinePaint().setColor(0x6000ff80);
-				insulinPlot.getGraphWidget().getGridLinePaint().setAlpha(128);
+				insulinPlot.getGraphWidget().getDomainGridLinePaint().setColor(0x6000ff80);
+				insulinPlot.getGraphWidget().getDomainGridLinePaint().setAlpha(128);
 				insulinPlot.getGraphWidget().getDomainOriginLinePaint().setColor(Color.BLACK);
 				insulinPlot.getGraphWidget().getRangeOriginLinePaint().setColor(Color.BLACK);
 				insulinPlot.getGraphWidget().setPaddingRight(5);
@@ -721,20 +747,73 @@ public class PlotsActivity extends Activity{
 				insulinPlot.getBorderPaint().setStrokeWidth(1);
 				insulinPlot.getBorderPaint().setAntiAlias(false);
 				insulinPlot.getBorderPaint().setColor(Color.WHITE);
-
-				// Create a formatter to use for drawing a series using
-				// BarFormatter:
-				seriesInsulinFormat = new BarFormatter(Color.argb(255, 50, 150, 255), Color.argb(255, 50, 150, 255));
-				seriesBasalFormat = new StepFormatter(Color.argb(255, 150, 150, 255), Color.argb(0, 150, 150, 255));
-				seriesBasalFormat.setVertexPaint(new Paint(Color.argb(255, 100, 100, 100)));
 				
-				// bolus dot color
-				seriesMealBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(255, 0, 255, 0), Color.argb(0, 0, 0, 0));
-				seriesCorrBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(255, 255, 100, 0), Color.argb(0, 0, 0, 0));
-				insulinPlot.removeSeries(seriesBasal);
+				PointLabelFormatter pf = new PointLabelFormatter();
+				Paint pt2 = new Paint();
+				pt2.setColor(Color.WHITE);
+				pt2.setTextSize(18);
+				pt2.setTextAlign(Align.CENTER);
+				pf.setTextPaint(pt2);
+				
+				seriesInsulinFormat = new BarFormatter(Color.argb(255, 50, 150, 255), Color.argb(255, 50, 150, 255));
+				if(BASAL_LABELS)
+				{
+					seriesInsulinFormat.setPointLabelFormatter(pf);
+					seriesInsulinFormat.setPointLabeler(new PointLabeler(){
+						DecimalFormat df = new DecimalFormat("###.##");
+						
+						public String getLabel(XYSeries arg0, int arg1) {
+							if(df.format(arg0.getY(arg1)).equalsIgnoreCase("0"))
+								return "";
+							
+							return df.format(arg0.getY(arg1));
+						}
+					});
+				}
+				
+				seriesMealBolusFormat = new BarFormatter(Color.argb(255, 0, 255, 0), Color.argb(255, 0, 255, 0));
+				if(MEAL_LABELS)
+				{
+					seriesMealBolusFormat.setPointLabelFormatter(pf);
+					seriesMealBolusFormat.setPointLabeler(new PointLabeler(){
+						DecimalFormat df = new DecimalFormat("###.##");
+						
+						public String getLabel(XYSeries arg0, int arg1) {
+							if(df.format(arg0.getY(arg1)).equalsIgnoreCase("0"))
+								return "";
+							
+							return df.format(arg0.getY(arg1));
+						}
+					});
+				}
+				
+				seriesCorrBolusFormat = new BarFormatter(Color.argb(255, 255, 100, 0), Color.argb(255, 255, 100, 0));
+				if(CORR_LABELS)
+				{
+					seriesCorrBolusFormat.setPointLabelFormatter(pf);
+					seriesCorrBolusFormat.setPointLabeler(new PointLabeler(){
+						DecimalFormat df = new DecimalFormat("###.##");
+						
+						public String getLabel(XYSeries arg0, int arg1) {
+							if(df.format(arg0.getY(arg1)).equalsIgnoreCase("0"))
+								return "";
+							
+							return df.format(arg0.getY(arg1));
+						}
+					});
+				}
+				
+				// Bolus dot color
+//				seriesMealBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(255, 0, 255, 0), Color.argb(0, 0, 0, 0), null);
+//				seriesMealBolusFormat.getVertexPaint().setStrokeWidth(PixelUtils.dpToPix(2));
+//				
+//				seriesCorrBolusFormat = new LineAndPointFormatter(Color.argb(0, 0, 0,0), Color.argb(255, 255, 100, 0), Color.argb(0, 0, 0, 0), null);
+//				seriesCorrBolusFormat.getVertexPaint().setStrokeWidth(PixelUtils.dpToPix(2));
+				
 				insulinPlot.addSeries(seriesInsulin, seriesInsulinFormat);
 				insulinPlot.addSeries(seriesMealBolus, seriesMealBolusFormat);
 				insulinPlot.addSeries(seriesCorrBolus, seriesCorrBolusFormat);
+				
 				// Scale basal insulin bars to time region
 				((BarRenderer) insulinPlot.getRenderer(BarRenderer.class)).setBarWidth((float)(11*(double)10800/TIME_REGION_IN_SECONDS));
 				// Draw a domain tick for each hour interval
@@ -768,7 +847,7 @@ public class PlotsActivity extends Activity{
 		        
 		        // reposition the grid so that it rests above the bottom-left
 		        // edge of the graph widget:
-		        insulinPlot.position(insulinPlot.getLegendWidget(), 70, XLayoutStyle.ABSOLUTE_FROM_LEFT, 50, YLayoutStyle.ABSOLUTE_FROM_TOP, AnchorPosition.LEFT_TOP);
+		        insulinPlot.getLegendWidget().position(100, XLayoutStyle.ABSOLUTE_FROM_LEFT, 50, YLayoutStyle.ABSOLUTE_FROM_TOP, AnchorPosition.LEFT_TOP);
 
 				// Get values at the extremities of the plot to prevent removing points
 				// During scaling
@@ -788,7 +867,7 @@ public class PlotsActivity extends Activity{
 
 				// By default, AndroidPlot displays developer guides to aid in laying out your plot
 				// To get rid of them call disableAllMarkup()
-				insulinPlot.disableAllMarkup();
+				insulinPlot.setMarkupEnabled(false);
 				insulinPlot.setVisibility(View.VISIBLE);
 
 				// Make plot screens visible
@@ -810,7 +889,7 @@ public class PlotsActivity extends Activity{
     }    	
 	
 	// Checks latest data in the database and updates plot
- 	public void updatePlotData() 
+ 	private void updatePlotData() 
  	{
  		final String FUNC_TAG = "updatePlotData";
  		
@@ -915,7 +994,7 @@ public class PlotsActivity extends Activity{
  	}
 
  	// method used to manually add new data points to the existing data, then redraw plots
- 	public void updatePlotData(Number cgmTime, Number cgmData, Number stateData, Number insulinTime, Number insulinData,
+ 	private void updatePlotData(Number cgmTime, Number cgmData, Number stateData, Number insulinTime, Number insulinData,
  			Number mealTime, Number mealData, Number corrTime, Number corrData, Number deliveredTime, Number deliveredData) 
  	{
  		final String FUNC_TAG = "updatePlotData";
@@ -1005,20 +1084,20 @@ public class PlotsActivity extends Activity{
  				{
  					Debug.i(TAG, FUNC_TAG, "New Bolus DOT");
 					double bolus_marker_initial = Math.min(mealData.doubleValue(), 12.0);
-					double bolus_marker = 0.0;
-					while (bolus_marker < 12) 
-					{
+//					double bolus_marker = 0.0;
+//					while (bolus_marker < 12) 
+//					{
 						bolusTimes.addElement(mealTime);
-						bolusValues.addElement(bolus_marker);
+						bolusValues.addElement(bolus_marker_initial);
 						
-						if(bolus_marker < bolus_marker_initial-0.1)
-							bolus_marker+=0.1;
-						else
-							bolus_marker+=0.8;
-						
-						if(bolus_marker > 12)
-							bolus_marker = 12;
-					}
+//						if(bolus_marker < bolus_marker_initial-0.1)
+//							bolus_marker+=0.1;
+//						else
+//							bolus_marker+=0.8;
+//						
+//						if(bolus_marker > 12)
+//							bolus_marker = 12;
+//					}
  				}
  			}
  		}
@@ -1043,20 +1122,20 @@ public class PlotsActivity extends Activity{
  				{
  					Debug.i(TAG, FUNC_TAG, "New Bolus DOT");
 					double bolus_marker_initial = Math.min(corrData.doubleValue(), 12.0);
-					double bolus_marker = 0.0;
-					while (bolus_marker < 12) 
-					{
+//					double bolus_marker = 0.0;
+//					while (bolus_marker < 12) 
+//					{
 						bolusTimes.addElement(corrTime);
-						bolusValues.addElement(bolus_marker);
+						bolusValues.addElement(bolus_marker_initial);
 						
-						if(bolus_marker < bolus_marker_initial-0.1)
-							bolus_marker+=0.1;
-						else
-							bolus_marker+=0.8;
-						
-						if(bolus_marker > 12)
-							bolus_marker = 12;
-					}
+//						if(bolus_marker < bolus_marker_initial-0.1)
+//							bolus_marker+=0.1;
+//						else
+//							bolus_marker+=0.8;
+//						
+//						if(bolus_marker > 12)
+//							bolus_marker = 12;
+//					}
  				}
  			}
  		}
@@ -1319,7 +1398,7 @@ public class PlotsActivity extends Activity{
  	}
 
  	// Sets the time region; it is recommended to use the above function instead
- 	public void setTimeRegionInHours(double hours) 
+ 	public  void setTimeRegionInHours(double hours) 
  	{
  		TIME_REGION_IN_SECONDS = (long) (hours * 60 * 60);
  	}
@@ -1335,12 +1414,12 @@ public class PlotsActivity extends Activity{
  		return insulinPlotBounds;
  	}
  	
- 	public double[] getHighInsulinPlotBounds()
+ 	private double[] getHighInsulinPlotBounds()
  	{
  		return highInsulinPlotBounds;
  	}
 
-    public void plotExpand(int ViewID)	// Function used to display the XYPlot (passed as ViewID) over other plots
+    private void plotExpand(int ViewID)	// Function used to display the XYPlot (passed as ViewID) over other plots
     {
     	final String FUNC_TAG = "plotExpand";
     	
@@ -1380,7 +1459,7 @@ public class PlotsActivity extends Activity{
     	return res;
     }
  	
-	public long getCurrentTimeSeconds() {
+	private long getCurrentTimeSeconds() {
 			return (long)(System.currentTimeMillis()/1000);		// Seconds since 1/1/1970 in UTC
 	}
 	
@@ -1413,7 +1492,7 @@ public class PlotsActivity extends Activity{
 	* Log Messaging Functions
 	************************************************************************************/
 	
-	public void log_action(String tag, String message)
+	private void log_action(String tag, String message)
 	{
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
         i.putExtra("Service", tag);

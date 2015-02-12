@@ -228,20 +228,6 @@ public class SafetyService extends Service {
 	
 	public static SSMDB db; 
 
-	private BroadcastReceiver pingReceiver = new BroadcastReceiver()
-    {
-    	final String FUNC_TAG = "pingReceiver";
-    	
-		@Override
-		public void onReceive(Context context, Intent intent) {
-			Debug.i(TAG, FUNC_TAG, "Ping received...sending response!");
-			
-			Intent response = new Intent("edu.virginia.dtc.PING_RESPONSE");
-			response.putExtra("controller", FSM.SSM);
-			sendBroadcast(response);
-		}
-    };
-
     private ServiceConnection mConnection;																/* Connection to the Pump Service. */
     Messenger mMessengerToPumpService = null;															/* Messenger for communicating with the Pump Service. */
     final Messenger mMessengerFromPumpService = new Messenger(new IncomingHandlerFromPumpService());		/* Target we publish for clients to send messages to IncomingHandler. */
@@ -281,8 +267,6 @@ public class SafetyService extends Service {
 		last_Tvec_insulin_bolus1_time_secs = new Long(0);
 		last_Tvec_insulin_credit_time_secs = new Long(0);
 		last_Tvec_requested_insulin_bolus1_time_secs = new Long(0);
-		
-		this.registerReceiver(pingReceiver, new IntentFilter("edu.virginia.dtc.PING"));
 		
         // Create a ServiceConnection class for interacting with the main interface of the Pump Service.
         mConnection = new ServiceConnection() {

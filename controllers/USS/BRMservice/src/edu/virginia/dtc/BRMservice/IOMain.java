@@ -147,20 +147,6 @@ public class IOMain extends Service {
     public BroadcastReceiver TickReceiver,BRMparamReceiver; 
 	private boolean BRMparamReceiverIsRegistered = false;
 	
-	private BroadcastReceiver pingReceiver = new BroadcastReceiver()
-    {
-    	final String FUNC_TAG = "pingReceiver";
-    	
-		@Override
-		public void onReceive(Context context, Intent intent) {
-			Debug.i(TAG, FUNC_TAG, "Ping received...sending response!");
-			
-			Intent response = new Intent("edu.virginia.dtc.PING_RESPONSE");
-			response.putExtra("controller", FSM.BRM);
-			sendBroadcast(response);
-		}
-    };
-
     public Tvector getTvector(Bundle bundle, String timeKey, String valueKey) {
 		int ii;
 		long[] times = bundle.getLongArray(timeKey);
@@ -592,8 +578,6 @@ public class IOMain extends Service {
 		pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();  
-		
-		this.registerReceiver(pingReceiver, new IntentFilter("edu.virginia.dtc.PING"));
 		
 		//TDI calculation task scheduling
 		

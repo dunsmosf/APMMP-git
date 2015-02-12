@@ -79,20 +79,6 @@ public class MCMservice extends Service
 		}
 	};
 	
-	private BroadcastReceiver pingReceiver = new BroadcastReceiver()
-    {
-    	final String FUNC_TAG = "pingReceiver";
-    	
-		@Override
-		public void onReceive(Context context, Intent intent) {
-			Debug.i(TAG, FUNC_TAG, "Ping received...sending response!");
-			
-			Intent response = new Intent("edu.virginia.dtc.PING_RESPONSE");
-			response.putExtra("controller", FSM.MCM);
-			sendBroadcast(response);
-		}
-    };
-	
 	public void onCreate()
 	{
 		super.onCreate();
@@ -128,7 +114,6 @@ public class MCMservice extends Service
         getContentResolver().registerContentObserver(Biometrics.STATE_URI, true, stateObserver);
         
         this.registerReceiver(mealActivityReceiver, new IntentFilter("DiAs.MealActivity"));
-        this.registerReceiver(pingReceiver, new IntentFilter("edu.virginia.dtc.PING"));
         
         readStartupValues();
 	}
