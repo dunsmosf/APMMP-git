@@ -143,6 +143,7 @@ public class DiAsService extends Service
 	private BroadcastReceiver pingReceiver = null;
 	
 	private long pingTimeSent = -1;
+	private boolean apcPing, brmPing, ssmPing, mcmPing;
 	
 	private double nextSimulatedPumpValue = 0.0;								// Used to handle simulated pump input from a file
 	private int Timer_Ticks_Per_Control_Tick = 1;								// Multiple of SupervisorService algorithm ticks that is counted to before calling APController
@@ -250,12 +251,29 @@ public class DiAsService extends Service
 	private static final String PREFS_NAME = "BasalPause";
 	
 	private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-	private static ScheduledFuture<?> waitTimer;
+	private static ScheduledFuture<?> waitTimer, pingTimer;
 	
 	private Machine ASYNC, SYNC, TBR;
 	private int CONFIG = FSM.NONE;
 	
 	private static DiAsSubjectData subject_data;
+	
+	private Runnable ping = new Runnable() {
+		final String FUNC_TAG = "ping";
+		
+		public void run() {
+			Debug.i(TAG, FUNC_TAG, "Analyzing ping results...");
+			
+			switch(CONFIG) {
+				case FSM.APC_BRM:
+					break;
+				case FSM.APC_ONLY:
+					break;
+				case FSM.BRM_ONLY:
+					break;
+			}
+		}
+	};
 	
 	private Runnable wait = new Runnable()
 	{
@@ -1029,23 +1047,27 @@ public class DiAsService extends Service
 				Debug.i(TAG, FUNC_TAG, "Ping response...");
 				
 				if(pingTimeSent > 0) {
-					long timeout = pingTimeSent - TIMEOUT;
 					long now = System.currentTimeMillis()/1000;
 					int type = intent.getIntExtra("controller", -1);
 					
-					switch(type)
-					{
+					Debug.i(TAG, FUNC_TAG, "Responded in time!");
+					
+					switch(type) {
 						case FSM.APC:
 							Debug.i(TAG, FUNC_TAG, "APC responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Apc.bound);
+							apcPing = true;
 							break;
 						case FSM.BRM:
 							Debug.i(TAG, FUNC_TAG, "BRM responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Brm.bound);
+							brmPing = true;
 							break;
 						case FSM.SSM:
 							Debug.i(TAG, FUNC_TAG, "SSM responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Ssm.bound);
+							ssmPing = true;
 							break;
 						case FSM.MCM:
 							Debug.i(TAG, FUNC_TAG, "MCM responded in "+(now - pingTimeSent)+" seconds!  Bonded: "+Mcm.bound);
+							mcmPing = true;
 							break;
 					}
 				}
@@ -1214,8 +1236,8 @@ public class DiAsService extends Service
      		{
      			long tick = intent.getLongExtra("tick", -1);
      			
-     			if(tick == 1)
-     				pingServices();
+     			if(tick == 1 && initialized)
+     				pingControllers();
      			
         		int OLD_DIAS_STATE = DIAS_STATE;
         		
@@ -1647,17 +1669,20 @@ public class DiAsService extends Service
         startForeground(DIAS_ID, notification);
     }
     
-    public void pingServices()
+    public void pingControllers()
     {
-    	final String FUNC_TAG = "pingServices";
+    	final String FUNC_TAG = "pingControllers";
     	
     	Debug.i(TAG, FUNC_TAG, "Configuration: "+FSM.configToString(CONFIG));
     	
     	pingTimeSent = System.currentTimeMillis()/1000;
+    	apcPing = brmPing = mcmPing = ssmPing = false;
     	
     	//Send PING broadcast
-    	Intent ping = new Intent("edu.virginia.dtc.PING");
-    	this.sendBroadcast(ping);
+    	Intent pingMessage = new Intent("edu.virginia.dtc.PING");
+    	this.sendBroadcast(pingMessage);
+    	
+    	pingTimer = scheduler.schedule(ping, 10, TimeUnit.SECONDS);
     }
 
 	// ******************************************************************************************************************************

@@ -14,8 +14,10 @@ import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.State;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
@@ -413,15 +415,32 @@ public class MealActivity extends Activity{
 	{
 		final String FUNC_TAG = "injectMealBolusClick";
 		
-		try {
-    		Message msg = Message.obtain(null, Meal.INJECT, 0, 0);
-    		MCM.send(msg);
-        }
-        catch (RemoteException e) {
-    		e.printStackTrace();
-        }
-		
-		finish();
+		AlertDialog.Builder alert = new AlertDialog.Builder(this);
+    	alert.setTitle("Confirm Injection");
+    	alert.setMessage("Do you want to inject "+String.format("%.2f", totalInsulin)+" U?");
+
+    	alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() 
+    	{
+			public void onClick(DialogInterface dialog, int whichButton) 
+			{
+				try {
+		    		Message msg = Message.obtain(null, Meal.INJECT, 0, 0);
+		    		MCM.send(msg);
+		        }
+		        catch (RemoteException e) {
+		    		e.printStackTrace();
+		        }
+				
+				finish();
+			}
+		});
+    	
+		alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+			}
+		});
+    	
+    	alert.show();
 	}
 	
 	/************************************************************************************
