@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item android:id="@+id/menuCgmLabels" android:title="CGM Labels"/>
+
+    <item android:id="@+id/menuMealCorrLabels" android:title="Bolus Labels"></item>
+    
+    <item android:id="@+id/menuBasalLabels" android:title="Basal Labels"></item>
+    
+</menu>

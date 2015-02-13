@@ -62,9 +62,9 @@
         <activity android:label="Plot Screen"
                   android:configChanges="orientation|keyboardHidden|screenSize" 
                   android:name=".PlotsActivity"  
-                  android:screenOrientation="sensorLandscape"
+                  android:screenOrientation="sensorLandscape">
              
-                  android:theme="@style/MealScreenTheme">
+                  <!-- android:theme="@style/MealScreenTheme"> -->
             <intent-filter> 
                 <action android:name="android.intent.action.MAIN"></action> 
             </intent-filter>

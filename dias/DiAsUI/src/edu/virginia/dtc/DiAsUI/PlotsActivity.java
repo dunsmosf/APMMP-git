@@ -56,6 +56,9 @@ import android.graphics.Shader;
 import android.graphics.Paint.Align;
 import android.os.Bundle;
 import android.text.format.Time;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -67,10 +70,10 @@ public class PlotsActivity extends Activity{
 	
 	private static final String TAG = "PlotsActivity";
 	
-	private static final boolean CGM_LABELS = true;
-	private static final boolean BASAL_LABELS = false;
-	private static final boolean MEAL_LABELS = true;
-	private static final boolean CORR_LABELS = true;
+	private static boolean CGM_LABELS = true;
+	private static boolean BASAL_LABELS = false;
+	private static boolean MEAL_LABELS = true;
+	private static boolean CORR_LABELS = true;
 	
 	private int DIAS_STATE;
 	
@@ -170,6 +173,65 @@ public class PlotsActivity extends Activity{
 		updatePlotData();
 	}
 	
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+    	menu.clear();
+        MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.plots, menu);
+		return true;
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	final String FUNC_TAG = "optionsMenu";
+    	
+    	XYPlot cgmPlot = (XYPlot) findViewById(R.id.cgmPlot);
+    	XYPlot insulinPlot = (XYPlot) findViewById(R.id.insulinPlot);
+    	
+        switch (item.getItemId()) 
+        {
+	        case R.id.menuCgmLabels:
+	        	CGM_LABELS = !CGM_LABELS;
+	        	
+	        	Debug.i(TAG, FUNC_TAG, "Setting CGM Labels: "+CGM_LABELS);
+	        	
+	        	cgmPlot.removeSeries(seriesCGM);
+	        	insulinPlot.removeSeries(seriesCorrBolus);
+	        	insulinPlot.removeSeries(seriesMealBolus);
+	        	insulinPlot.removeSeries(seriesInsulin);
+	        	
+	        	plotsShow(true);
+	        	return true;
+	        case R.id.menuMealCorrLabels:
+	        	MEAL_LABELS = !MEAL_LABELS;
+	        	CORR_LABELS = MEAL_LABELS;
+	        	
+	        	Debug.i(TAG, FUNC_TAG, "Setting Meal/Corr Labels: "+MEAL_LABELS);
+	        	
+	        	cgmPlot.removeSeries(seriesCGM);
+	        	insulinPlot.removeSeries(seriesCorrBolus);
+	        	insulinPlot.removeSeries(seriesMealBolus);
+	        	insulinPlot.removeSeries(seriesInsulin);
+	        	
+	        	plotsShow(true);        	
+	        	return true;
+	        case R.id.menuBasalLabels:
+	        	BASAL_LABELS = !BASAL_LABELS;
+	        	
+	        	Debug.i(TAG, FUNC_TAG, "Setting Basal Labels: "+BASAL_LABELS);
+	        	
+	        	cgmPlot.removeSeries(seriesCGM);
+	        	insulinPlot.removeSeries(seriesCorrBolus);
+	        	insulinPlot.removeSeries(seriesMealBolus);
+	        	insulinPlot.removeSeries(seriesInsulin);
+	        	
+	        	plotsShow(true);
+	        	return true;
+			default:
+				return super.onOptionsItemSelected(item);
+        }
+    }
+	
 	@Override
 	public void onStart()
 	{
@@ -188,7 +250,6 @@ public class PlotsActivity extends Activity{
 	{
 		WindowManager.LayoutParams params = getWindow().getAttributes();
 		
-		//TODO: check these attributes
 		params.height = WindowManager.LayoutParams.MATCH_PARENT;
 		params.width = WindowManager.LayoutParams.MATCH_PARENT;
 		
@@ -276,15 +337,6 @@ public class PlotsActivity extends Activity{
 	{
 		final String FUNC_TAG = "plotsBuild";
 		
-   	 	// Move CGM plot for sensor-only mode
-   	 	switch (DIAS_STATE) 
-   	 	{
-			case State.DIAS_STATE_SENSOR_ONLY:
-				break;
-			default:
-				break;
-   	 	}
-	 	
    	 	// Fetch CGM data
    	 	cgmTimes = new Vector<Number>();
    	 	cgmValues = new Vector<Number>();
@@ -320,10 +372,9 @@ public class PlotsActivity extends Activity{
 		{
 			seriesCGMFormat.setPointLabelFormatter(p);
 			seriesCGMFormat.setPointLabeler(new PointLabeler(){
-				DecimalFormat df = new DecimalFormat("###.##");
+				DecimalFormat df = new DecimalFormat("###.#");
 				
 				public String getLabel(XYSeries arg0, int arg1) {
-					//TODO: check this is ok for MMOL etc.
 					return df.format(arg0.getY(arg1));
 				}
 			});
@@ -345,7 +396,6 @@ public class PlotsActivity extends Activity{
  				currentStateValue = c.getInt(c.getColumnIndex("diasState"));
  				stateValues.addElement(currentStateValue);
  				if (COLOR_REGIONS_BY_DIAS_STATE) {
-// 	  				Debug.i(TAG, FUNC_TAG, "seriesCGMFormat="+seriesCGMFormat+", prevStateTime="+prevStateTime+", currentTime="+currentTime);
  	  				RectRegion region = new RectRegion(prevStateTime, currentTime, 0, 600);
 					switch (currentStateValue.intValue()) 
 					{
@@ -445,7 +495,6 @@ public class PlotsActivity extends Activity{
 			kk = 0;
 			for (kk = 0; jj + kk < insulinCount; kk++) {
 				insulinTimes1.add(insulinTimes.get(kk));
-				Debug.i(TAG, FUNC_TAG, "jj=" + jj + ", kk=" + kk + ", cgmCount=" + cgmCount+ ", insulinCount=" + insulinCount);
 				insulinValues1.add(insulinValues.get(kk));
 			}
 		}
@@ -459,10 +508,6 @@ public class PlotsActivity extends Activity{
 			
 			// If there is more CGM data than insulin data left pad the insulin data with CGM times and zero values
 			while (jj < cgmCount && cgmTimes.get(jj).longValue() < insulinTimes.get(0).longValue()) {
-				Debug.i(TAG, FUNC_TAG, "cgmTimes[" + jj + "].longValue()="
-						+ cgmTimes.get(jj).longValue()
-						+ ", insulinTimes[0].longValue()="
-						+ insulinTimes.get(0).longValue());
 				insulinTimes1.addElement(cgmTimes.get(jj));
 				insulinValues1.addElement(0);
 				jj++;
@@ -481,14 +526,12 @@ public class PlotsActivity extends Activity{
 				insulinValues1 = new Vector<Number>();
 				jj = 0;
 				while (jj < cgmCount && cgmTimes.get(jj).longValue() < insulinTimes.get(0).longValue()) {
-					Debug.i(TAG, FUNC_TAG, "cgmTimes[" + jj + "].longValue()="+ cgmTimes.get(jj).longValue()+ ", insulinTimes[0].longValue()="+ insulinTimes.get(0).longValue());
 					insulinTimes1.addElement(cgmTimes.get(jj));
 					insulinValues1.addElement(0);
 					jj++;
 				}
 				for (kk = 0; jj + kk < insulinCount; kk++) {
 					insulinTimes1.add(insulinTimes.get(kk));
-					Debug.i(TAG, FUNC_TAG, "jj=" + jj + ", kk=" + kk + ", cgmCount=" + cgmCount+ ", insulinCount=" + insulinCount);
 					insulinValues1.add(insulinValues.get(kk));
 				}
 			}			
@@ -526,7 +569,6 @@ public class PlotsActivity extends Activity{
 					// Incoming time in seconds
 					corrTimes.addElement(c3.getLong(c3.getColumnIndex("deliv_time")));
 					corrValues.addElement(c3.getDouble(c3.getColumnIndex("deliv_corr")));
-					Debug.i(TAG, FUNC_TAG, "CORR: "+c3.getDouble(c3.getColumnIndex("deliv_corr")));
 					ii++;
 				} while (c3.moveToNext());
 			}
@@ -541,39 +583,15 @@ public class PlotsActivity extends Activity{
 			for (int nn=0; nn<mealTimes.size(); nn++) {
 				if (mealValues.get(nn).doubleValue() > 0) {
 					double bolus_marker_initial = Math.min(mealValues.get(nn).doubleValue(), 12.0);
-//					double bolus_marker = 0.0;
-//					while (bolus_marker < 12) 
-//					{
 						mealBolusTimes.addElement(mealTimes.get(nn));
 						mealBolusValues.addElement(bolus_marker_initial);
-						
-//						if(bolus_marker < bolus_marker_initial-0.1)
-//							bolus_marker+=0.1;
-//						else
-//							bolus_marker+=0.8;
-//						
-//						if(bolus_marker > 12)
-//							bolus_marker = 12;
-//					}
 				}
 			}
 			for (int nn=0; nn<corrTimes.size(); nn++) {
 				if (corrValues.get(nn).doubleValue() > 0) {
 					double bolus_marker_initial = Math.min(corrValues.get(nn).doubleValue(), 12.0);
-//					double bolus_marker = 0.0;
-//					while (bolus_marker < 12) 
-//					{
 						corrBolusTimes.addElement(corrTimes.get(nn));
 						corrBolusValues.addElement(bolus_marker_initial);
-//						
-//						if(bolus_marker < bolus_marker_initial-0.1)
-//							bolus_marker+=0.1;
-//						else
-//							bolus_marker+=0.8;
-//						
-//						if(bolus_marker > 12)
-//							bolus_marker = 12;
-//					}
 				}
 			}
     }
@@ -620,7 +638,6 @@ public class PlotsActivity extends Activity{
     			lineFill.setAlpha(200);
     			lineFill.setShader(new LinearGradient(0, 0, 0, 250, Color.WHITE, Color.GREEN, Shader.TileMode.MIRROR));
 
-    			// cgmPlot.addSeries(seriesCGM, seriesCGMFormat);
     			// Draw a domain tick for each hour interval:
     			cgmPlot.setDomainStep(XYStepMode.SUBDIVIDE, 7);
 
