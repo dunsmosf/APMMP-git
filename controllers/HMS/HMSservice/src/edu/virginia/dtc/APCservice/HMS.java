@@ -56,18 +56,6 @@ public class HMS {
     double MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS = 60;
     double MINIMUM_CORRECTION_BOLUS = 0.10;
     
-	// log_action priority levels
-	private static final int LOG_ACTION_UNINITIALIZED = 0;
-	private static final int LOG_ACTION_INFORMATION = 1;
-	private static final int LOG_ACTION_DEBUG = 2;
-	private static final int LOG_ACTION_NOT_USED = 3;
-	private static final int LOG_ACTION_WARNING = 4;
-	private static final int LOG_ACTION_SERIOUS = 5;
-	
-	// TIme intervals during which HMS may recommend bolus
-//	int HMS_START_TIME_HOURS = 7;			// HMS may recommend boluses starting at 7 AM
-//	int HMS_STOP_TIME_HOURS = 22;			// HMS must stop recommending boluses at 10 PM
-	
 	public static final int CGM_window_size_seconds = 62*60;		// Accommodate 8 data points: 60 minute window with 2 minutes of margin
 	
 	public boolean valid = false;
@@ -103,71 +91,163 @@ public class HMS {
 			double Gest,
 			double Gpred_30m, 
 			Context calling_context) {
+		
+		final String FUNC_TAG = "HMS_calculation";
 		double return_value = 0.0;
 		
 		// 1. Update the subject data by reading latest profile values from the database
+		// *******************************************************************************************
 		subject.read(time, context);
 		if (subject.valid == false) {		// Protect against state estimates with uninitialized data.
 			return 0.0;
 		}
+		
 		// 2. Are we in a time interval during which HMS corrections are permitted?
-		int timeOfDayOffsetSecs = subject.getTimeOfDayOffsetSecs(time);
+		// *******************************************************************************************
 		hms_data.read(calling_context);
-		Debug.i(TAG, "Corr_Time"," first  "+Long.toString(hms_data.correction_time_in_seconds));
+		Debug.i(TAG, FUNC_TAG," first  "+Long.toString(hms_data.correction_time_in_seconds));
 		
+		//Detect the second alg tick
+		if (first_alg_tick) {
+			Second_alg_tick=true;
+			first_alg_tick=false;
+		}
 		
-				//detect the second alg tick
-				if (first_alg_tick)
-				{
-					Second_alg_tick=true;
-					first_alg_tick=false;
-				}
-				//Detect the first tick then do nothing if it is the first tick !
-				if  (hms_data.correction_time_in_seconds==-1)
-				{
-					first_alg_tick=true;
-				}
-				Debug.i(TAG, "Corr_Time"," first Alg Tick =  "+first_alg_tick);
-				Debug.i(TAG, "Corr_Time"," Second Alg Tick =  "+Second_alg_tick);
-				Debug.i(TAG, "Corr_Time"," reference    "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
-				if (Second_alg_tick){
-					// 3. If the predicted BG greater than the threshold then calculate correction bolus
-					if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
-						return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
-					}
-					Second_alg_tick=false;
+		//Detect the first tick then do nothing if it is the first tick !
+		if  (hms_data.correction_time_in_seconds==-1) {
+			first_alg_tick=true;
+		}
+		
+		Debug.i(TAG, FUNC_TAG," first Alg Tick =  "+first_alg_tick);
+		Debug.i(TAG, FUNC_TAG," Second Alg Tick =  "+Second_alg_tick);
+		Debug.i(TAG, FUNC_TAG," reference    "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
+		
+		//TODO: Add time checks to the bolus return values (simplest...)
+		//TODO: Don't look in state estimate, look in insulin for requested corrections (any!)
+		//TODO: If no boluses in 25 hours then it will run the double bolus check
+		//TODO: no corrections until MDI is entered
+		
+		// 3. If the predicted BG greater than the threshold then calculate correction bolus
+		// *******************************************************************************************
+		if (Second_alg_tick){
+			if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
+				return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
+			}
+			Second_alg_tick=false;
+		}
+		
+		if (hms_data.valid) {
+			if (time>hms_data.correction_time_in_seconds+MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS*60) {
+				
+				// 3. If the predicted BG greater than the threshold then calculate correction bolus
+				if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
+					return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
 				}
 				
-				if (hms_data.valid) {
-					if (time>hms_data.correction_time_in_seconds+MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS*60) {
-						
-						// 3. If the predicted BG greater than the threshold then calculate correction bolus
-						if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
-							return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
-						}
-						
-					}
-				Debug.i(TAG, "Corr_Time"," Second  "+Long.toString(hms_data.correction_time_in_seconds)+"  corr = "+return_value);
-				
+			}
+		Debug.i(TAG, FUNC_TAG," Second  "+Long.toString(hms_data.correction_time_in_seconds)+"  corr = "+return_value);
 			
+		
 		}
-		/*
-		// 3. Enforce a maximum correction bolus size
-		if (return_value > FDA_MANDATED_MAXIMUM_CORRECTION_BOLUS) {
-			return_value = FDA_MANDATED_MAXIMUM_CORRECTION_BOLUS;
-		}
-		*/
+		
 		// 4. Enforce a minimum correction bolus size
+		// *******************************************************************************************
 		if (return_value > MINIMUM_CORRECTION_BOLUS) {
 			hms_data.correction_time_in_seconds = time;
 		}
 		else {
 			return_value = 0.0;
 		}
-		debug_message(TAG, "HMS_calculation: return_value="+return_value);
+		
+		// 5. Check mode of operation
+		// *******************************************************************************************
+		if(Mode.getMode(context.getContentResolver()) == Mode.CL_AVAILABLE 
+				|| Mode.getMode(context.getContentResolver()) == Mode.OL_CL_AVAILABLE
+				|| Mode.getMode(context.getContentResolver()) == Mode.OL_ALWAYS_CL_NIGHT_AVAILABLE) {
+			Debug.w(TAG, FUNC_TAG, "We are in a BRM only night mode - "+Mode.getMode(context.getContentResolver()));
+			
+			TimeZone tz = TimeZone.getDefault();
+			int UTC_offset_secs = tz.getOffset(getCurrentTimeSeconds()*1000)/1000;
+			int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
+			
+			if(inBrmRange(timeNowMins)) {
+				Debug.w(TAG, FUNC_TAG, "We are in the BRM range, corrections set to zero!");
+				return_value = 0.0;
+			}
+			else
+				Debug.i(TAG, FUNC_TAG, "We are NOT in the BRM range...");
+		}
+		else
+			Debug.i(TAG, FUNC_TAG, "We are NOT in a BRM only night mode - "+Mode.getMode(context.getContentResolver()));
+		
+		
+		Debug.i(TAG, FUNC_TAG, "HMS_calculation: return_value="+return_value);
 		return return_value;
 	}
 	
+	public boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
+		boolean retvalue = false;
+		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
+		long t, t2 = 0;
+		double v;
+		if (c.moveToFirst()) {
+			do {
+				t = c.getLong(c.getColumnIndex("time"));
+				if (c.getColumnIndex("endtime") < 0){
+					v = c.getDouble(c.getColumnIndex("value"));
+					Log.i(TAG, "readTvector: t=" + t + ", v=" + v);
+					tvector.put_with_replace(t, v);
+				} else if (c.getColumnIndex("value") < 0){
+					Log.i(TAG, "readTvector: t=" + t + ", t2=" + t2);
+					t2 = c.getLong(c.getColumnIndex("endtime"));
+					tvector.put_time_range_with_replace(t, t2);
+				}
+			} while (c.moveToNext());
+			retvalue = true;
+		}
+		c.close();
+		return retvalue;
+	}
+	
+	public boolean inBrmRange(int timeNowMins) 
+	{
+		final String FUNC_TAG = "inBrmRange";
+		
+		Debug.i(TAG, FUNC_TAG, "Checking BRM range...");
+		
+		Tvector safetyRanges = new Tvector(12);
+		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, context)) {
+			for (int i = 0; i < safetyRanges.count(); i++) 
+			{
+				int t = safetyRanges.get_time(i).intValue();
+				int t2 = safetyRanges.get_end_time(i).intValue();
+				
+				Debug.i(TAG, FUNC_TAG, "Night Range "+i+": "+t+"  "+t2);
+				
+				if (t > t2)			//Handle case of range over midnight
+				{ 					
+					t2 += 24*60;
+				}
+				
+				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2))
+				{
+					Debug.i(TAG, FUNC_TAG, "Current time is within the BRM range!");
+					return true;
+				}
+			}
+			return false;			
+		}
+		else {
+			return false;
+		}
+	}
+	
+	public long getCurrentTimeSeconds() {
+		final String FUNC_TAG = "getCurrentTimeSeconds";
+		
+			long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
+			return SystemTime;
+	}
 	
 	//function returns Gest if less than 8 pints cgm , Gpred otherwise
     public double CGM_8point_protection(long time, Tvector Tvec_cgm, double Gpred, double Gest){
@@ -189,14 +269,6 @@ public class HMS {
     	return reference;
 		
     }
-			
- 	public void log_action(String service, String action) {
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", service);
-        i.putExtra("Status", action);
-        i.putExtra("time", (long)(System.currentTimeMillis()/1000));
-        context.sendBroadcast(i);
-	}
  	
 	public void log_action(String service, String action, int priority) {
 		Debug.i(TAG, "log_action", action);
@@ -207,16 +279,6 @@ public class HMS {
         i.putExtra("priority", priority);
         i.putExtra("time", (long)(System.currentTimeMillis()/1000));
         context.sendBroadcast(i);
-	}
-
-	private static void debug_message(String tag, String message) {
-		if (DEBUG_MODE) {
-			Log.i(tag, message);
-		}
-	}
-	
-	private static void error_message(String tag, String message) {
-		Log.e(tag, "Error: "+message);
 	}
 	
 	public void storeUserTable1Data(long time,
