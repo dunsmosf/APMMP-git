@@ -5,12 +5,10 @@ import java.util.List;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.app.ActionBar;
 import android.app.AlertDialog;
-import android.app.DialogFragment;
 import android.app.FragmentTransaction;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -22,13 +20,14 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
+import android.os.RemoteException;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
@@ -39,10 +38,10 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.LinearInterpolator;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -57,6 +56,7 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.Meal;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.State;
 import edu.virginia.dtc.Tvector.Tvector;
@@ -989,6 +989,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		urls.add(Params.getString(getContentResolver(), "dwm_address_2", ""));
 		urls.add(Params.getString(getContentResolver(), "dwm_address_3", ""));
 		
+		final Context alert_context = alert.getContext();
 		
 		Cursor c = getContentResolver().query(Biometrics.SERVER_URI, null, null, null, null);
 		final String server_address;
@@ -1021,6 +1022,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		}
 		if (id_tocheck > -1) {
 			group.check(id_tocheck);
+
 		}
 		
 		alert.setView(group);
@@ -1031,25 +1033,80 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		{
 			public void onCheckedChanged(RadioGroup group, int checkedId) {
 				RadioButton chosen = (RadioButton) group.getChildAt(checkedId);
-				String url = (String) chosen.getText();
-				if (!url.equals(server_address)) {
-					
-					//TODO: Add Validation Pop-Up for Server URL change
-					ContentValues values = new ContentValues();
-					values.put("server_url", url);
-					getContentResolver().update(Biometrics.SERVER_URI, values, null, null);
-					Debug.i(TAG, FUNC_TAG, "Server URL changed to: " + url);
-					Toast.makeText(getBaseContext(), "Server URL changed to: " + url, Toast.LENGTH_SHORT).show();
-					
-					//TODO: Restart NetworkService after Server URL change
-					Intent intentNetworkService = new Intent("DiAs.NetworkService");
-		    		stopService(intentNetworkService);
-		    		startService(intentNetworkService);
-		    		
-					dialog.dismiss();
-				}
+				final String url = (String) chosen.getText();
+				
+				AlertDialog.Builder confirm_alert = new AlertDialog.Builder(alert_context);
+		    	
+				confirm_alert.setTitle("NetworkService");
+				confirm_alert.setMessage("Do you really want to modify the server URL? (Please check with your Clinical team before you make this change)");
+				confirm_alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() 
+		    	{
+					public void onClick(DialogInterface confirm_dialog, int whichButton) 
+					{
+						ContentValues values = new ContentValues();
+						values.put("server_url", url);
+						getContentResolver().update(Biometrics.SERVER_URI, values, null, null);
+						Debug.i(TAG, FUNC_TAG, "Server URL changed to: " + url);
+						Toast.makeText(getBaseContext(), "Server URL changed to: " + url, Toast.LENGTH_SHORT).show();
+						
+						Intent intentNetworkService = new Intent("DiAs.NetworkService");
+			    		stopService(intentNetworkService);
+			    		startService(intentNetworkService);
+						
+			    		confirm_dialog.dismiss();
+			    		
+			    		dialog.dismiss();
+					}
+				});
+				confirm_alert.setNegativeButton("No", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface confirm_dialog, int whichButton) {
+						confirm_dialog.dismiss();
+						dialog.dismiss();
+					}
+				});
+		    	
+				confirm_alert.show();
 			}
 		});
+		
+		// Restart the Network Service by clicking on the checked item:
+		if (id_tocheck > -1) {
+			RadioButton current_url = (RadioButton) group.getChildAt(id_tocheck); 
+			current_url.setOnClickListener(new android.view.View.OnClickListener(){
+
+				public void onClick(View v) {
+					
+					AlertDialog.Builder confirm_alert = new AlertDialog.Builder(alert_context);
+			    	
+					confirm_alert.setTitle("NetworkService");
+					confirm_alert.setMessage("Do you want to restart the Network Service now?");
+					confirm_alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() 
+			    	{
+						public void onClick(DialogInterface confirm_dialog, int whichButton) 
+						{
+							Toast.makeText(getBaseContext(), "Restarting Network Service...", Toast.LENGTH_SHORT).show();
+							
+							Intent intentNetworkService = new Intent("DiAs.NetworkService");
+				    		stopService(intentNetworkService);
+				    		startService(intentNetworkService);
+							
+				    		confirm_dialog.dismiss();
+				    		
+				    		dialog.dismiss();
+						}
+					});
+					confirm_alert.setNegativeButton("No", new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface confirm_dialog, int whichButton) {
+							confirm_dialog.dismiss();
+						}
+					});
+			    	
+					confirm_alert.show();
+					
+				}
+				
+			});
+		}
 		
 		dialog.setCanceledOnTouchOutside(false);
 		dialog.show();
