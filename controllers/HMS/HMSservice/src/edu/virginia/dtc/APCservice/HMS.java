@@ -8,59 +8,41 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.APCservice;
 
-import Jama.*;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Iterator;
 import java.util.TimeZone;
 
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
-
-import java.lang.reflect.Array;
-
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Mode;
-import edu.virginia.dtc.SysMan.State;
-
 import edu.virginia.dtc.Tvector.Tvector;
 
 public class HMS {
-	private static final boolean DEBUG_MODE = true;
-	private static final double FDA_MANDATED_MAXIMUM_CORRECTION_BOLUS = 3.0;
 	private Context context;
 	private Subject subject;
 	public HMSData hms_data; 		// This class encapsulates the state variables that are being estimated and that must persist.
 	public final String TAG = "HMSservice";
+	
 	// Identify owner of record in User Table 1
 	public static final int HMS_IOB_CONTROL = 50;
-	// Interface definitions for the biometricsContentProvider
-	public static final String PROVIDER_NAME = "edu.virginia.dtc.provider.biometrics";
-    public static final Uri USER_TABLE_1_URI = Uri.parse("content://"+ PROVIDER_NAME + "/user1");
-    public static final Uri HMS_STATE_ESTIMATE_URI = Uri.parse("content://"+ PROVIDER_NAME + "/hmsstateestimate");
 
 	// Parameter definitions
-    double CORRECTION_TARGET = 110.0;
-    double CORRECTION_THRESHOLD = 180.0;
-    double CORRECTION_FACTOR = 0.6;
-    double MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS = 60;
-    double MINIMUM_CORRECTION_BOLUS = 0.10;
+    static double CORRECTION_TARGET = 110.0;
+    static double CORRECTION_THRESHOLD = 180.0;
+    static double CORRECTION_FACTOR = 0.6;
+    static double MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS = 60;
+    static double MINIMUM_CORRECTION_BOLUS = 0.10;
     
 	public static final int CGM_window_size_seconds = 62*60;		// Accommodate 8 data points: 60 minute window with 2 minutes of margin
 	
-	public boolean valid = false;
-	boolean first_alg_tick=false;
-	boolean Second_alg_tick=false;
+	boolean valid = false;
+	boolean firstTick=false;
+	boolean secondTick=false;
 
 	public HMS(
 				long time,				// Seconds since 1/1/1970 
@@ -72,20 +54,15 @@ public class HMS {
 				
 		context = calling_context;
 		subject = new Subject(time, calling_context);
+		
 		// Initialize the class that holds our state data
-		if ((hms_data = new HMSData()) != null) {
-			// Generate the first state estimate
-			if (subject.valid) {
-				valid = true;
-			} 
-			else {
-				valid = false;
-			}
+		if ((hms_data = HMSData.getInstance()) != null) {
+			valid = subject.valid;
 		}
 	}
 	
 	public double HMS_calculation(
-			long time,									// Seconds since 1/1/1970 
+			long time, 
 			double IOB,
 			Tvector Tvec_cgm,
 			double Gest,
@@ -105,49 +82,45 @@ public class HMS {
 		// 2. Are we in a time interval during which HMS corrections are permitted?
 		// *******************************************************************************************
 		hms_data.read(calling_context);
-		Debug.i(TAG, FUNC_TAG," first  "+Long.toString(hms_data.correction_time_in_seconds));
+		Debug.i(TAG, FUNC_TAG, "First Corr Time in Sec: "+hms_data.correction_time_in_seconds);
+		Debug.i(TAG, FUNC_TAG, "First Tick: "+firstTick+" Second Tick: "+secondTick);
 		
 		//Detect the second alg tick
-		if (first_alg_tick) {
-			Second_alg_tick=true;
-			first_alg_tick=false;
+		if (firstTick) {
+			secondTick=true;
+			firstTick=false;
 		}
 		
 		//Detect the first tick then do nothing if it is the first tick !
-		if  (hms_data.correction_time_in_seconds==-1) {
-			first_alg_tick=true;
+		if  (hms_data.correction_time_in_seconds == -1) {
+			firstTick=true;
 		}
 		
-		Debug.i(TAG, FUNC_TAG," first Alg Tick =  "+first_alg_tick);
-		Debug.i(TAG, FUNC_TAG," Second Alg Tick =  "+Second_alg_tick);
-		Debug.i(TAG, FUNC_TAG," reference    "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
+		Debug.i(TAG, FUNC_TAG,"Reference: "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
 		
 		//TODO: Add time checks to the bolus return values (simplest...)
 		//TODO: Don't look in state estimate, look in insulin for requested corrections (any!)
 		//TODO: If no boluses in 25 hours then it will run the double bolus check
 		//TODO: no corrections until MDI is entered
 		
-		// 3. If the predicted BG greater than the threshold then calculate correction bolus
+		// 3a. If the predicted BG greater than the threshold then calculate correction bolus
 		// *******************************************************************************************
-		if (Second_alg_tick){
+		if (secondTick){
 			if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
 				return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
 			}
-			Second_alg_tick=false;
+			secondTick=false;
 		}
 		
 		if (hms_data.valid) {
-			if (time>hms_data.correction_time_in_seconds+MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS*60) {
-				
-				// 3. If the predicted BG greater than the threshold then calculate correction bolus
+			if (time > hms_data.correction_time_in_seconds + MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS*60) {
+				// 3b. If the predicted BG greater than the threshold then calculate correction bolus
+				// *******************************************************************************************
 				if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
 					return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
 				}
-				
 			}
-		Debug.i(TAG, FUNC_TAG," Second  "+Long.toString(hms_data.correction_time_in_seconds)+"  corr = "+return_value);
-			
-		
+			Debug.i(TAG, FUNC_TAG,"Second Corr Time in Sec: "+hms_data.correction_time_in_seconds+" Corr: "+return_value);
 		}
 		
 		// 4. Enforce a minimum correction bolus size
@@ -181,12 +154,16 @@ public class HMS {
 			Debug.i(TAG, FUNC_TAG, "We are NOT in a BRM only night mode - "+Mode.getMode(context.getContentResolver()));
 		
 		
-		Debug.i(TAG, FUNC_TAG, "HMS_calculation: return_value="+return_value);
+		Debug.i(TAG, FUNC_TAG, "--------------------------------------");
+		Debug.i(TAG, FUNC_TAG, "Final HMS Return Value: "+return_value);
+		Debug.i(TAG, FUNC_TAG, "--------------------------------------");
 		return return_value;
 	}
 	
 	public boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
+		final String FUNC_TAG = "readTvector";
 		boolean retvalue = false;
+		
 		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
 		long t, t2 = 0;
 		double v;
@@ -195,10 +172,10 @@ public class HMS {
 				t = c.getLong(c.getColumnIndex("time"));
 				if (c.getColumnIndex("endtime") < 0){
 					v = c.getDouble(c.getColumnIndex("value"));
-					Log.i(TAG, "readTvector: t=" + t + ", v=" + v);
+					Debug.i(TAG, FUNC_TAG, "t=" + t + ", v=" + v);
 					tvector.put_with_replace(t, v);
 				} else if (c.getColumnIndex("value") < 0){
-					Log.i(TAG, "readTvector: t=" + t + ", t2=" + t2);
+					Debug.i(TAG, FUNC_TAG, "t=" + t + ", t2=" + t2);
 					t2 = c.getLong(c.getColumnIndex("endtime"));
 					tvector.put_time_range_with_replace(t, t2);
 				}
@@ -217,20 +194,17 @@ public class HMS {
 		
 		Tvector safetyRanges = new Tvector(12);
 		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, context)) {
-			for (int i = 0; i < safetyRanges.count(); i++) 
-			{
+			for (int i = 0; i < safetyRanges.count(); i++) {
 				int t = safetyRanges.get_time(i).intValue();
 				int t2 = safetyRanges.get_end_time(i).intValue();
 				
 				Debug.i(TAG, FUNC_TAG, "Night Range "+i+": "+t+"  "+t2);
 				
-				if (t > t2)			//Handle case of range over midnight
-				{ 					
+				if (t > t2) { 					
 					t2 += 24*60;
 				}
 				
-				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2))
-				{
+				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2)) {
 					Debug.i(TAG, FUNC_TAG, "Current time is within the BRM range!");
 					return true;
 				}
@@ -243,26 +217,23 @@ public class HMS {
 	}
 	
 	public long getCurrentTimeSeconds() {
-		final String FUNC_TAG = "getCurrentTimeSeconds";
-		
-			long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
+		long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
 			return SystemTime;
 	}
 	
 	//function returns Gest if less than 8 pints cgm , Gpred otherwise
-    public double CGM_8point_protection(long time, Tvector Tvec_cgm, double Gpred, double Gest){
+    public double CGM_8point_protection(long time, Tvector Tvec_cgm, double Gpred, double Gest) {
+    	final String FUNC_TAG = "CGM_8point_protection";
     	List<Integer> indices;
     	double reference=0;
     	if ((indices = Tvec_cgm.find(">", time-CGM_window_size_seconds, "<=", time)) != null) {
-			//debug_message("VCU_test", "cgm ind size "+indices.size());
-					
 				if (indices.size() <= 8) {
 					reference=Gest;
-					Debug.i(TAG, "protection"," || There is more than 8 ==>> "+indices.size());
+					Debug.i(TAG, FUNC_TAG,"There is more than 8 ==>> "+indices.size());
 				}
 				else { 
 					reference=Gpred;	
-					Debug.i(TAG, "protection"," || There is less than 8 ==>> "+indices.size());
+					Debug.i(TAG, FUNC_TAG,"There is less than 8 ==>> "+indices.size());
 				}
 			
     	}
@@ -317,9 +288,8 @@ public class HMS {
 				values.put("d13", cgm_slope_diff);
 				values.put("d14", X);
 				values.put("d15", detect_meal);
-				Uri uri;
 				try {
-					uri = context.getContentResolver().insert(USER_TABLE_1_URI, values);
+					context.getContentResolver().insert(Biometrics.USER_TABLE_1_URI, values);
 				}
 				catch (Exception e) {
 					Log.e(TAG, e.getMessage());

@@ -8,32 +8,21 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.APCservice;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TimeZone;
 
+import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
+import edu.virginia.dtc.SysMan.Log;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
+import edu.virginia.dtc.SysMan.State;
 import edu.virginia.dtc.Tvector.Tvector;
 
 import android.content.BroadcastReceiver;
-import android.content.ContentProvider;
-import android.content.ComponentName;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.IntentFilter;
-import android.content.UriMatcher;
-
 import android.app.Service;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -41,12 +30,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.os.PowerManager;
-import android.util.Log;
-import android.view.Gravity;
-import android.widget.Toast;
 import android.os.Message;
 import android.os.Handler;
-import android.os.Bundle;
 import android.os.RemoteException;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -63,30 +48,7 @@ public class IOMain extends Service {
 	// DiAs State Variable and Definitions - state for the system as a whole
 	public int DIAS_STATE;
 	public int DIAS_STATE_PREVIOUS;
-	public static final int DIAS_STATE_SENSOR_ONLY = 4;
-	public static final int DIAS_STATE_UNKNOWN = -1;
-	public static final int DIAS_STATE_STOPPED = 0;
-	public static final int DIAS_STATE_OPEN_LOOP = 1;
-	public static final int DIAS_STATE_CLOSED_LOOP = 2;
-	public static final int DIAS_STATE_SAFETY_ONLY = 3;
-
-	// Bolus status static variables (These are from Tandem, but seem to cover most possibilities)
-	public static final int UNKNOWN = -1;
-	public static final int PENDING = 0;
-	public static final int DELIVERING = 1;
-	public static final int DELIVERED = 2;
-	public static final int CANCELLED = 3;
-	public static final int INTERRUPTED = 4;
-	public static final int INVALID_REQ = 5;
 	
-	public static final int PRE_MANUAL = 21;
-	
-	// Only query for MDI insulin if the system has not delivered a bolus for two hours or more
-	private static final int TIME_FROM_LAST_BOLUS_SECONDS = 7200;
-	private boolean MDI_injection_amount_has_been_received = false;
-	
-	private static final String VERSION = "1.0.0";
-	private static final boolean DEBUG_MODE = true;
 	public static final String TAG = "HMSservice";
     public static final String IO_TEST_TAG = "HMSserviceIO";
     
@@ -98,14 +60,6 @@ public class IOMain extends Service {
 	public static final int MAX_DELAY_FROM_BOLUS_CALC_TO_BOLUS_APPROVE_SECONDS = 120;
 	
 	// Interface definitions for the biometricsContentProvider
-	public static final String PROVIDER_NAME = "edu.virginia.dtc.provider.biometrics";
-    public static final Uri CGM_URI = Uri.parse("content://"+ PROVIDER_NAME + "/cgm");
-    public static final Uri INSULIN_URI = Uri.parse("content://"+ PROVIDER_NAME + "/insulin");					//Compressed to a single table ("/insulin")
-    public static final Uri STATE_ESTIMATE_URI = Uri.parse("content://"+ PROVIDER_NAME + "/stateestimate");
-    public static final Uri HMS_STATE_ESTIMATE_URI = Uri.parse("content://"+ PROVIDER_NAME + "/hmsstateestimate");
-    public static final Uri MEAL_URI = Uri.parse("content://"+ PROVIDER_NAME + "/meal");
-    public static final Uri USER_TABLE_1_URI = Uri.parse("content://"+ PROVIDER_NAME + "/user1");
-    public static final Uri USER_TABLE_2_URI = Uri.parse("content://"+ PROVIDER_NAME + "/user2");
     public static final String TIME = "time";
     public static final String CGM1 = "cgm";
     public static final String INSULINRATE1 = "Insurate1";
@@ -138,6 +92,7 @@ public class IOMain extends Service {
 	Tvector Tvec_IOB, Tvec_GPRED;
 	private double Gpred_30m;
 	public static final int TVEC_SIZE = 96;				// 8 hours of samples at 5 mins per sample
+	
 	// Store most recent timestamps in seconds for each biometric Tvector
 	Long last_Tvec_cgm1_time_secs, last_Tvec_insulin_bolus1_time_secs, last_Tvec_requested_insulin_bolus1_time_secs;
 	
@@ -146,11 +101,8 @@ public class IOMain extends Service {
 	public Subject subject;		 		// This class encapsulates current Subject SI parameters
 	private Context context;
 	
-	// Used to calculate and store state_estimate object
-	public InsulinTherapy insulin_therapy;
 	// Used to calculate and store HMSData object
 	public HMS hms;
-	
 	
     public BroadcastReceiver TickReceiver; 
 
@@ -166,10 +118,9 @@ public class IOMain extends Service {
     }
     
 	/*
-	 * 
 	 *  Interface to the Application (our only Client)
-	 * 
 	 */
+    
 	// HMSservice interface definitions
 	public static final int APC_SERVICE_CMD_NULL = 0;
 	public static final int APC_SERVICE_CMD_START_SERVICE = 1;
@@ -182,16 +133,7 @@ public class IOMain extends Service {
     public static final int APC_PROCESSING_STATE_NORMAL = 10;
     public static final int APC_PROCESSING_STATE_ERROR = -11;
     public static final int APC_CONFIGURATION_PARAMETERS = 12;		// APController parameter status return
-//    public static final int APC_CALCULATED_BOLUS = 13;    	// Calculated bolus return value
-    
-    // APC_SERVICE_CMD_CALCULATE_BOLUS return status
-//	public static final int APC_CALCULATED_BOLUS_SUCCESS = 0;
-//	public static final int APC_CALCULATED_BOLUS_MISSING_SUBJECT_DATA = -1;
-//	public static final int APC_CALCULATED_BOLUS_MISSING_STATE_ESTIMATE_DATA = -2;
-//	public static final int APC_CALCULATED_BOLUS_INVALID_CREDIT_REQUEST = -3;
   
-    // APController type
-    private int APC_TYPE;
     public static final int APC_TYPE_HMS = 1;
     public static final int APC_TYPE_RCM = 2;
     public static final int APC_TYPE_AMYLIN = 3;
@@ -199,23 +141,17 @@ public class IOMain extends Service {
     public static final int APC_TYPE_HMSIOB = 5;
     public static final int APC_TYPE_SHELL = 9999;
 
-    // Define AP Controller behavior
-    private int APC_MEAL_CONTROL;
     public static final int APC_NO_MEAL_CONTROL = 1;
     public static final int APC_WITH_MEAL_CONTROL = 2;
 
-    /* Messenger for sending responses to the client (Application). */
     public Messenger mMessengerToClient = null;
-    /* Target we publish for clients to send commands to IncomingHandlerFromClient. */
     final Messenger mMessengerFromClient = new Messenger(new IncomingHMSHandler());
     
-    /* When binding to the service, we return an interface to our messenger for sending messages to the service. */
     @Override
     public IBinder onBind(Intent intent) {
         return mMessengerFromClient.getBinder();
     }
     
-    /* Handles incoming commands from DiAsService. */
     class IncomingHMSHandler extends Handler {
     	final String FUNC_TAG = "IncomingHMSHandler";
     	Bundle paramBundle, responseBundle;
@@ -223,21 +159,21 @@ public class IOMain extends Service {
     	@Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-				case APC_SERVICE_CMD_NULL:		// null command
-					debug_message(TAG, "APC_SERVICE_CMD_NULL");
-//                	Toast.makeText(getApplicationContext(), TAG+" > APC_SERVICE_CMD_NULL", Toast.LENGTH_LONG).show();
+				case APC_SERVICE_CMD_NULL:	
+					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_NULL");
 					break;
-				case APC_SERVICE_CMD_START_SERVICE:		// start service command
+				case APC_SERVICE_CMD_START_SERVICE:	
 					// Create Param object with subject parameters received from Application
-					debug_message(TAG, "APC_SERVICE_CMD_START_SERVICE");
+					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_START_SERVICE");
 					paramBundle = msg.getData();
 					double TDI = (double)paramBundle.getDouble("TDI");
 					int IOB_curve_duration_hours = paramBundle.getInt("IOB_curve_duration_hours");
+					
 					// Create and initialize the Subject object
 					subject = new Subject(getCurrentTimeSeconds(), getApplicationContext());
 					
 					// Log the parameters for IO testing
-					if (true) {
+					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
                 		b.putString(	"description", "DIAsService >> (APC), IO_TEST"+", "+FUNC_TAG+", "+
                 						"APC_SERVICE_CMD_START_SERVICE"+", "+
@@ -248,7 +184,7 @@ public class IOMain extends Service {
 					}
 
 					// Inform DiAsService of the APC_TYPE and how many ticks you require per control tick
-					debug_message(TAG, "Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick);
+					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick);
 					response = Message.obtain(null, APC_CONFIGURATION_PARAMETERS, 0, 0);
 					responseBundle = new Bundle();
 					Timer_Ticks_Per_Control_Tick = 1;
@@ -257,7 +193,7 @@ public class IOMain extends Service {
     				responseBundle.putInt("Timer_Ticks_To_Next_Meal_From_Last_Rate_Change", Timer_Ticks_To_Next_Meal_From_Last_Rate_Change);	// Ticks from meal announcement to meal start
 					
 					// Log the parameters for IO testing
-					if (true) {
+					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
                 		b.putString(	"description", "(APC) >> DiAsService, IO_TEST"+", "+FUNC_TAG+", "+
                 						"APC_CONFIGURATION_PARAMETERS"+", "+
@@ -276,18 +212,16 @@ public class IOMain extends Service {
 					}
 					break;
 				case APC_SERVICE_CMD_CALCULATE_STATE:
-					debug_message(TAG, "APC_SERVICE_CMD_CALCULATE_STATE");
+					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_CALCULATE_STATE");
 					paramBundle = msg.getData();
 					asynchronous = (boolean)paramBundle.getBoolean("asynchronous");
 					long corrFlagTime = (long)paramBundle.getLong("corrFlagTime", 0);
 					long hypoFlagTime = (long)paramBundle.getLong("hypoFlagTime", 0);
 					long calFlagTime = (long)paramBundle.getLong("calFlagTime", 0);
 					long mealFlagTime = (long)paramBundle.getLong("mealFlagTime", 0);
-//					brakes_coeff = paramBundle.getDouble("brakes_coeff", 1.0);
 					double DIAS_STATE = paramBundle.getInt("DIAS_STATE", 0);
 					double tick_modulus = paramBundle.getInt("tick_modulus", 0);
 					boolean currentlyExercising = paramBundle.getBoolean("currentlyExercising", false);
-					Bolus meal_bolus;
 
 					// Log the parameters for IO testing
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -299,7 +233,6 @@ public class IOMain extends Service {
                 						"calFlagTime="+calFlagTime+", "+
                 						"hypoFlagTime="+hypoFlagTime+", "+
                 						"mealFlagTime="+mealFlagTime+", "+
-//                						"brakes_coeff="+brakes_coeff+", "+
                 						"DIAS_STATE="+DIAS_STATE+", "+
                 						"tick_modulus="+tick_modulus
                 					);
@@ -308,13 +241,14 @@ public class IOMain extends Service {
 					//
 					// Closed Loop handler
 					//
-					if (DIAS_STATE == DIAS_STATE_CLOSED_LOOP) {
+					if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP) {
 						// Synchronous operation
 						if (!asynchronous) {
 							double spend_request = 0.0;
 							double differential_basal_rate = 0.0;
 							double recommended_bolus = 0.0;
-							debug_message(TAG, "Synchronous call...");
+							Debug.i(TAG, FUNC_TAG, "Synchronous call...");
+							
 							// Calculate insulin therapy if there is some recent CGM, Gpred and IOB data to work with...
 							if (fetchAllBiometricData(getCurrentTimeSeconds()-(300*24+2*60)) && !hms_req_meal_protect(10) && fetchStateEstimateData(getCurrentTimeSeconds()-(300*5+2*60))) {
 								
@@ -328,7 +262,7 @@ public class IOMain extends Service {
 													Gpred_30m,
 													getApplicationContext()
 													);
-									if (hms.valid) {
+									if (hms.hms_data.valid) {
 										recommended_bolus = hms.HMS_calculation(
 																getCurrentTimeSeconds(),
 																Tvec_IOB.get_last_value(),
@@ -350,6 +284,7 @@ public class IOMain extends Service {
 										);
 								}
 							}
+							
 							// Disable basal rate modulation so differential_basal_rate is always zero
 							differential_basal_rate = 0.0;
 							response = Message.obtain(null, APC_PROCESSING_STATE_NORMAL, 0, 0);
@@ -363,13 +298,13 @@ public class IOMain extends Service {
 							responseBundle.putBoolean("new_differential_rate", false);
 							responseBundle.putDouble("differential_basal_rate", 0.0);
 							responseBundle.putDouble("IOB", 0.0);
-							debug_message(TAG, "return_value: recommended_bolus="+recommended_bolus);
+							Debug.i(TAG, FUNC_TAG, "recommended_bolus="+recommended_bolus);
 						}
 					}
 					//
 					// Open Loop handler
 					//
-					else if (DIAS_STATE == DIAS_STATE_OPEN_LOOP) {
+					else if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP) {
 						response = Message.obtain(null, APC_PROCESSING_STATE_NORMAL, 0, 0);
 						responseBundle = new Bundle();
 						responseBundle.putDouble("recommended_bolus", 0.0);
@@ -394,7 +329,7 @@ public class IOMain extends Service {
 						responseBundle.putBoolean("extendedBolus", false);
 						responseBundle.putDouble("extendedBolusMealInsulin", 0.0);
 						responseBundle.putDouble("extendedBolusCorrInsulin", 0.0);
-						log_IO(TAG, "Error > Invalid DiAs State == "+DIAS_STATE);
+						Debug.e(TAG, FUNC_TAG, "Invalid DiAs State: "+DIAS_STATE);
 					}
 						
         			// Log the parameters for IO testing
@@ -428,6 +363,7 @@ public class IOMain extends Service {
 					
 					// Send response to DiAsService
 					response.setData(responseBundle);
+					
 					try {
 						mMessengerToClient.send(response);
 					} 
@@ -438,19 +374,17 @@ public class IOMain extends Service {
 				case APC_SERVICE_CMD_CALCULATE_BOLUS:
 					break;
 				case APC_SERVICE_CMD_STOP_SERVICE:
-					debug_message(TAG, "APC_SERVICE_CMD_STOP_SERVICE");
+					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_STOP_SERVICE");
 					stopSelf();
 					break;
 				case APC_SERVICE_CMD_REGISTER_CLIENT:
-					debug_message(TAG, "APC_SERVICE_CMD_REGISTER_CLIENT");
+					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_REGISTER_CLIENT");
 					mMessengerToClient = msg.replyTo;
             		Bundle b = new Bundle();
             		b.putString(	"description", "DiAsService >> APC, IO_TEST"+", "+FUNC_TAG+", "+
             						"APC_SERVICE_CMD_REGISTER_CLIENT"
             					);
             		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-					debug_message(TAG, "mMessengerToClient="+mMessengerToClient);
-//    				Toast.makeText(getApplicationContext(), TAG+" > APC_SERVICE_CMD_REGISTER_CLIENT", Toast.LENGTH_LONG).show();
 					break;
 				default:
 					super.handleMessage(msg);
@@ -460,12 +394,13 @@ public class IOMain extends Service {
 	
 	@Override
 	public void onCreate() {
-		DIAS_STATE = DIAS_STATE_STOPPED;
-		DIAS_STATE_PREVIOUS = DIAS_STATE_STOPPED;
-        log_action(TAG, "onCreate");
+		DIAS_STATE = State.DIAS_STATE_STOPPED;
+		DIAS_STATE_PREVIOUS = State.DIAS_STATE_STOPPED;
+		
+        Log.log_action(this, TAG, "onCreate", System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
+        
         brakes_coeff = 1.0;
         asynchronous = false;
-        insulin_therapy = null;
         hms = null;
 		Tvec_cgm1 = new Tvector(TVEC_SIZE);
 		Tvec_cgm2 = new Tvector(TVEC_SIZE);
@@ -474,10 +409,12 @@ public class IOMain extends Service {
 		Tvec_IOB = new Tvector(TVEC_SIZE);
 		Tvec_GPRED = new Tvector(TVEC_SIZE);
 		Gpred_30m = 0.0;
+		
 		// Initialize most recent timestamps
 		last_Tvec_cgm1_time_secs = new Long(0);
 		last_Tvec_insulin_bolus1_time_secs = new Long(0);
 		last_Tvec_requested_insulin_bolus1_time_secs = new Long(0);
+		
 		// Set up controller parameters
 		params = new Params();
 		context = getApplicationContext();
@@ -486,7 +423,6 @@ public class IOMain extends Service {
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
         int icon = edu.virginia.dtc.APCservice.R.drawable.icon;
-//        int icon = R.drawable.icon;
         CharSequence tickerText = "";
         long when = System.currentTimeMillis();
         Notification notification = new Notification(icon, tickerText, when);
@@ -497,9 +433,6 @@ public class IOMain extends Service {
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
         final int APC_ID = 3;
-        
-        // mNotificationManager.notify(APC_ID, notification);
-        // Make this a Foreground Service
         startForeground(APC_ID, notification);
         
 		// Keep the CPU running even after the screen dims
@@ -510,30 +443,29 @@ public class IOMain extends Service {
 
 	@Override
 	public void onDestroy() {
-//		Toast toast = Toast.makeText(this, TAG+" Stopped", Toast.LENGTH_LONG);
-//		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-//		toast.show();
-		debug_message(TAG, "onDestroy");
-        log_action(TAG, "onDestroy");
+		Debug.i(TAG, "onDestroy", "");
+		Log.log_action(this, TAG, "onDestroy", System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
 	}
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-			return 0;
-		}
+		return 0;
+	}
 	
 	public boolean fetchAllBiometricData(long time) {
+		final String FUNC_TAG = "fetchAllBiometricData";
 		boolean return_value = false;
+		
 		// Clear CGM Tvector
 		Tvec_cgm1.init();
 		Long Time = new Long(time);
-		// Fetch full sensor1 time/data from cgmiContentProvider
+		
+		// Fetch full CGM time/data
 		try {
 			// Fetch the last 2 hours of CGM data
-			Cursor c=getContentResolver().query(CGM_URI, null, "time > "+Time.toString(), null, null);
-//			debug_message(TAG,"CGM > c.getCount="+c.getCount());
+			Cursor c=getContentResolver().query(Biometrics.CGM_URI, null, "time > "+Time.toString(), null, null);
 			long last_time_temp_secs = 0;
-			double cgm1_value, cgm2_value;
+			double cgm1_value;
 			if (c.moveToFirst()) {
 				do{
 					// Fetch the cgm1 and cgm2 values so that they can be screened for validity
@@ -544,31 +476,35 @@ public class IOMain extends Service {
 						if (c.getLong(c.getColumnIndex("time")) > last_time_temp_secs) {
 							last_time_temp_secs = c.getLong(c.getColumnIndex("time"));
 						}
-						// time in seconds
 						Tvec_cgm1.put(c.getLong(c.getColumnIndex("time")), cgm1_value);
 						return_value = true;
 					}
 				} while (c.moveToNext());
 			}
 			c.close();
+			
 			last_Tvec_cgm1_time_secs = last_time_temp_secs;
 		}
         catch (Exception e) {
-        		Log.e("Error SafetyService", e.getMessage());
+        	Debug.e(TAG, FUNC_TAG, "Error: "+e.getMessage());
         }
+		
 		return return_value;
 	}
 
 	
 	public boolean fetchStateEstimateData(long time) {
+		final String FUNC_TAG = "fetchStateEstimateData";
 		boolean return_value = false;
+		
 		// Clear Tvectors
 		Tvec_IOB.init();
 		Tvec_GPRED.init();
 		Gpred_30m = 0.0;
+		
 		// Fetch data from State Estimate data records
 		Long Time = new Long(time);
-		Cursor c=getContentResolver().query(STATE_ESTIMATE_URI, null, Time.toString(), null, null);
+		Cursor c=getContentResolver().query(Biometrics.STATE_ESTIMATE_URI, null, Time.toString(), null, null);
 		long state_estimate_time;
 		if (c.moveToFirst()) {
 			do{
@@ -585,33 +521,37 @@ public class IOMain extends Service {
 			} while (c.moveToNext());
 		}
 		else {
-			debug_message(TAG, "State Estimate Table empty!");
+			Debug.e(TAG, FUNC_TAG, "State Estimate Table empty!");
 		}
 		c.close();
+		
 		return return_value;
 	}
-	//function to protect against injecting corrections within a certain amount of time "duration" after requesting a meal bolus.
-	//duration is in minutes
+	
 	public boolean hms_req_meal_protect(int duration) {
+		final String FUNC_TAG = "hms_req_meal_protect";
 		boolean return_value = false;
 		
+		// Function to protect against injecting corrections within a certain amount of time "duration" after requesting a meal bolus.
+		
 		// Fetch data from insulin data records
-		Cursor c=getContentResolver().query(INSULIN_URI,new String[]{"req_time","req_meal","req_corr","status"},"req_meal>0 OR req_corr>0",null,"req_time DESC Limit 1");
-		long requested_meal_time=0;
-		int status=-1;
+		Cursor c=getContentResolver().query(Biometrics.INSULIN_URI,new String[]{"req_time","req_meal","req_corr","status"},"req_meal>0 OR req_corr>0",null,"req_time DESC Limit 1");
+		long requested_meal_time = 0;
+		int status = -1;
 		if (c.moveToFirst()) {
 			if (!c.isNull(c.getColumnIndex("status"))) {
 				requested_meal_time = c.getLong(c.getColumnIndex("req_time"));
 				status=c.getInt(c.getColumnIndex("status"));
-				if (((getCurrentTimeSeconds()-requested_meal_time)<(duration*60))&&((status==Pump.PENDING)||(status==Pump.DELIVERING))){
+				if (((getCurrentTimeSeconds()-requested_meal_time) < (duration*60)) && ((status==Pump.PENDING) || (status==Pump.DELIVERING))) {
 					return_value = true;
 				}				
 			}			
 		}
 		else {
-			debug_message(TAG, "Insulin Table empty!");
+			Debug.e(TAG, FUNC_TAG, "Insulin Table empty!");
 		}
 		c.close();
+		
 		return return_value;
 	}
 	
@@ -621,8 +561,8 @@ public class IOMain extends Service {
 		int UTC_offset_secs = tz.getOffset(time*1000)/1000;
 		int timeNowMins = (int)((time+UTC_offset_secs)/60)%1440;
 		double ToD_hours = (double)timeNowMins/60.0;
-//		debug_message(TAG, "subject_parameters > time="+time+", time/60="+time/60+", timeNowMins="+timeNowMins+", ToD_hours="+ToD_hours);
 		double x;
+		
 		if (ToD_hours<6.0) {
 			x = (1.0+ToD_hours)/7.0;
 		}
@@ -635,11 +575,12 @@ public class IOMain extends Service {
 		else {
 			x = (ToD_hours-23.0)/7.0;
 		}
+		
 		return 160.0-45.0*Math.pow((x/0.5),3.0)/(1.0+Math.pow((x/0.5),3.0));
 	}
 	
 	public long getCurrentTimeSeconds() {
-		return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
+		return (long)(System.currentTimeMillis()/1000);	// Seconds since 1/1/1970		
 	}
 
 	public void storeUserTable1Data(long time,
@@ -660,6 +601,8 @@ public class IOMain extends Service {
 									double X,
 									double detect_meal
 									) {
+		final String FUNC_TAG = "storeUserTabel1Data";
+		
 	  	ContentValues values = new ContentValues();
 	  	values.put("time", time);
 	  	values.put("l0", MEAL_IOB_CONTROL);
@@ -679,12 +622,11 @@ public class IOMain extends Service {
        	values.put("d13", cgm_slope_diff);
        	values.put("d14", X);
        	values.put("d15", detect_meal);
-       	Uri uri;
        	try {
-       		uri = getContentResolver().insert(USER_TABLE_1_URI, values);
+       		getContentResolver().insert(Biometrics.USER_TABLE_1_URI, values);
        	}
        	catch (Exception e) {
-       		Log.e(TAG, e.getMessage());
+       		Debug.e(TAG, FUNC_TAG, "Error: "+e.getMessage());
        	}		
 	}
 		
@@ -694,8 +636,11 @@ public class IOMain extends Service {
 			double spendRequest,
 			double differential_basal_rate
 			) {
+		final String FUNC_TAG = "storeHMSTableData";
+		
 		ContentValues values = new ContentValues();
 		values.put("time", time);
+		
 		// If there is no valid hmsstateestimate data yet then save a marker of correction_in_units==-2
 		// This is used as a "fake correction" to make sure no real correction is given within the first hour after startup
 		if (hms != null) {
@@ -711,25 +656,26 @@ public class IOMain extends Service {
 			values.put("creditRequest", creditRequest);
 			values.put("spendRequest", spendRequest);
 			values.put("differential_basal_rate", differential_basal_rate);
-			Uri uri;
 			try {
-				uri = getContentResolver().insert(HMS_STATE_ESTIMATE_URI, values);
+				getContentResolver().insert(Biometrics.HMS_STATE_ESTIMATE_URI, values);
 			}
 			catch (Exception e) {
-				Log.e(TAG, e.getMessage());
+				Debug.e(TAG, FUNC_TAG, "Error: "+e.getMessage());
 			}		
 		}
 	}
 	
 	private long retrieveTimestampOfMostRecentMDIInsulinDelivery() {
 		long timeStamp = -1;
-		Cursor c=getContentResolver().query(INSULIN_URI, null, null, null, null);
+		final String FUNC_TAG = "retrieveTimestampOfMostRecentMDIInsulinDelivery";
+		
+		Cursor c=getContentResolver().query(Biometrics.INSULIN_URI, null, null, null, null);
 		
 		try {
 			if (c.moveToFirst()) {
 				while (c.getCount() != 0 && c.isAfterLast() == false) 
 				{
-					if (c.getInt(c.getColumnIndex("status")) == PRE_MANUAL) {
+					if (c.getInt(c.getColumnIndex("status")) == Pump.PRE_MANUAL) {
 						timeStamp = c.getInt(c.getColumnIndex("deliv_time"));
 					}
 					c.moveToNext();
@@ -738,7 +684,7 @@ public class IOMain extends Service {
 			c.close();
 		}
         catch (Exception e) {
-        		Log.e("Error retrieveTimestampOfMostRecentInsulinDelivery", e.getMessage());
+        	Debug.e(TAG, FUNC_TAG, "Error: "+e.getMessage());
         }
 			
 		return timeStamp;
@@ -746,17 +692,8 @@ public class IOMain extends Service {
 	
 	private void storeInjectedInsulin(double insulin_injected) {
 		//  Write MDI values to the database in the INSULIN table
-		debug_message(TAG, "storeMDIInsulin");
 		
-		/*
-		valuesdelivered.put(TIME, getCurrentTimeSeconds());
-		valuesdelivered.put(INSULINRATE1, 0.0);
-		valuesdelivered.put(INSULINBOLUS1, 0.0);				// Store the total bolus delivered here
-		valuesdelivered.put(INSULIN_BASAL_BOLUS,  0.0);
-		valuesdelivered.put(INSULIN_CORR_BOLUS,  0.0);		    	
-		valuesdelivered.put(INSULIN_MEAL_BOLUS,  0.0);
-		*/
-		
+		final String FUNC_TAG = "storeInjectedInsulin";
 		ContentValues values = new ContentValues();
 	    
 		values.put("req_time", getCurrentTimeSeconds());		//Zero out all requested and delivered fields for this type of call
@@ -774,38 +711,13 @@ public class IOMain extends Service {
 		values.put("deliv_corr", insulin_injected);
 		
 		values.put("identifier", getCurrentTimeSeconds());
-		values.put("status", PRE_MANUAL);
+		values.put("status", Pump.PRE_MANUAL);
 		
 		try {
-			getContentResolver().insert(INSULIN_URI, values);
+			getContentResolver().insert(Biometrics.INSULIN_URI, values);
 		}
 		catch (Exception e) {
-			Log.e("Error",(e.getMessage() == null) ? "null" : e.getMessage());
-		}
-	}
-
-	public void log_action(String service, String action) {
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", service);
-        i.putExtra("Status", action);
-        i.putExtra("time", (long)getCurrentTimeSeconds());
-        sendBroadcast(i);
-	}
-	
-	public void log_IO(String tag, String message) {
-		debug_message(tag, message);
-		/*
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", tag);
-        i.putExtra("Status", message);
-        i.putExtra("time", (long)getCurrentTimeSeconds());
-        sendBroadcast(i);
-        */
-	}
-	
-	private static void debug_message(String tag, String message) {
-		if (DEBUG_MODE) {
-			Log.i(tag, message);
+			Debug.i(TAG, FUNC_TAG, "Error: "+e.getMessage());
 		}
 	}
 }
