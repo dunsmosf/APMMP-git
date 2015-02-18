@@ -45,7 +45,7 @@
                   android:name="ConfirmationActivity"  
                   android:theme="@style/ConfirmationScreenTheme">
         </activity>
-        <meta-data android:name="Version" android:value="$Rev: 1697 $"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $"/>
         </application>
    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

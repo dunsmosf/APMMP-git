@@ -1,11 +1,5 @@
 package edu.virginia.dtc.BTLE_Tandem;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -43,7 +37,6 @@ import edu.virginia.dtc.BTLE_Tandem.TandemFormats.SetTimeDate;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import android.app.Notification;
@@ -58,17 +51,11 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.database.ContentObserver;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -82,50 +69,29 @@ public class BTLE_Tandem_Driver extends Service{
 	//*******************************************************
 	private static final String TAG = "BTLE_Tandem_Driver";
 	
-	public static final String Driver_Name = "BTLE_Tandem";
+	private static final String Driver_Name = "BTLE_Tandem";
 	public static final String UI_Intent = "Driver.UI.BTLE_Tandem";
-	public static final String Pump_Intent = "Driver.Pump.BTLE_Tandem";
+	private static final String Pump_Intent = "Driver.Pump.BTLE_Tandem";
 	
-	public static final UUID CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-	public static final UUID UUID_SERV = 		UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");
-	public static final UUID WRITE_UUID_CHAR = 	UUID.fromString("0000fff3-0000-1000-8000-00805f9b34fb");
-	public static final UUID READ_UUID_CHAR = 	UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");
+	private static final UUID CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 	
-	// Log Action Prioritys
-	private static final int LOG_ACTION_UNINITIALIZED = 0;
-	private static final int LOG_ACTION_INFORMATION = 1;
-	private static final int LOG_ACTION_DEBUG = 2;
-	private static final int LOG_ACTION_NOT_USED = 3;
-	private static final int LOG_ACTION_WARNING = 4;
-	private static final int LOG_ACTION_SERIOUS = 5;
-	
-	public final static String ACTION_GATT_CONNECTED = "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA = "com.example.bluetooth.le.EXTRA_DATA";
-    
-    // Parse constants
- 	public static final int INVALID = -1;
- 	public static final int GET_TYPE = 1;
- 	public static final int GET_LENGTH = 2;
- 	public static final int GET_CARGO = 3;
- 	public static final int GET_TIMESTAMP = 4;
- 	public static final int GET_CHECKSUM = 5;
- 	public static final int COMPLETE = 6;
+	// Parse constants
+ 	private static final int INVALID = -1;
+ 	private static final int GET_TYPE = 1;
+ 	private static final int GET_LENGTH = 2;
+ 	private static final int GET_CARGO = 3;
+ 	private static final int GET_TIMESTAMP = 4;
+ 	private static final int GET_CHECKSUM = 5;
+ 	private static final int COMPLETE = 6;
  	
  	private static double INFUSION_RATE = 0.285714;					//Rate of 1U/35s 
  	
- 	private static final int TIMEOUT = 15;							//Seconds on await latches
-    
  	//GLOBAL VARIABLES
  	//*******************************************************
- 	public static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-	public static ScheduledFuture<?> bolusRetry, bolusExpire, warningTimer, disconnectTimer, reconTimer;
+ 	private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private static ScheduledFuture<?> bolusRetry, bolusExpire, warningTimer, disconnectTimer, reconTimer;
  	
     private final Messenger messengerFromUI = new Messenger(new incomingUIHandler());
-    private Messenger messengerToUI = null;
-    
     private final Messenger messengerFromPumpService = new Messenger(new incomingPumpHandler());
     private Messenger messengerToPumpService = null;
     
@@ -144,29 +110,25 @@ public class BTLE_Tandem_Driver extends Service{
 	private BluetoothManager btleManager;
 	private BluetoothAdapter btleAdapter;  
 	public static BluetoothDevice dev;
-	private static int devState, connState;
 	private Handler handler;
 	private static BluetoothGattCharacteristic writeChar = null;
 	
-	public static boolean scanning, buttons, discovered;
 	public static String devMac;
 	public static List<listDevice> devices;
-	public static BluetoothGatt btleGatt;
-	public static String status, btleStatus, fluid;
+	private static BluetoothGatt btleGatt;
+	public static String description, btleDescription, fluid;
 	
 	private TandemFormats tandem;
 	private Context me;
-	private CountDownLatch writeLatch;
-	private BroadcastReceiver driver;
 	
 	public static SharedPreferences settings;
 	
 	private static final int TX_THREAD_SLEEP = 2000;
 	private static final int RW_LATCH_TIMEOUT = 10;
-	public static Queue<OutPacket> txMessages;
+	private static Queue<OutPacket> txMessages;
 	private static volatile Thread transmit;
-	public static boolean txRunning, txStop;
-	public CountDownLatch rwLatch = new CountDownLatch(0); 
+	private static boolean txRunning, txStop;
+	private CountDownLatch rwLatch = new CountDownLatch(0); 
 	
 	//Parsing variables
 	private int parseStatus;
@@ -174,26 +136,29 @@ public class BTLE_Tandem_Driver extends Service{
 	private Header hdr = null;
 	private ByteBuffer packet = null;
 	private long start;
-	
-	private Thread logThread;
-	private boolean logStop, logRunning;
-	
+
 	private List<String> prefixes;
 	
 	private static final long SCAN_PERIOD = 2000;
-	private static boolean recon = false;
+	private static boolean scan = false;
 	
-	private FsmObserver fsmObserver;
-	private int request, prev_request;
-	private boolean waking = false, breaking = false;
+	private int state = Pump.NONE;
 	
-
-	private Runnable reconnect = new Runnable()
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	//	RUNNABLES
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	
+	private Runnable recon = new Runnable()
 	{
+		final String FUNC_TAG = "recon";
+		
 		public void run()
 		{
-			Debug.i(TAG, "reconnect", "Attempting to scan and reconnect to device!");
-			discoverLeDevices(true);
+			Debug.i(TAG, FUNC_TAG, "Reconnecting...");
+			
+			reconnectDevice();
 		}
 	};
 	
@@ -219,14 +184,13 @@ public class BTLE_Tandem_Driver extends Service{
 			
 			//Disconnect device
 			saveDevice("", false);
-			recon = false;
 			
 			ContentValues dv = new ContentValues();
 			Debug.e(TAG, "disconnect", "Removing running pump DB value!");
 			dv.put("running_pump", "");					
 			getContentResolver().update(Biometrics.HARDWARE_CONFIGURATION_URI, dv, null, null);
 			
-			updatePumpState(Pump.DISCONNECTED);
+			setState(Pump.DISCONNECTED);
 			
 			if(btleGatt != null)
 			{
@@ -235,29 +199,17 @@ public class BTLE_Tandem_Driver extends Service{
 			}
 			
 			devMac = "";
-			status = "N/A";
+			description = "N/A";
 		}
 	};
 	
-	public Runnable retry = new Runnable()
+	public Runnable status = new Runnable()
 	{
-		final String FUNC_TAG = "retry";
-		public void run() 		//This update will run at a fixed interval when a bolus starts
+		final String FUNC_TAG = "status";
+		public void run() 
 		{
 			Debug.i(TAG, FUNC_TAG, "Checking on bolus ID: "+bolusId);
-			
-			byte[] buffer;
-			
-			//Reduce message overhead
-			/*
-			buffer = tandem.new GetFluidRemaining().Build();
-			sendTandemData(buffer);
-			
-			buffer = tandem.new GetPumpStatus().Build();
-			sendTandemData(buffer);
-			*/
-			
-			buffer = tandem.new BolusStatus().Build(bolusId);
+			byte[] buffer = tandem.new BolusStatus().Build(bolusId);
 			sendTandemData(BolusStatus.TYPE, buffer, BolusStatus.RESP_CNT);
 		}
 	};
@@ -274,6 +226,136 @@ public class BTLE_Tandem_Driver extends Service{
 			Debug.i(TAG, FUNC_TAG, "Bolus ID: "+bolusId+" timeout!");
 		}
 	};
+	
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	//	SYSTEM FUNCTIONS
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	
+	@Override
+	public void onCreate() {
+		super.onCreate();
+		
+		final String FUNC_TAG = "onCreate";
+		
+		Debug.i(TAG, FUNC_TAG, "");
+		
+		settings = getSharedPreferences("BTLE_Tandem", 0);
+
+		me = this;
+		tandem = new TandemFormats();
+		
+		getAddressPrefixes();
+		
+		description = "N/A";
+		fluid = "N/A";
+		
+		setState(Pump.NONE);
+		
+		int icon = R.drawable.ic_launcher;
+		CharSequence tickerText = "";
+		long when = System.currentTimeMillis();
+		Notification notification = new Notification(icon, tickerText, when);
+		Context context = getApplicationContext();
+		CharSequence contentTitle = "Tandem Driver";
+		CharSequence contentText = "BTLE Pump";
+		Intent notificationIntent = new Intent(this, BTLE_Tandem_Driver.class);
+		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+		notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
+		final int DRVR_ID = 94;
+		startForeground(DRVR_ID, notification);
+		
+		Intent pumpIntent = new Intent();
+		pumpIntent.setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService");
+		pumpIntent.putExtra("driver_intent", BTLE_Tandem_Driver.Pump_Intent);
+		pumpIntent.putExtra("driver_name", BTLE_Tandem_Driver.Driver_Name);
+		pumpIntent.putExtra("PumpCommand", 9);
+		startService(pumpIntent);
+		
+		devices = new ArrayList<listDevice>();
+		btleManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
+		btleAdapter = btleManager.getAdapter();
+		
+		startTransmitThread();
+		
+		if(btleAdapter == null || !btleAdapter.isEnabled())
+		{
+			Debug.i(TAG, FUNC_TAG, "BTLE is not enabled!");
+		}
+		
+		handler = new Handler();
+		
+		restoreDevice();
+		
+		if(devMac != null && !devMac.equalsIgnoreCase(""))
+		{
+			Debug.i(TAG, FUNC_TAG, "Recovering device: "+devMac);
+			
+			//Set it to null so it will rediscover the characteristic
+			writeChar = null;
+			connect(btleAdapter.getRemoteDevice(devMac));
+		}
+		else
+			devMac = "";
+	}
+	
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		final String FUNC_TAG = "onStartCommand";
+		
+		Debug.i(TAG, FUNC_TAG, "");
+		
+		if(!intent.getBooleanExtra("auto", false))
+		{
+			Intent uiIntent = new Intent();
+			uiIntent.setClassName("edu.virginia.dtc.BTLE_Tandem", "edu.virginia.dtc.BTLE_Tandem.BTLE_Tandem_UI");
+			uiIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			startActivity(uiIntent);
+		}
+		
+		return 0;
+	}
+	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		
+		final String FUNC_TAG = "onDestroy";
+		
+		Debug.i(TAG, FUNC_TAG, "");
+		
+		txStop = true;
+		//Close transmit thread
+		if(transmit != null)
+		{
+			if(transmit.isAlive())
+			{
+				try {
+					transmit.join();
+					txRunning = false;
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	@Override
+	public IBinder onBind(Intent intent) {
+		if(intent.getAction().equalsIgnoreCase(BTLE_Tandem_Driver.UI_Intent))
+			return messengerFromUI.getBinder();
+		else if(intent.getAction().equalsIgnoreCase(BTLE_Tandem_Driver.Pump_Intent))
+			return messengerFromPumpService.getBinder();
+		else
+			return null;
+	}
+	
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	//	BLE CALLBACKS/FUNCTIONS
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
 	
 	public BluetoothAdapter.LeScanCallback callBack = new BluetoothAdapter.LeScanCallback() {
 		final String FUNC_TAG = "callBack";
@@ -307,44 +389,6 @@ public class BTLE_Tandem_Driver extends Service{
 		}
 	};
 	
-	private void analyzeDevices()
-	{
-		final String FUNC_TAG = "analyzeDevices";
-		
-		if(btleGatt != null)
-		{
-			Debug.d(TAG, FUNC_TAG, "Looking for device: "+btleGatt.getDevice().getAddress());
-			
-			for(listDevice d:devices)
-			{
-				Debug.d(TAG, FUNC_TAG, "Device: "+d.dev.getAddress());
-			}
-			
-			for(listDevice d:devices)
-			{
-				if(d.dev.getAddress().equalsIgnoreCase(btleGatt.getDevice().getAddress()) && settings.getBoolean("paired", false))
-				{
-					Debug.i(TAG, FUNC_TAG, "Trying to reconnect to device..."+d.dev.getAddress());
-					{
-						btleGatt.disconnect();
-						btleGatt.close();
-						btleGatt = null;
-						
-						btleGatt = d.dev.connectGatt(me, false, gattCallback);
-						Debug.i(TAG, FUNC_TAG, "Stopping reconnect and attempting to connect!");
-					}
-					
-					return;
-				}
-			}
-			
-			Debug.i(TAG, FUNC_TAG, "No valid devices found!");
-			return;
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "BlteGatt is null!");
-	}
-	
 	private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
 		final String FUNC_TAG = "gattCallback";
 		
@@ -357,73 +401,35 @@ public class BTLE_Tandem_Driver extends Service{
             switch(newState)
             {
 	            case BluetoothProfile.STATE_CONNECTED: 
-	            	
-	            	if(status != 0x0000)
-	            	{
-	            		btleStatus = "Disconnected"; 
-		            	connState = BluetoothProfile.STATE_DISCONNECTED;
-		            	
-		            	reconnectProcess();
+	            	if(status != BluetoothGatt.GATT_SUCCESS) {
+		            	reconnect();
 	            		return;
 	            	}
 	            	
-	            	recon = false;
-	            	btleStatus = "Connected"; 
+	            	setState(Pump.CONNECTED);
 	            	
-	            	Debug.w(TAG, FUNC_TAG, "Connected to GATT server!");
-	            	
-	            	connState = BluetoothProfile.STATE_CONNECTED;
+	            	Debug.i(TAG, FUNC_TAG, "Connected to GATT server!");
 	                devMac = gatt.getDevice().getAddress();
+	                
 	                saveDevice(devMac, true);
 	                
 	                ContentValues dv = new ContentValues();
-					Debug.e(TAG, FUNC_TAG, "Adding running pump DB value!");
+					Debug.i(TAG, FUNC_TAG, "Adding running pump DB value!");
 					dv.put("running_pump", "edu.virginia.dtc.BTLE_Tandem.BTLE_Tandem_Driver");					
 					getContentResolver().update(Biometrics.HARDWARE_CONFIGURATION_URI, dv, null, null);
 	                
-	                Debug.e(TAG, FUNC_TAG, "Stopping warning and disconnect timers...");
-	                if(reconTimer != null)
-	                	reconTimer.cancel(true);
-	                if(warningTimer != null)
-						warningTimer.cancel(true);
-					if(disconnectTimer != null)
-						disconnectTimer.cancel(true);
+	                cancelWarnings();
 	                
-	                updatePumpState(Pump.CONNECTED);
-	                
-                	Debug.i(TAG, FUNC_TAG, "The write characteristic has not been found so re-finding!");
-	                handler.postDelayed(new Runnable()
-	                {
-	                	public void run()
-	                	{
-	                		btleGatt.discoverServices();
-	                		
-	                		Debug.i(TAG, FUNC_TAG, "Device Connection State: "+btleManager.getConnectionState(dev, BluetoothProfile.GATT));
-	                	}
-	                }, 5000);
+	                btleGatt.discoverServices();
 	            	break;
 	            case BluetoothProfile.STATE_CONNECTING: 
-	            	btleStatus = "Connecting"; 
 	            	break;
 	            case BluetoothProfile.STATE_DISCONNECTED: 
-	            	btleStatus = "Disconnected"; 
-	            	connState = BluetoothProfile.STATE_DISCONNECTED;
+	            	setState(Pump.CONNECTING);
 	                
-	                Debug.w(TAG, FUNC_TAG, "Disconnected from GATT server!");
-	                
-	                if(breaking)
-	                {
-	                	breaking = false;
-	                	Debug.e(TAG, FUNC_TAG, "Closing Gatt connection...");
-	                	
-	                	btleGatt.close();
-						btleGatt = null;
-	                }
-	                else
-	                	reconnectProcess();
+	                reconnect();
 	            	break;
 	            case BluetoothProfile.STATE_DISCONNECTING: 
-	            	btleStatus = "Disconnecting"; 
 	            	break;
             }
         }
@@ -433,61 +439,40 @@ public class BTLE_Tandem_Driver extends Service{
         {
         	Debug.i(TAG, FUNC_TAG, "onServicesDiscovered received: " + checkStatus(status));
         	
-            if (status == BluetoothGatt.GATT_SUCCESS) 
-            {
-            	Debug.w(TAG, FUNC_TAG, "onServicesDiscovered success!");
-            	
+            if (status == BluetoothGatt.GATT_SUCCESS) {
             	List<BluetoothGattService> services = gatt.getServices();
-            	
-            	for(BluetoothGattService s:services)
-            	{
+            	for(BluetoothGattService s:services) {
             		Debug.i(TAG, FUNC_TAG, "Service >>> "+s.getUuid().toString());
-            		for(BluetoothGattCharacteristic c:s.getCharacteristics())
-            		{
+            		for(BluetoothGattCharacteristic c:s.getCharacteristics()) {
             			Debug.i(TAG, FUNC_TAG, 	"	Char >>> "+c.getUuid().toString()+
             									"		Perm: "+BTLE_Info.charPerm(c.getPermissions())+":"+c.getPermissions()+
             									"		Prop: "+BTLE_Info.charProp(c.getProperties())+":"+c.getProperties());
             			
-            			for(BluetoothGattDescriptor d:c.getDescriptors())
-            			{
-            				Debug.i(TAG, FUNC_TAG, "			Desc: "+d.toString());
-            			}
+//            			for(BluetoothGattDescriptor d:c.getDescriptors())
+//            				Debug.i(TAG, FUNC_TAG, "			Desc: "+d.toString());
             			
             			String sub = c.getUuid().toString().substring(0, 8);
-            			
-            			if(sub.equalsIgnoreCase("0000fff3"))
-            			{
+            			if(sub.equalsIgnoreCase("0000fff3")) {
             				Debug.i(TAG, FUNC_TAG, "Write characteristic found!");
             				writeChar = c;
             			}
-            			else if(sub.equalsIgnoreCase("0000fff4"))
-            			{
+            			else if(sub.equalsIgnoreCase("0000fff4")) {
             				Debug.i(TAG, FUNC_TAG, "Found read characteristic, setting notifications!");
             				btleGatt.setCharacteristicNotification(c, true);
             	            
             	            BluetoothGattDescriptor descriptor = c.getDescriptor(CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID);
             	            boolean success1 = descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             	            boolean success = btleGatt.writeDescriptor(descriptor);
-            	            
             	            Debug.i(TAG, FUNC_TAG, "Set Notifications: "+success1+" "+success);
             			}
             		}
             	}
-            	
-            	discovered = true;
             	
             	setTime = true;
 				Calendar c = Calendar.getInstance();
 				c.setTimeZone(TimeZone.getDefault());
 				
 				final byte[] buffer = tandem.new SetTimeDate().Build(c.get(Calendar.YEAR), c.get(Calendar.MONTH)+1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND));
-				final String name = SetTimeDate.TYPE;
-				
-				if(waking)
-				{
-					waking = false;
-					updateDevState(FSM.DEV_WAKE);
-				}
 				
 				handler.postDelayed(new Runnable()
                 {
@@ -496,7 +481,7 @@ public class BTLE_Tandem_Driver extends Service{
                 		Debug.i(TAG, FUNC_TAG, "Setting time...");
                 		sendTandemData(SetTimeDate.TYPE, buffer, SetTimeDate.RESP_CNT);
                 	}
-                }, 30000);
+                }, 3000);
             } 
         }
 
@@ -505,267 +490,115 @@ public class BTLE_Tandem_Driver extends Service{
         {
         	rwLatch.countDown();
         	Debug.i(TAG, FUNC_TAG, "onCharacteristicChanged received: "+characteristic.getValue().length+" bytes!");
-        	Debug.w(TAG, FUNC_TAG, "RW Latch counted down...");
+        	Debug.i(TAG, FUNC_TAG, "RW Latch counted down...");
         	parseTandemPacket(characteristic.getValue());
-        }
-        
-        @Override
-        // Result of a characteristic read operation
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) 
-        {
-        	Debug.i(TAG, FUNC_TAG, "onCharacteristicRead received: "+ checkStatus(status));
-        }
-        
-        @Override
-        public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) 
-        {
-        	Debug.i(TAG, FUNC_TAG, "onCharacteristicWrite received: "+ checkStatus(status));
         }
     };
     
-	@Override
-	public void onCreate() {
-		super.onCreate();
-		
-		final String FUNC_TAG = "onCreate";
-		
-		Debug.i(TAG, FUNC_TAG, "");
-		
-		settings = getSharedPreferences("BTLE_Tandem", 0);
+    //-----------------------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------------
+  	//	BLE HELPER FUNCTIONS
+  	//-----------------------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------------
+    
+    private void reconnect()
+    {
+    	final String FUNC_TAG = "reconnect";
+    	
+    	if(state == Pump.RECONNECTING) {
+    		Debug.w(TAG, FUNC_TAG, "Already attempting reconnect, ignoring this call");
+    		return;
+    	}
+    	else if(state == Pump.CONNECTED) {
+    		Debug.w(TAG, FUNC_TAG, "Device is connected, cancelling any currently running reconnect timers...");
+    		cancelReconnect();
+    	}
+    	else {
+    		if(!settings.getBoolean("paired", false)) {
+    			Debug.w(TAG, FUNC_TAG, "There is no saved device, not reconnecting!");
+    			return;
+    		}
+    		
+    		setState(Pump.RECONNECTING);
 
-		me = this;
-		tandem = new TandemFormats();
-		
-		getAddressPrefixes();
-		
-		status = "N/A";
-		btleStatus = "N/A";
-		fluid = "N/A";
-		buttons = true;
-		
-		discovered = false;
-		
-		// Set up a Notification for this Service
-		String ns = Context.NOTIFICATION_SERVICE;
-		int icon = R.drawable.ic_launcher;
-		CharSequence tickerText = "";
-		long when = System.currentTimeMillis();
-		Notification notification = new Notification(icon, tickerText, when);
-		Context context = getApplicationContext();
-		CharSequence contentTitle = "Tandem Driver";
-		CharSequence contentText = "BTLE Pump";
-		Intent notificationIntent = new Intent(this, BTLE_Tandem_Driver.class);
-		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-		notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
-		final int DRVR_ID = 94;
-		startForeground(DRVR_ID, notification);
-		
-		Intent pumpIntent = new Intent();
-		pumpIntent.setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService");
-		pumpIntent.putExtra("driver_intent", BTLE_Tandem_Driver.Pump_Intent);
-		pumpIntent.putExtra("driver_name", BTLE_Tandem_Driver.Driver_Name);
-		pumpIntent.putExtra("PumpCommand", 9);
-		startService(pumpIntent);
-		
-		driver = new BroadcastReceiver(){
-			public void onReceive(Context context, Intent intent)
-			{
-				Debug.i(TAG, FUNC_TAG, "Updating Device Manager!");
-				updateDevices();
-			}
-		};
-		registerReceiver(driver, new IntentFilter("edu.virginia.dtc.DRIVER_UPDATE"));
-		
-		devices = new ArrayList<listDevice>();
-		btleManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
-		btleAdapter = btleManager.getAdapter();
-		
-		fsmObserver = new FsmObserver(new Handler());
-		getContentResolver().registerContentObserver(Biometrics.STATE_URI, true, fsmObserver);
-		
-		startTransmitThread();
-		
-		if(btleAdapter == null || !btleAdapter.isEnabled())
-		{
-			Debug.i(TAG, FUNC_TAG, "BTLE is not enabled!");
-		}
-		
-		handler = new Handler();
-		
-		restoreDevice();
-		
-		if(devMac != null && !devMac.equalsIgnoreCase(""))
-		{
-			Debug.i(TAG, FUNC_TAG, "Recovering device: "+devMac);
-			
-			//Set it to null so it will rediscover the characteristic
-			writeChar = null;
-			
-			dev = btleAdapter.getRemoteDevice(devMac);
-			btleGatt = dev.connectGatt(me, false, gattCallback);
-		}
-		else
-			devMac = "";
-	}
-	
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		final String FUNC_TAG = "onStartCommand";
-		
-		Debug.i(TAG, FUNC_TAG, "");
-		
-		if(!intent.getBooleanExtra("auto", false))
-		{
-			Intent uiIntent = new Intent();
-			uiIntent.setClassName("edu.virginia.dtc.BTLE_Tandem", "edu.virginia.dtc.BTLE_Tandem.BTLE_Tandem_UI");
-			uiIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			startActivity(uiIntent);
-		}
-		
-		return 0;
-	}
-	
-	@Override
-	public void onDestroy() {
-		super.onDestroy();
-		
-		final String FUNC_TAG = "onDestroy";
-		
-		Debug.i(TAG, FUNC_TAG, "");
-		
-		logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		txStop = true;
-		//Close transmit thread
-		if(transmit != null)
-		{
-			if(transmit.isAlive())
-			{
-				try {
-					transmit.join();
-					txRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		if(fsmObserver != null)
-			getContentResolver().unregisterContentObserver(fsmObserver);
-	}
-	
-	@Override
-	public IBinder onBind(Intent intent) {
-		if(intent.getAction().equalsIgnoreCase(BTLE_Tandem_Driver.UI_Intent))
-			return messengerFromUI.getBinder();
-		else if(intent.getAction().equalsIgnoreCase(BTLE_Tandem_Driver.Pump_Intent))
-			return messengerFromPumpService.getBinder();
-		else
-			return null;
-	}
-	
-	private void reconnectProcess()
-	{
-		final String FUNC_TAG = "reconnectProcess";
-		
-		if(settings.getBoolean("paired", false))
-        {
-			bolusing = false;
+    		bolusing = false;
 			setTime = false;
 			
         	Debug.i(TAG, FUNC_TAG, "Device was previously paired!");
-        	updatePumpState(Pump.RECONNECTING);
         	
-        	if(reconTimer != null)
-            	reconTimer.cancel(true);
-        	if(warningTimer != null)
-				warningTimer.cancel(true);
-			if(disconnectTimer != null)
-				disconnectTimer.cancel(true);
+        	cancelWarnings();
 			
 			txMessages.clear();
 			rwLatch = new CountDownLatch(0);
 			
-			Debug.e(TAG, FUNC_TAG, "Starting warning and disconnect timers...");
-			
-			buttons = true;
-			
-			Debug.i(TAG, FUNC_TAG, "Reconnecting...");
-			recon = true;
-			
-			warningTimer = scheduler.schedule(warning, 15, TimeUnit.MINUTES);
-			disconnectTimer = scheduler.schedule(disconnect, 20, TimeUnit.MINUTES);
-			reconTimer = scheduler.scheduleAtFixedRate(reconnect, 0, 45, TimeUnit.SECONDS);
-        }
-        else
-        {
-        	recon = false;
-        	Debug.w(TAG, FUNC_TAG, "Not retrying because we intentionally disconnected!");
-        	btleGatt.disconnect();
-        }
-	}
-	
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
+			reconTimer = scheduler.scheduleAtFixedRate(recon, 0, 30, TimeUnit.SECONDS);
+    	}
+    }
+    
+    private void cancelReconnect()
+    {
+    	if(reconTimer != null)
+    		reconTimer.cancel(true);
+    }
+    
+    private void cancelWarnings()
+    {
+    	final String FUNC_TAG = "cancelTimers";
+    	
+    	Debug.w(TAG, FUNC_TAG, "Stopping warning and disconnect timers...");
+        if(warningTimer != null)
+			warningTimer.cancel(true);
+		if(disconnectTimer != null)
+			disconnectTimer.cancel(true);
+    }
+    
+    private void reconnectDevice()
+    {
+    	final String FUNC_TAG = "reconnectDevice";
+		
+		if(state != Pump.RECONNECTING)
 		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/tandemLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
+			cancelReconnect();
+			Debug.w(TAG, FUNC_TAG, "The device is not in reconnect mode...cancelling this timer!");
+			return;
 		}
+		
+		Debug.i(TAG, FUNC_TAG, "Attempting reconnection to device...");
+		
+		if(devMac != null && !devMac.equals(""))
+			connect(btleAdapter.getRemoteDevice(devMac));
+		else
+			Debug.e(TAG, FUNC_TAG, "Unable to reconnect, invalid MAC address!");
+    }
+    
+    private void setState(int s)
+    {
+    	final String FUNC_TAG = "setState";
+    	
+    	if(state != s) {
+    		//Only update changes on state transitions
+			Debug.v(TAG, FUNC_TAG, "State Change: "+Pump.stateToString(s));
+			ContentValues pv = new ContentValues();
+			pv.put("state", s);
+			getContentResolver().update(Biometrics.PUMP_DETAILS_URI, pv, null, null);
+		}
+    	
+    	btleDescription = Pump.stateToString(s);
+    	
+    	state = s;
+    }
+	
+	private void connect(BluetoothDevice d)
+	{
+		final String FUNC_TAG = "connect";
+		
+		if(btleGatt != null)
+			btleGatt.close();
+		
+		if(d != null)
+			btleGatt = d.connectGatt(this, false, gattCallback);
+		else
+			Debug.e(TAG, FUNC_TAG, "The connection or device is null!");
 	}
 	
 	private void getAddressPrefixes()
@@ -789,102 +622,31 @@ public class BTLE_Tandem_Driver extends Service{
 		}
 	}
 	
-	private void startTransmitThread()
-	{
-		final String FUNC_TAG = "startTransmitThread";
-
-		txMessages = new ConcurrentLinkedQueue<OutPacket>();				//Initialize the TX queue
-		
-		if(!txRunning)
-		{
-			txRunning = true;
-			
-			transmit = new Thread ()
-			{
-				public void run ()
-				{
-					Debug.i("Thread", FUNC_TAG, "TX Thread starting!");
-					txStop = false;
-				
-					while(!txStop)
-					{
-						OutPacket op = txMessages.poll();
-						if(op != null)
-						{
-							start = System.currentTimeMillis();
-							if(!op.frames.isEmpty())
-							{
-								Debug.w(TAG, FUNC_TAG, "Transmitting packet: "+op.name+" setting RW latch to "+op.responseFrames);
-								rwLatch = new CountDownLatch(op.responseFrames);
-								
-								for(byte[] b:op.frames)		//So we have packets that are segmented into 19-byte frames
-								{
-									Debug.i(TAG, FUNC_TAG, "Transmitting buffer: "+b.length);
-									writeChar.setValue(b);
-									if(btleGatt != null)
-										Debug.i(TAG, FUNC_TAG, "Write BLE Status: "+btleGatt.writeCharacteristic(writeChar));
-									else
-										Debug.i(TAG, FUNC_TAG, "BTLE Gatt Connection is null or closed!");
-									
-									try {
-										Thread.sleep(TX_THREAD_SLEEP);
-									} catch (InterruptedException e) {
-										e.printStackTrace();
-									}
-								}
-								
-								try {
-									Debug.i(TAG, FUNC_TAG, "RW Latch: "+rwLatch.await(RW_LATCH_TIMEOUT, TimeUnit.SECONDS));
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								}
-							}
-						}
-						
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			
-			transmit.start();
-		}
-	}
-	
-	public void discoverLeDevices(final boolean enable)
+	public void discoverLeDevices()
 	{
 		final String FUNC_TAG = "discoverLeDevices";
 		
-		scanning = false;
-		
 		devices.clear();
 		
-		if(!scanning && enable)
+		if(!scan)
 		{
 			handler.postDelayed(new Runnable()
 			{
 				public void run() 
 				{
-					scanning = false;
 					btleAdapter.stopLeScan(callBack);
-					
-					if(recon)
-						analyzeDevices();
+					scan = false;
 				}
 			}, SCAN_PERIOD);
 			
-			scanning = true;
 			btleAdapter.startLeScan(callBack);
+			scan = true;
 		}
 		else
 		{
-			if(scanning)
-				Debug.i(TAG, FUNC_TAG, "BTLE is already scanning...");
-			scanning = false;
+			Debug.w(TAG, FUNC_TAG, "BTLE is already scanning...stopping now!");
 			btleAdapter.stopLeScan(callBack);
+			scan = false;
 		}
 	}
 	
@@ -923,7 +685,7 @@ public class BTLE_Tandem_Driver extends Service{
 		boolean timeout = true;
 		
 		if(reconTimer != null)
-        	reconTimer.cancel(true);
+			reconTimer.cancel(true);
         if(warningTimer != null)
 			warningTimer.cancel(true);
 		if(disconnectTimer != null)
@@ -977,10 +739,83 @@ public class BTLE_Tandem_Driver extends Service{
 		    }
 		}
 	}
+	
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	//	TRANSMIT THREAD
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	
+	private void startTransmitThread()
+	{
+		final String FUNC_TAG = "startTransmitThread";
 
-	/*****************************************************************************************
-	 * Message Handlers
-	 *****************************************************************************************/
+		txMessages = new ConcurrentLinkedQueue<OutPacket>();				//Initialize the TX queue
+		
+		if(!txRunning)
+		{
+			txRunning = true;
+			
+			transmit = new Thread ()
+			{
+				public void run ()
+				{
+					Debug.i("Thread", FUNC_TAG, "TX Thread starting!");
+					txStop = false;
+				
+					while(!txStop)
+					{
+						OutPacket op = txMessages.poll();
+						if(op != null)
+						{
+							start = System.currentTimeMillis();
+							if(!op.frames.isEmpty())
+							{
+								Debug.i(TAG, FUNC_TAG, "Transmitting packet: "+op.name+" setting RW latch to "+op.responseFrames);
+								rwLatch = new CountDownLatch(op.responseFrames);
+								
+								for(byte[] b:op.frames)		//So we have packets that are segmented into 19-byte frames
+								{
+									Debug.i(TAG, FUNC_TAG, "Transmitting buffer: "+b.length);
+									writeChar.setValue(b);
+									if(btleGatt != null)
+										Debug.i(TAG, FUNC_TAG, "Write BLE Status: "+btleGatt.writeCharacteristic(writeChar));
+									else
+										Debug.i(TAG, FUNC_TAG, "BTLE Gatt Connection is null or closed!");
+									
+									try {
+										Thread.sleep(TX_THREAD_SLEEP);
+									} catch (InterruptedException e) {
+										e.printStackTrace();
+									}
+								}
+								
+								try {
+									Debug.i(TAG, FUNC_TAG, "RW Latch: "+rwLatch.await(RW_LATCH_TIMEOUT, TimeUnit.SECONDS));
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+							}
+						}
+						
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			};
+			
+			transmit.start();
+		}
+	}
+	
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
+	// Message Handlers
+	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------
 	
 	class incomingPumpHandler extends Handler {
 		final String FUNC_TAG = "incomingPumpHandler";
@@ -1000,8 +835,6 @@ public class BTLE_Tandem_Driver extends Service{
 					pumpValues.put("infusion_rate_U_sec", INFUSION_RATE);
 					pumpValues.put("reservoir_size_U", 300.0);
 					pumpValues.put("low_reservoir_threshold_U", 50.0);				//Low reservoir message will show at 50U remaining
-					pumpValues.put("unit_name", "micro-liters");
-					pumpValues.put("unit_conversion", 10.0);
 					pumpValues.put("queryable", 1);
 					
 					pumpValues.put("temp_basal", 0);							//Indicates if Temp Basals are possible
@@ -1012,7 +845,6 @@ public class BTLE_Tandem_Driver extends Service{
 					getContentResolver().update(Biometrics.PUMP_DETAILS_URI, pumpValues, null, null);
 					
 					sendDataMessage(messengerToPumpService, null, Pump.DRIVER2PUMP_SERVICE_PARAMETERS, msg.arg1, msg.arg2, null);
-					updatePumpState(Pump.REGISTERED);
 					break;
 				case Pump.PUMP_SERVICE2DRIVER_DISCONNECT:
 					Debug.i(TAG, FUNC_TAG,"Disconnecting pump...");
@@ -1026,10 +858,10 @@ public class BTLE_Tandem_Driver extends Service{
 					Debug.i(TAG, FUNC_TAG,"Receiving bolus command!");
 
 					double bolus_req = msg.getData().getDouble("bolus");		//Convert the bolus from U to uL for tandem pump
-					float bolus_req_ul = (float)(bolus_req);
+					float bolus_req_ul = (float)(bolus_req*10);
 					byte[] buffer;
 					
-					Debug.i(TAG, FUNC_TAG,"Bolus requested for "+bolus_req/10+"U ("+bolus_req_ul+"uL)");
+					Debug.i(TAG, FUNC_TAG,"Bolus requested for "+bolus_req+"U ("+bolus_req_ul+"uL)");
 					bolusing = true;
 					confirming = false;
 					
@@ -1040,7 +872,7 @@ public class BTLE_Tandem_Driver extends Service{
 					buffer = tandem.new RequestBolus().Build(bolusId, (float)bolus_req_ul);
 					sendTandemData(RequestBolus.TYPE, buffer, RequestBolus.RESP_CNT);
 					
-					Debug.i(TAG, FUNC_TAG, "Bolus ID: "+bolusId+" of "+bolus_req/10+"U");
+					Debug.i(TAG, FUNC_TAG, "Bolus ID: "+bolusId+" of "+bolus_req+"U");
 					
 					bolusInfusionTime = (long)((bolus_req/INFUSION_RATE)*1000);		//Use the bolus in units
 					bolusInfusionTime += 180000;										//Add 3 minutes to timeout (this seems excessive)
@@ -1072,8 +904,7 @@ public class BTLE_Tandem_Driver extends Service{
 				case BTLE_Tandem_UI.UI2DRIVER_NULL:
 					break;
 				case BTLE_Tandem_UI.UI2DRIVER_REGISTER:
-					messengerToUI = msg.replyTo;
-					break;
+				break;
 				case BTLE_Tandem_UI.UI2DRIVER_CONNECT:
 					b = msg.getData();
 					int index = b.getInt("index");
@@ -1086,18 +917,10 @@ public class BTLE_Tandem_Driver extends Service{
 					Debug.i(TAG, FUNC_TAG, "State: "+btleManager.getConnectionState(dev, BluetoothProfile.GATT));
 					Debug.i(TAG, FUNC_TAG, "Bond State: "+dev.getBondState());
 					
-					btleGatt = dev.connectGatt(me, false, gattCallback);
-					
-//					if(dev.createBond())
-//					{
-//						Debug.i(TAG, FUNC_TAG, "Creating bond!");
-//						unpaired = true;
-//					}
-//					else
-//						Debug.e(TAG, FUNC_TAG, "Error creating bond!");
+					connect(dev);
 					break;
 				case BTLE_Tandem_UI.UI2DRIVER_SCAN:
-					discoverLeDevices(true);
+					discoverLeDevices();
 					break;
 				case BTLE_Tandem_UI.UI2DRIVER_STATUS:
 					Debug.i(TAG, FUNC_TAG, "Status message sent!");
@@ -1108,63 +931,6 @@ public class BTLE_Tandem_Driver extends Service{
 					buffer = tandem.new GetFluidRemaining().Build();
 					sendTandemData(GetFluidRemaining.TYPE, buffer, GetFluidRemaining.RESP_CNT);
 					break;
-				case BTLE_Tandem_UI.UI2DRIVER_RECON:
-					
-					if(btleAdapter.isEnabled())
-					{
-						Debug.i(TAG, FUNC_TAG, "Disabling adapter...");
-						if(btleAdapter.disable())
-						{
-							try {
-								Thread.sleep(5000);
-							} catch (InterruptedException e1) {
-								e1.printStackTrace();
-							}
-							btleAdapter.enable();
-							while(btleAdapter.getState() != BluetoothAdapter.STATE_ON)
-							{
-								Debug.i(TAG, FUNC_TAG, "Turning adapter on again...");
-								btleAdapter.enable();
-								try {
-									Thread.sleep(5000);
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								}
-							}
-						}
-						else
-							Debug.i(TAG, FUNC_TAG, "Adapter not disabled!");
-					}
-					else
-					{
-						Debug.i(TAG, FUNC_TAG, "Adapter is already disabled...");
-					}
-					
-					if(settings.getBoolean("paired", false))
-	                {
-	                	Debug.i(TAG, FUNC_TAG, "Device was previously paired and starting after cycling of the radio...");
-	                	updatePumpState(Pump.RECONNECTING);
-						
-						buttons = true;
-						//btleGatt = dev.connectGatt(me, false, gattCallback);
-	                }
-					
-					break;
-				case BTLE_Tandem_UI.UI2DRIVER_SERVICE:
-//					Debug.i(TAG, FUNC_TAG, "Calling connect again, overtop of the existing!");
-//					btleGatt = dev.connectGatt(me, false, gattCallback);
-					
-					if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-					{
-						if(btleGatt != null)
-						{
-							breaking = true;
-							btleGatt.disconnect(); //btleGatt.discoverServices();
-						}
-					}
-					else
-						Debug.i(TAG, FUNC_TAG, "Connection scheduling is not enabled!");
-					break;
 				case BTLE_Tandem_UI.UI2DRIVER_ERASE:
 					saveDevice("", false);
 					
@@ -1173,7 +939,7 @@ public class BTLE_Tandem_Driver extends Service{
 					dv.put("running_pump", "");					
 					getContentResolver().update(Biometrics.HARDWARE_CONFIGURATION_URI, dv, null, null);
 					
-					updatePumpState(Pump.DISCONNECTED);
+					setState(Pump.DISCONNECTED);
 					
 					if(btleGatt != null)
 					{
@@ -1184,10 +950,9 @@ public class BTLE_Tandem_Driver extends Service{
 					erasePairedPumps();
 					
 					devMac = "";
-					status = "N/A";
+					description = "N/A";
 					fluid = "N/A";
 					
-					buttons = true;
 					break;
 			}
 		}
@@ -1255,7 +1020,7 @@ public class BTLE_Tandem_Driver extends Service{
 			}
 		}
 		
-		if(writeChar != null && connState == BluetoothProfile.STATE_CONNECTED)
+		if(writeChar != null && state >= Pump.CONNECTED)
 			txMessages.offer(op);
 		else
 			Debug.e(TAG, FUNC_TAG, "Write Characteristic is null or is disconnected!");
@@ -1285,44 +1050,7 @@ public class BTLE_Tandem_Driver extends Service{
 		else
 			Debug.i(TAG, FUNC_TAG, "Messenger is not connected or is null!");
 	}
-	
-	public void updatePumpState(int state)
-	{
-		final String FUNC_TAG = "updatePumpState";
-		
-		if(devState != state)
-		{
-			Debug.i(TAG, FUNC_TAG, "State Change: "+Pump.stateToString(state));
-			
-			devState = state;
-		
-			ContentValues pv = new ContentValues();
-			pv.put("state", state);
-			
-			getContentResolver().update(Biometrics.PUMP_DETAILS_URI, pv, null, null);
-		}
-		
-		updateDevices();
-	}
-	
-	public void updateDevices()
-	{
-		Intent intent = new Intent("edu.virginia.dtc.DEVICE_RESULT");
-		
-		if(devState >= Pump.CONNECTED)
-		{
-			intent.putExtra("pumps",  1);
-		}
-		else
-		{
-			intent.putExtra("pumps",  0);
-		}
-		
-		intent.putExtra("started", true);
-		intent.putExtra("name", "BTLE_Tandem");
-		sendBroadcast(intent);
-	}
-	
+
 	private void parseTandemPacket(byte[] in)
 	{
 		final String FUNC_TAG = "parseTandemPacket";
@@ -1414,7 +1142,7 @@ public class BTLE_Tandem_Driver extends Service{
 		{
 			Debug.i(TAG, FUNC_TAG, "Total time to receive response: "+(System.currentTimeMillis() - start));
 			Debug.i(TAG, FUNC_TAG, "Complete packet found...");
-			updatePumpState(Pump.CONNECTED);
+			setState(Pump.CONNECTED);
 			
 			Packet pkt = tandem.new Packet(packet.array());
 			
@@ -1423,7 +1151,7 @@ public class BTLE_Tandem_Driver extends Service{
 				str += String.format("%X ", b);
 			
 			Debug.i(TAG, FUNC_TAG, "Complete Packet: "+str);
-			Debug.w(TAG, FUNC_TAG, "Completed packet length: "+packet.array().length);
+			Debug.i(TAG, FUNC_TAG, "Completed packet length: "+packet.array().length);
 			
 			extractData(pkt);
 		}
@@ -1450,9 +1178,6 @@ public class BTLE_Tandem_Driver extends Service{
 					} catch (ParseException e) {
 						Debug.i(TAG, FUNC_TAG, "Problem parsing time string!");
 					}
-
-					//saveToLog("ExtractData", "Bolus "+Driver.bolusId+" Time Delivered: "+time);
-					//saveToLog("ExtractData", "Current ETime: "+System.currentTimeMillis()/1000+" Bolus ETime: "+bolusTime);
 
 					Debug.i(TAG, FUNC_TAG, "Responding to query for ID: "+queryId+" with delivery time of "+time);
 					
@@ -1598,7 +1323,7 @@ public class BTLE_Tandem_Driver extends Service{
 				GetPumpStatus mStatus = tandem.new GetPumpStatus();
 				if(mStatus.Extract(pkt))
 				{
-					status = mStatus.statusString;
+					description = mStatus.statusString;
 					Debug.i(TAG, FUNC_TAG, "Status: "+mStatus.statusString);
 				}
 				break;
@@ -1641,7 +1366,7 @@ public class BTLE_Tandem_Driver extends Service{
 					data.putLong("identifier", bolusId);
 					sendDataMessage(messengerToPumpService, data, Pump.DRIVER2PUMP_SERVICE_BOLUS_COMMAND_ACK, 0, 0, null);
 					
-					bolusRetry = scheduler.scheduleAtFixedRate(retry, 0, 10, TimeUnit.SECONDS);
+					bolusRetry = scheduler.scheduleAtFixedRate(status, 0, 10, TimeUnit.SECONDS);
 					bolusExpire = scheduler.schedule(expire, bolusInfusionTime, TimeUnit.MILLISECONDS);
 				}
 				break;
@@ -1702,15 +1427,17 @@ public class BTLE_Tandem_Driver extends Service{
 	private void restoreDevice()
 	{
 		final String FUNC_TAG = "restoreDevice";
-		Debug.i(TAG, FUNC_TAG, "Restoring device from memory...");
+		Debug.i(TAG, FUNC_TAG, "Attempting to restore device from memory...");
 		
 		settings = getSharedPreferences("BTLE_Tandem", 0);
 		
 		if(settings.getBoolean("paired", false))
 		{
-			Debug.e(TAG, FUNC_TAG, "Found device in memory!");
+			Debug.i(TAG, FUNC_TAG, "Found device in memory!");
 			BTLE_Tandem_Driver.devMac = settings.getString("mac", "");
 		}
+		else
+			Debug.w(TAG, FUNC_TAG, "No device in memory!");
 	}
 	
 	private void saveDevice(String mac, boolean paired)
@@ -1726,82 +1453,6 @@ public class BTLE_Tandem_Driver extends Service{
 
 		edit.commit();
 	}
-	
-	public void updateDevState(int state)
-	{
-		ContentValues cv = new ContentValues();
-		cv.put("dev_resp", state);
-		getContentResolver().update(Biometrics.STATE_URI, cv, null, null);
-	}
-	
-	class FsmObserver extends ContentObserver
-    {
-    	private int count;
-    	
-		public FsmObserver(Handler handler) 
-		{
-			super(handler);
-			
-			final String FUNC_TAG = "FSM Observer";
-    		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		
-    		count = 0;
-		}
-		
-		@Override
-		public void onChange(boolean selfChange) 
-		{
-			this.onChange(selfChange, null);
-		}		
-
-		public void onChange(boolean selfChange, Uri uri) 
-		{
-			final String FUNC_TAG = "FSM onChange";
-    	   
-    	   	count++;
-    	   	Debug.i(TAG, FUNC_TAG, "FSM Observer: "+count);
-    	   
-    	   	Cursor c = getContentResolver().query(Biometrics.STATE_URI, null, null, null, null);
-    	   	if(c != null)
-    	   	{
-    	   		if(c.moveToLast())
-    	   		{
-    	   			prev_request = request;
-    	   			request = c.getInt(c.getColumnIndex("dev_req"));
-    	   			
-    	   			Debug.i(TAG, FUNC_TAG, "_____REQUEST: "+FSM.devStateToString(request));
-    	   			Debug.i(TAG, FUNC_TAG, "PREV_REQUEST: "+FSM.devStateToString(prev_request));
-    	   			
-    	   			
-    	   			if(prev_request != request)
-    	   			{
-    	   				if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-    	   				{
-	    	   				if(request == FSM.DEV_WAKE)
-	    	   				{
-		   						Debug.e(TAG, FUNC_TAG, "Waking device...");
-		   						waking = true;
-		   						btleGatt = dev.connectGatt(me, false, gattCallback);
-	    	   				}
-	    	   				else if(request == FSM.DEV_DISCON)
-	    	   				{
-	    	   					if(btleGatt != null)
-	    	   					{
-	   								Debug.e(TAG, FUNC_TAG, "Breaking device...");
-	    	   						
-	    	   						breaking = true;
-	    							btleGatt.disconnect(); 	//btleGatt.discoverServices();
-	    		                	
-	    		                	updateDevState(FSM.DEV_DISCON);
-	    	   					}
-	    	   				}
-    	   				}
-    	   			}
-    	   		}
-    	   	}
-    	   	c.close();
-		}
-    }
 	
 	public class listDevice
 	{

@@ -86,6 +86,6 @@
             android:name="com.dexcom.G4DevKit.ReceiverUpdateService"
             android:exported="false" >
         </service>      
-        <meta-data android:name="Version" android:value="$Rev: 1662 $*"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
     </application>    
 </manifest>

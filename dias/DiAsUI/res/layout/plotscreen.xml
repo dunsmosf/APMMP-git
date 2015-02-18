@@ -45,13 +45,6 @@
             android:layout_weight="99"
             title="Insulin U/hr" />
 
-        <com.androidplot.xy.XYPlot
-            android:id="@+id/highInsulinPlot"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="99"
-            title="Insulin U" />
-
         <FrameLayout
             android:id="@+id/snapBarInsulin"
             android:layout_width="0dp"

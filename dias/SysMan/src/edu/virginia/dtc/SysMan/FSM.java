@@ -2,22 +2,25 @@ package edu.virginia.dtc.SysMan;
 
 public class FSM {
 	
+	//Controller Types
+	public static final int APC = 1;
+	public static final int BRM = 2;
+	public static final int SSM = 3;
+	public static final int MCM = 4;
+	
+	public static final int NONE = 0;
+	public static final int APC_ONLY = 1;
+	public static final int BRM_ONLY = 2;
+	public static final int APC_BRM = 3;
+	
 	//Different machine type identifiers
 	public static final int MACHINE_SYNC = 0;
 	public static final int MACHINE_ASYNC = 1;
 	public static final int MACHINE_TBR = 2;
-	public static final int MACHINE_DEV = 3;
-	
-	//Device States
-	public static final int DEV_NA			= 0;
-	public static final int DEV_WAKE		= 1;
-	public static final int DEV_DISCON		= 2;
 
-	//CALL STATES
+	//Call States
 	public static final int IDLE				= 0;
 	public static final int START				= 1;
-	public static final int WAKE				= 2;
-	public static final int WAKE_RESPONSE		= 3;
 	public static final int SSM_CALC_CALL		= 4;
 	public static final int SSM_CALC_RESPONSE 	= 5;
 	public static final int APC_CALL			= 6;
@@ -33,29 +36,19 @@ public class FSM {
 	public static final int PUMP_RESPONSE		= 14;
 	public static final int TBR_CALL			= 15;	
 	public static final int TBR_RESPONSE		= 16;
-	public static final int BREAK				= 17;
-	public static final int BREAK_RESPONSE		= 18;
 	
 	public static final int WAIT				= 19;
 	
-	public static boolean isSSMbusy(int state)
+	public static String configToString(int config)
 	{
-		if(state == SSM_CALL || state == SSM_RESPONSE || state == SSM_CALC_CALL || state == SSM_CALC_RESPONSE)
-			return true;
-		else
-			return false;
-	}
-	
-	public static String devStateToString(int state)
-	{
-		switch(state)
+		switch(config)
 		{
-			case DEV_NA: return "N/A";
-			case DEV_WAKE: return "Waking!";
-			case DEV_DISCON: return "Breaking!";
+			case NONE: return "None";
+			case APC_ONLY: return "APC Only";
+			case BRM_ONLY: return "BRM Only";
+			case APC_BRM: return "APC and BRM";
+			default: return "Unknown";
 		}
-		
-		return "Unknown";
 	}
 	
 	public static String callStateToString(int mode)
@@ -64,8 +57,6 @@ public class FSM {
 		{
 			case IDLE: return "Idle";
 			case START: return "Start";
-			case WAKE: return "Wake";
-			case WAKE_RESPONSE: return "Wake Response";
 			case APC_CALL: return "APC Call";
 			case APC_RESPONSE: return "APC Response";
 			case BRM_CALL: return "BRM Call";
@@ -78,8 +69,6 @@ public class FSM {
 			case PUMP_RESPONSE: return "Pump Response";
 			case TBR_CALL: return "TBR Call";
 			case TBR_RESPONSE: return "TBR Response";
-			case BREAK: return "Break";
-			case BREAK_RESPONSE: return "Break Response";
 			default: return "Unknown: "+mode;
 		}
 	}

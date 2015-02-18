@@ -69,7 +69,6 @@ public class Pump {
 	public static final int PUMP_SERVICE_CMD_START_SERVICE = 1;
 	public static final int PUMP_SERVICE_CMD_REGISTER_CLIENT = 2;
 	public static final int PUMP_SERVICE_CMD_DELIVER_BOLUS = 3;
-	public static final int PUMP_SERVICE_CMD_SET_BASAL_RATE = 4;
 	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS = 5;
 	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY = 6;
 	public static final int PUMP_SERVICE_CMD_STOP_SERVICE = 7;

@@ -17,7 +17,7 @@ public class Biometrics {
 	
 	// Table Numbers
     public static final int MIN_TABLE_NUM = 1;
-    public static final int MAX_TABLE_NUM = 40;
+    public static final int MAX_TABLE_NUM = 41;
     
     public static final int ALL_URI = 1;
     public static final int INFO_URI = 2;
@@ -58,6 +58,7 @@ public class Biometrics {
     public static final int EXERCISE_STATE_TABLE = 38;
     public static final int CONTROLLER_PARAMETERS_TABLE = 39;
     public static final int SERVICE_OUTPUTS_TABLE = 40;
+    public static final int MISC_TABLE = 41;
     
     // Table Names
     public static final String ALL_URI_NAME = "all";
@@ -99,6 +100,7 @@ public class Biometrics {
     public static final String EXERCISE_STATE_TABLE_NAME = "exercise_state";
     public static final String CONTROLLER_PARAMETERS_TABLE_NAME = "controller_parameters";
     public static final String SERVICE_OUTPUTS_TABLE_NAME = "service_outputs";
+    public static final String MISC_TABLE_NAME = "misc";
 	
 	// Interface definitions for the biometricsContentProvider
 	
@@ -140,7 +142,7 @@ public class Biometrics {
 	public static final Uri EXERCISE_STATE_URI = Uri.parse("content://" + PROVIDER_NAME + "/"+EXERCISE_STATE_TABLE_NAME);
 	public static final Uri CONTROLLER_PARAMETERS_URI = Uri.parse("content://"+ PROVIDER_NAME + "/"+CONTROLLER_PARAMETERS_TABLE_NAME);
 	public static final Uri SERVICE_OUTPUTS_URI = Uri.parse("content://" + PROVIDER_NAME + "/"+SERVICE_OUTPUTS_TABLE_NAME);
-	
+	public static final Uri TABLE_URI = Uri.parse("content://" + PROVIDER_NAME + "/"+MISC_TABLE_NAME);
 	
 	// List of the (19) time-related tables URIs
 	public static final Uri[] TIME_BASED_DATA_URIS = {
@@ -149,28 +151,22 @@ public class Biometrics {
 		ACC_URI,	USER_TABLE_1_URI,	USER_TABLE_2_URI,	USER_TABLE_3_URI,	USER_TABLE_4_URI,	EXERCISE_STATE_URI, SERVICE_OUTPUTS_URI
 	};
 	
-	
 	// List of the (4) profile tables URIs
 	public static final Uri[] PROFILE_URIS = {
 		CR_PROFILE_URI, CF_PROFILE_URI, SAFETY_PROFILE_URI, BASAL_PROFILE_URI
 	};
 	
-	
 	// List of the (6) single-row tables URIs
 	public static final Uri[] SINGLE_ROW_TABLES_URIS = {
-		HARDWARE_CONFIGURATION_URI,	PASSWORD_URI,	CGM_DETAILS_URI,	PUMP_DETAILS_URI,	SERVER_URI,		STATE_URI, TEMP_BASAL_URI,
-		SUBJECT_DATA_URI
+		HARDWARE_CONFIGURATION_URI,	PASSWORD_URI, CGM_DETAILS_URI, PUMP_DETAILS_URI, SERVER_URI, STATE_URI, SUBJECT_DATA_URI
 	};
-	
 	
 	// List of the tables to send to the remote monitoring server via the Network Service. Profile tables are not part of this list but are sent as well.
 	public static final Uri[] TABLES_URIS_TO_SEND = {
 		CGM_URI,	INSULIN_URI,	MEAL_URI,	SMBG_URI,	
 		SYSTEM_URI,	LOG_URI,	DEV_DETAILS_URI,	EVENT_URI,	
 		STATE_ESTIMATE_URI,	USER_TABLE_3_URI,	USER_TABLE_4_URI,	
-		PARAM_URI,	SUBJECT_DATA_URI,
-		
-		TEMP_BASAL_URI
+		PARAM_URI,	SUBJECT_DATA_URI, TEMP_BASAL_URI
 	};
 	
 	
@@ -218,6 +214,7 @@ public class Biometrics {
 		uriMatcher.addURI(PROVIDER_NAME, EXERCISE_STATE_TABLE_NAME, EXERCISE_STATE_TABLE);
 		uriMatcher.addURI(PROVIDER_NAME, CONTROLLER_PARAMETERS_TABLE_NAME, CONTROLLER_PARAMETERS_TABLE);
 		uriMatcher.addURI(PROVIDER_NAME, SERVICE_OUTPUTS_TABLE_NAME, SERVICE_OUTPUTS_TABLE);
+		uriMatcher.addURI(PROVIDER_NAME, MISC_TABLE_NAME, MISC_TABLE);
 	}
 	
 	public static String getTableName(Uri uri) {

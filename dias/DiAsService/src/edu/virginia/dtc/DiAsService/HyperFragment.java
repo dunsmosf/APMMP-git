@@ -76,6 +76,7 @@ public class HyperFragment extends DialogFragment implements OnClickListener {
 		mmolL = (glucose_unit == 1);
 		
 		Button validate_hyper = (Button) mainView.findViewById(R.id.validate_hypo);
+		Button cancel = (Button) mainView.findViewById(R.id.cancel_hypo);
 		
 		smbg_input = (EditText) mainView.findViewById(R.id.smbg_input);
         if (mmolL){
@@ -112,6 +113,14 @@ public class HyperFragment extends DialogFragment implements OnClickListener {
 					} catch(NumberFormatException e){
 						Debug.i(TAG, FUNC_TAG, "Error in SMBG value: "+e.getMessage());
 					}
+				}
+				else
+				{
+					Debug.e(TAG, FUNC_TAG, "No SMBG value inputted...");
+					muteHyperAlarm(30);
+					dismiss();
+					getActivity().finish();
+					break;
 				}
 				
 				Debug.i(TAG, FUNC_TAG, "SMBG: "+smbg_value);
@@ -171,6 +180,9 @@ public class HyperFragment extends DialogFragment implements OnClickListener {
 				break;
 			case R.id.cancel_hypo:
 				Debug.i(TAG, FUNC_TAG, "Cancel!");
+				
+				muteHyperAlarm(30);
+				
 				dismiss();
 				getActivity().finish();
 				break;

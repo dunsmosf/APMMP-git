@@ -38,8 +38,6 @@ public class BTLE_Tandem_UI extends Activity {
 	public static final int UI2DRIVER_CONNECT = 2;
 	public static final int UI2DRIVER_SCAN = 3;
 	public static final int UI2DRIVER_STATUS = 4;
-	public static final int UI2DRIVER_RECON = 5;
-	public static final int UI2DRIVER_SERVICE = 6;
 	public static final int UI2DRIVER_ERASE = 7;
 	
 	private ListView list;
@@ -180,11 +178,7 @@ public class BTLE_Tandem_UI extends Activity {
 		
 		Debug.i(TAG, FUNC_TAG, "Scan press...");
 		
-		if(!BTLE_Tandem_Driver.scanning)
-		{
-			Debug.i(TAG, FUNC_TAG, "Scanning from UI!");
-			sendDataMessage(toDriver, null,  UI2DRIVER_SCAN);
-		}
+		sendDataMessage(toDriver, null,  UI2DRIVER_SCAN);
 	}
 	
 	public void onEraseClick(View v)
@@ -204,38 +198,12 @@ public class BTLE_Tandem_UI extends Activity {
     	alert.show();
 	}
 	
-	public void onServiceClick(View v)
-	{
-		sendDataMessage(toDriver, null, UI2DRIVER_SERVICE);
-	}
-	
 	public void onStatusClick(View v)
 	{
 		sendDataMessage(toDriver, null,  UI2DRIVER_STATUS);
-		BTLE_Tandem_Driver.status = "Unknown";
+		BTLE_Tandem_Driver.description = "Unknown";
 		BTLE_Tandem_Driver.fluid = "Unknown";
 		update();
-	}
-	
-	public void onReconClick(View v)
-	{
-		AlertDialog.Builder alert = new AlertDialog.Builder(v.getContext());
-    	
-    	alert.setTitle("Cycle BT Radio");
-    	alert.setMessage("Are you sure you want to cycle the BT radio?  This can take about 20 seconds.");
-    	alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface dialog, int whichButton) {
-				sendDataMessage(toDriver, null,  UI2DRIVER_RECON);
-			}
-		});
-    	
-		alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface dialog, int whichButton) {
-				
-			}
-		});
-    	
-    	alert.show();
 	}
 	
 	private void sendDataMessage(Messenger messenger, Bundle bundle, int what)
@@ -262,14 +230,8 @@ public class BTLE_Tandem_UI extends Activity {
 		
 		listAdapter.clear();
 		
-		scan.setEnabled(!BTLE_Tandem_Driver.scanning);
-		
-		this.findViewById(R.id.Button01).setEnabled(BTLE_Tandem_Driver.buttons);
-		this.findViewById(R.id.button2).setEnabled(BTLE_Tandem_Driver.buttons);
-		this.findViewById(R.id.button3).setEnabled(BTLE_Tandem_Driver.buttons);
-		
 		TextView tv = (TextView)findViewById(R.id.textView4);
-		tv.setText("Status: "+BTLE_Tandem_Driver.status);
+		tv.setText("Status: "+BTLE_Tandem_Driver.description);
 		
 		tv = (TextView)findViewById(R.id.textView2);
 		if(BTLE_Tandem_Driver.devMac.equalsIgnoreCase(""))
@@ -280,14 +242,14 @@ public class BTLE_Tandem_UI extends Activity {
 			name = "NULL";
 			
 			
-			if(BTLE_Tandem_Driver.dev.getName() != null)
+			if(BTLE_Tandem_Driver.dev != null && BTLE_Tandem_Driver.dev.getName() != null)
 				name = BTLE_Tandem_Driver.dev.getName();
 			
 			tv.setText("Connected to: "+name+" - "+BTLE_Tandem_Driver.devMac);
 		}
 		
 		tv = (TextView)findViewById(R.id.textView1);
-		tv.setText("BTLE Status: "+BTLE_Tandem_Driver.btleStatus);
+		tv.setText("BTLE Status: "+BTLE_Tandem_Driver.btleDescription);
 		
 		tv = (TextView)findViewById(R.id.TextView01);
 		tv.setText("Fluid: "+BTLE_Tandem_Driver.fluid);

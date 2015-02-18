@@ -61,7 +61,6 @@ public class Supervisor extends FragmentActivity {
 	private static ConfigurationManager configurationManager;
 	private boolean validConfigurationExists = false;
 	
-	
 	// Viewpager stuff
 	SectionsPagerAdapter mSectionsPagerAdapter;
 	ViewPager mViewPager;
@@ -257,7 +256,7 @@ public class Supervisor extends FragmentActivity {
     		Debug.i(TAG, FUNC_TAG, "Starting ConstraintService...");
     		startApp = new Intent("DiAs.ConstraintService");
     		startService(startApp);
-
+    		
 			// Start any previously running drivers
 			startDrivers();
 
@@ -364,24 +363,6 @@ public class Supervisor extends FragmentActivity {
 		
 		c.close();
 	}
-
-//    public void killServices()
-//    {
-//    	final String FUNC_TAG = "killServices";
-//    	
-//    	Debug.d(TAG, FUNC_TAG, "Stopping services for config mode");
-//    	
-//    	//Stop DiAs Service
-//		stopService(new Intent().setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService"));
-//		
-//		//Stop Services
-//		stopService(new Intent("DiAs.APCservice"));
-//		stopService(new Intent("DiAs.SSMservice"));
-//		stopService(new Intent("DiAs.BRMservice"));
-//		
-//		//stopService(new Intent().setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService"));
-//		//stopService(new Intent().setClassName("edu.virginia.dtc.CgmService", "edu.virginia.dtc.CgmService.CgmService"));
-//    }
 
 	public long getCurrentTimeSeconds()
 	{

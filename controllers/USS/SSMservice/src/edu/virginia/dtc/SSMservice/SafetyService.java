@@ -14,6 +14,7 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Constraints;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.Safety;
@@ -226,7 +227,6 @@ public class SafetyService extends Service {
 	
 	
 	public static SSMDB db; 
-
 
     private ServiceConnection mConnection;																/* Connection to the Pump Service. */
     Messenger mMessengerToPumpService = null;															/* Messenger for communicating with the Pump Service. */

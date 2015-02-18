@@ -8,23 +8,33 @@
     <permission android:name="edu.write"></permission>
     <uses-permission android:name="edu.write"></uses-permission>
     
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    
     <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="15" />
 
     <application android:label="@string/app_name"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@drawable/meal_button_normal"
         android:theme="@style/AppTheme">
 
-        
         <service
 		 	android:name="edu.virginia.dtc.MCMservice.MCMservice"
 		 	android:exported="true"
 		 	android:enabled="true" >
             <intent-filter>
                 <action android:name="DiAs.MCMservice" />
+                <action android:name="DiAs.MealActivity" />
             </intent-filter>
 		</service>
+		
+        <activity android:label="Meal Screen"
+                  android:configChanges="orientation|keyboardHidden" 
+                  android:name="edu.virginia.dtc.MCMservice.MealActivity"
+                  android:screenOrientation="sensorLandscape"
+                  android:theme="@style/MealScreenTheme"
+                  android:windowSoftInputMode="adjustPan" >
+        </activity>
         
-        <meta-data android:name="Version" android:value="$Rev: 1662 $*"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
     </application>
 
 </manifest>

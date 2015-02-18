@@ -443,7 +443,7 @@ public class SupervisorService extends Service {
 		for(ScheduledFuture<?> timer : systemTimers)
 			timer.cancel(true);
 		
-    	free_running_Time_Tick_counter = 0;
+    	free_running_Time_Tick_counter = 1;
     	
     	handler.post(taskVerifySpeedupAllowed);
     	systemTimers.add(systemScheduler.scheduleAtFixedRate(tick, 300, period, TimeUnit.MILLISECONDS));

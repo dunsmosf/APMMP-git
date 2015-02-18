@@ -12,19 +12,15 @@ public class DriverInfo
 	public String displayname;
 	public String package_name;
 	public String service_name;
-	public boolean speedup;
-	public boolean multi;
 	public boolean started = false;
 	public int type;
 	
-	public DriverInfo(String n, String d, String p, String s, boolean sp, boolean m, int t)
+	public DriverInfo(String n, String d, String p, String s, int t)
 	{
 		name = n;
 		displayname = d;
 		package_name = p;
 		service_name = s;
-		speedup = sp;
-		multi = m;
 		type = t;
 	}
 	

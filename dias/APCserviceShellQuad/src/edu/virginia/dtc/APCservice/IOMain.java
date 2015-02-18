@@ -51,7 +51,6 @@ import android.os.RemoteException;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import edu.virginia.dtc.SysMan.APC;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Debug;

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/plotLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="0dp"
+    android:orientation="vertical"
+    tools:context=".PlotsActivity" >
+
+    <LinearLayout
+        android:id="@+id/cgmPlotLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal" >
+
+        <com.androidplot.xy.XYPlot
+            android:id="@+id/cgmPlot"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="99"
+            title="CGM mmol/l" />
+
+        <FrameLayout
+            android:id="@+id/snapBarCGM"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#FFFF8000" >
+        </FrameLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/insPlotLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal" >
+
+        <com.androidplot.xy.XYPlot
+            android:id="@+id/insulinPlot"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="99"
+            title="Basal U/hour,  Bolus U" />
+
+        <com.androidplot.xy.XYPlot
+            android:id="@+id/highInsulinPlot"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="99"
+            title="Insulin U" />
+
+        <FrameLayout
+            android:id="@+id/snapBarInsulin"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#FFFF8000" >
+        </FrameLayout>
+    </LinearLayout>
+
+</LinearLayout>

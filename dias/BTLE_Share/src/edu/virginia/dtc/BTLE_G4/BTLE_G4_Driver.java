@@ -25,6 +25,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -65,7 +66,7 @@ public class BTLE_G4_Driver extends Service
 	private static final int CGM_SERVICE2DRIVER_CALIBRATE = 2;
 	private static final int CGM_SERVICE2DRIVER_DIAGNOSTIC = 3;
 	private static final int CGM_SERVICE2DRIVER_DISCONNECT = 4;
- 	
+	
  	//GLOBAL VARIABLES
  	//*******************************************************
 	private static ReceiverUpdateService receiver;
@@ -73,9 +74,11 @@ public class BTLE_G4_Driver extends Service
 	private final Messenger messengerFromCgmService = new Messenger(new incomingCgmHandler());
 	private Messenger messengerToCgmService = null;
 	
-	public static String mac, serial, egv, meter;
+	public static String mac, code, egv, meter;
 	public static boolean sysTimeReady;
 	public static long sysTime, sysTimeOffset;
+	
+	private SharedPreferences settings;
 	
 	private List<EstimatedGlucoseRecord> egvRecords;
 	private List<MeterRecord> meterRecords;
@@ -90,6 +93,7 @@ public class BTLE_G4_Driver extends Service
 
 		public void onServiceDisconnected(ComponentName name) 
 		{
+			Debug.e(TAG, FUNC_TAG, "Service Disconnected!");
 		}
 
 		public void onServiceConnected(ComponentName name, IBinder service) 
@@ -202,6 +206,7 @@ public class BTLE_G4_Driver extends Service
 		filter.addAction(ServiceIntents.NEW_INSERTION_DATA);
 		registerReceiver(dexcom, filter);
 		
+		
 		new Handler().postDelayed(new Runnable()
 		{
 			public void run()
@@ -231,14 +236,18 @@ public class BTLE_G4_Driver extends Service
 			uiIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			startActivity(uiIntent);
 		}
-		
-		if(intent.getBooleanExtra("nfc", false))
+		else if(intent.getBooleanExtra("nfc", false))
 		{
 			String mac = intent.getStringExtra("mac");
 			String code = intent.getStringExtra("code");
 			
-			this.mac = mac;
-			this.serial = code;
+			BTLE_G4_Driver.mac = mac;
+			BTLE_G4_Driver.code = code;
+			
+			Debug.i(TAG, FUNC_TAG, "Writing MAC: "+BTLE_G4_Driver.mac+" and Code!");
+			settings = getSharedPreferences("Share", 0);
+			settings.edit().putString("mac", BTLE_G4_Driver.mac).commit();
+			settings.edit().putString("code", BTLE_G4_Driver.code).commit();
 			
 			Debug.i(TAG, FUNC_TAG, "MAC: "+mac+" Code: "+code);
 			
@@ -248,6 +257,31 @@ public class BTLE_G4_Driver extends Service
 			startService(rxIntent);
 			
 			bindService(rxIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+		}
+		else
+		{
+			Debug.i(TAG, FUNC_TAG, "Auto start from the supervisor!");
+			
+			settings = getSharedPreferences("Share", 0);
+			String mac, code;
+			
+			mac = settings.getString("mac", "");
+			code = settings.getString("code", "");
+			
+			if(!mac.equalsIgnoreCase("") && !code.equalsIgnoreCase("")) {
+				Debug.w(TAG, FUNC_TAG, "Found previous device - MAC: "+mac+" Code: "+code);
+				
+				BTLE_G4_Driver.mac = mac;
+				BTLE_G4_Driver.code = code;
+				
+				Intent rxIntent = new Intent(BTLE_G4_Driver.this, ReceiverUpdateService.class);
+				rxIntent.putExtra("mac", mac);
+				rxIntent.putExtra("code", code);
+				startService(rxIntent);
+				
+				bindService(rxIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+			}
+			
 		}
 		
 		return 0;
@@ -369,6 +403,8 @@ public class BTLE_G4_Driver extends Service
 		
 		if(!r.IsDisplayOnly)
 			sendDataMessage(messengerToCgmService, data, DRIVER2CGM_SERVICE_NEW_CGM_DATA, 0, 0);
+		else
+			Debug.e(TAG, FUNC_TAG, "Value is display only!");
 	}
 	
 	/*****************************************************************************************

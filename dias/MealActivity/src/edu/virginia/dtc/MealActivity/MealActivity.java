@@ -338,6 +338,7 @@ public class MealActivity extends Activity{
 						bolus = (MEAL_MAX_CONSTRAINT + CORRECTION_MAX_CONSTRAINT);
 					}
 					
+					apcProcessing = false;
 					allValid = true;
 					allInsulin = bolus;
 					allTotal.setText(String.format("%.2f", allInsulin));
@@ -921,6 +922,17 @@ public class MealActivity extends Activity{
 	 		// MCM calculates bolus
 	 		Debug.d(TAG, FUNC_TAG, "MCM is calculating bolus...");
 	 		
+	 		if(corrValid)
+			{
+				if(!carbsValid)					//We will only allow correction alone if you don't have carbs entered
+					allValid = true;
+				else if(carbsValid && bgValid)	//Correction with meal and BG is allowed
+					allValid = true;
+				else
+					allValid = false;
+			}
+			Debug.e(TAG, FUNC_TAG, "Validity > Carb: "+carbsValid+" BG: "+bgValid+" Corr: "+corrValid);
+	 		
 	 		if (carbsValid && bgValid && !apcProcessing && allValid) 
 	 		{
 	 			apcProcessing = true;
@@ -947,7 +959,7 @@ public class MealActivity extends Activity{
 				}
 	 		}
 	 		else 
-    	 		Debug.i(TAG, FUNC_TAG, "Skiping MEAL_ACTIVITY_CALCULATE > Carb: "+carbsValid+" BG: "+bgValid+" Corr: "+corrValid+" APC Processing: "+apcProcessing);
+    	 		Debug.i(TAG, FUNC_TAG, "Skiping MEAL_ACTIVITY_CALCULATE > Carb: "+carbsValid+" BG: "+bgValid+" Corr: "+corrValid+" APC Processing: "+apcProcessing + " allValid: "+allValid);
 	 	}
 	}
 	

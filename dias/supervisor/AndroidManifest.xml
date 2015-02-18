@@ -72,7 +72,7 @@
 
         <meta-data
             android:name="Version"
-            android:value="$Rev: 2264 $*" />
+            android:value="$Rev: 2300 $*" />
 
         <activity
             android:name="edu.virginia.dtc.supervisor.Test"

@@ -18,13 +18,11 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.DeadObjectException;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -52,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.State;
@@ -62,44 +59,31 @@ public class PumpService extends Service {
 	
     // Debugging
     private static final String TAG = "PumpService";
-    private static final String VERSION_NUMBER = "1.10";
-    public static final String IO_TEST_TAG = "PumpServiceIO";
 	private static final boolean QUERY_LOG = true;
 	
-	public static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;
+	private static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;
 	
 	// DiAs State Variable and Definitions - state for the system as a whole
-	public int DIAS_STATE, PREV_DIAS_STATE;
-	public int PUMP_STATE = Pump.NONE;
+	private int DIAS_STATE;
+	private int PUMP_STATE = Pump.NONE;
 	
-    public static final String INSULIN_BASAL_BOLUS = "basal_bolus";
-    public static final String INSULIN_MEAL_BOLUS = "meal_bolus";
-    public static final String INSULIN_CORR_BOLUS = "corr_bolus";
+    private static final String INSULIN_BASAL_BOLUS = "basal_bolus";
+    private static final String INSULIN_MEAL_BOLUS = "meal_bolus";
+    private static final String INSULIN_CORR_BOLUS = "corr_bolus";
     
     private PowerManager pm;
     private PowerManager.WakeLock wl;
     
-	public StateData state_data;
-	
 	private double current_delivered_U = 0.0;
 	
 	private double bolus_max = 0;						// This is from safety service
 	
-	private double EPSILON = 0.000001;					// Effectively zero for doubles
 	private long TIMEOUT_ADDITION = 30000;				// Additional time for timeout from pump service
 	private int TBR_TIMEOUT = 45;						// Timeout for TBR setup in seconds
 	
-	// If the sum of all remaining unrequested boluses exceeds this threshold then the system will immediately request another bolus after receiving command confirmation
-	public double BOLUS_THRESHOLD = 0.3;	
-	
-	// Requested but not yet delivered insulin values.  Used to account for delivered insulin 
-	double undelivered_basal_insulin, undelivered_corr_insulin, undelivered_meal_insulin;
-    
     private final Messenger ssmMessenger = new Messenger(new ssmMessageHandler());
     private Messenger ssmMessageTx = null;
     
-    private String logFile = "";
-    private boolean logReady = true;
     private boolean asynchronous = false;
     
     private int tbrTimeouts = 0;
@@ -107,14 +91,15 @@ public class PumpService extends Service {
     
     private BroadcastReceiver TickReceiver;
     
-    public static ScheduledExecutorService bolusTimeoutScheduler = Executors.newSingleThreadScheduledExecutor();
-	public static ScheduledFuture<?> deliveryTimer, commandTimer, tbrTimer, wakeTimer;
+    private static ScheduledExecutorService bolusTimeoutScheduler = Executors.newSingleThreadScheduledExecutor();
+	private static ScheduledFuture<?> deliveryTimer, commandTimer, tbrTimer;
 	
 	private int consecutiveMissedBolus = 0;
 	
 	private SystemObserver sysObserver;
 	
-	PumpService me;
+	private PumpSystem PUMP;
+	private PumpService me;
 	
 	public Runnable tbrTimeOut = new Runnable()
 	{
@@ -160,7 +145,7 @@ public class PumpService extends Service {
 
     		Debug.i(TAG, FUNC_TAG, "Command confirmation timed out!");
 			
-			log_action(TAG, "CMD TIMED OUT b="+PUMP.sent_basal_U+", c="+PUMP.sent_corr_U+", m="+PUMP.sent_meal_U, Debug.LOG_ACTION_WARNING);
+			log("Command Timeout: b="+PUMP.sent_basal_U+" c="+PUMP.sent_corr_U+" m="+PUMP.sent_meal_U);
 			
 			Bundle b = new Bundle();
 			b.putString("description", "Pump command confirmation timed out, for b="+PUMP.sent_basal_U+", c="+PUMP.sent_corr_U+", m="+PUMP.sent_meal_U);
@@ -184,7 +169,14 @@ public class PumpService extends Service {
 			
 			Event.addEvent(me, Event.EVENT_PUMP_MISSED_BOLUS, Event.makeJsonString(b), eventSetting);
 			
-			retryBolus(PUMP.sent_meal_U, PUMP.sent_corr_U, PUMP.sent_basal_U);
+			PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
+			PUMP.sent_corr_U = 0;
+			PUMP.sent_meal_U = 0;
+			
+    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
+    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
+			PUMP.acc_corr_U = 0;
+			PUMP.acc_meal_U = 0;
 		}
 	};
 	
@@ -207,7 +199,7 @@ public class PumpService extends Service {
 			
     		Debug.w(TAG, FUNC_TAG, "Delivery confirmation timed out! (ID: "+id+")");
 
-			log_action(TAG, "DLVR TIMED OUT b="+PUMP.sent_basal_U+", c="+PUMP.sent_corr_U+", m="+PUMP.sent_meal_U, Debug.LOG_ACTION_WARNING);
+			log("Delivery Timeout: b="+PUMP.sent_basal_U+" c="+PUMP.sent_corr_U+" m="+PUMP.sent_meal_U);
     		
 			Bundle b = new Bundle();
 			b.putString("description", "Pump delivery confirmation timed out, for b="+PUMP.sent_basal_U+", c="+PUMP.sent_corr_U+", m="+PUMP.sent_meal_U);
@@ -229,13 +221,16 @@ public class PumpService extends Service {
 			
 			evaluateMissedBoluses();
 			
-			retryBolus(PUMP.sent_meal_U, PUMP.sent_corr_U, PUMP.sent_basal_U);
+			PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
+			PUMP.sent_corr_U = 0;
+			PUMP.sent_meal_U = 0;
+			
+    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
+    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
+			PUMP.acc_corr_U = 0;
+			PUMP.acc_meal_U = 0;
 		}
 	};
-    
-    private PumpSystem PUMP;
-    private Thread logThread;
-	private boolean logStop, logRunning;
     
     @Override
     public void onCreate() {
@@ -249,31 +244,24 @@ public class PumpService extends Service {
         PUMP.driverReceiver = new Messenger(new driverMessageHandler());
         
         DIAS_STATE = State.DIAS_STATE_STOPPED;
-        PREV_DIAS_STATE = State.DIAS_STATE_STOPPED;
         
 		current_delivered_U = 0.0;
 		asynchronous = false;
         
-        undelivered_basal_insulin = 0.0;
-        undelivered_corr_insulin = 0.0;
-        undelivered_meal_insulin = 0.0;
-        
         PUMP.state = Pump.PUMP_STATE_IDLE;
         
         Debug.i(TAG, FUNC_TAG, "onCreate");
-        log_action(TAG, "onCreate", Debug.LOG_ACTION_INFORMATION);
+        log("onCreate");
      
-		state_data = new StateData();
-		
         // Set up a Notification for this Service
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
         int icon = R.drawable.icon;
-        CharSequence tickerText = "Pump Service v"+VERSION_NUMBER;
+        CharSequence tickerText = "Pump Service";
         long when = System.currentTimeMillis();
         Notification notification = new Notification(icon, tickerText, when);
         Context context = getApplicationContext();
-        CharSequence contentTitle = "Pump Service v"+VERSION_NUMBER;
+        CharSequence contentTitle = "Pump Service";
         CharSequence contentText = "Insulin Delivery";
         Intent notificationIntent = new Intent(this, PumpService.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
@@ -291,15 +279,6 @@ public class PumpService extends Service {
         // Listens to changes on the SYSTEM table
         sysObserver = new SystemObserver(new Handler());
         getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
-        
-        logRunning = logStop = false;
-		if(Params.getBoolean(getContentResolver(), "logcatToSd", false))
-		{
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is enabled!");
-			startLogThread();
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is disabled!");
     }
     
     @Override
@@ -361,7 +340,7 @@ public class PumpService extends Service {
 
         super.onDestroy();
         
-        log_action(TAG, "onDestroy", Debug.LOG_ACTION_INFORMATION);
+        log("onDestroy");
         Debug.i(TAG, FUNC_TAG, "onDestroy");
         
         if(TickReceiver !=null)
@@ -369,20 +348,6 @@ public class PumpService extends Service {
         
         if(sysObserver != null)
 			getContentResolver().unregisterContentObserver(sysObserver);
-        
-        logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
     }
     
     @Override
@@ -405,18 +370,6 @@ public class PumpService extends Service {
       		switch(msg.what)
       		{
       			case Pump.DRIVER2PUMP_SERVICE_PARAMETERS:
-      				/*
-      				response = msg.getData();
-      				PUMP.low_reservoir_level = response.getInt("low_reservoir_threshold_U");
-      				PUMP.reservoir_size = response.getInt("reservoir_size_U");
-      				PUMP.infusion_rate = response.getDouble("infusion_rate_U/sec");
-      				PUMP.conversion = response.getDouble("unit_conversion");
-      				PUMP.conversion_unit = response.getString("unit_name");
-      				PUMP.min_bolus = response.getDouble("min_bolus_U");
-      				PUMP.max_bolus = response.getDouble("max_bolus_U");
-      				PUMP.min_quanta = response.getDouble("min_quanta_U");
-      				*/
-      				
       				Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, null, null, null, null);
       				if (c.moveToLast())
       				{
@@ -490,9 +443,6 @@ public class PumpService extends Service {
             		// Reset the consecutive missed bolus counter
             		consecutiveMissedBolus = 0;
             		
-            		//Debug.i(TAG, FUNC_TAG, "DeliveryACK > Delivery timer cancelled: "+deliveryTimer.isCancelled());
-            		//Debug.i(TAG, FUNC_TAG, "DeliveryACK > Command timer cancelled: "+commandTimer.isCancelled());
-            		
             		response = msg.getData();
 					total_delivered_U = response.getDouble("totalDelivered");
 					double previous_delivered_U = current_delivered_U;
@@ -504,7 +454,7 @@ public class PumpService extends Service {
 						Debug.i(TAG, FUNC_TAG, "DELIVERY_ACK > Insulin running total smaller than previous value\n"+"Insulin running total = "+total_delivered_U+" U\nPrevious Value = "+current_delivered_U+" U");
 					}
 					
-                	log_action(TAG, "Driver Message Handler > BOLUS_DELIVERY_ACK", Debug.LOG_ACTION_INFORMATION);
+                	log("Bolus Delivery ACK");
                 	
             		double requested_amt_U = PUMP.sent_basal_U + PUMP.sent_corr_U + PUMP.sent_meal_U;
             		double requested_amt_U_max = requested_amt_U + PUMP.min_quanta;						//Maximum value for comparison
@@ -579,7 +529,7 @@ public class PumpService extends Service {
             			PUMP.sent_meal_U = 0;
             		}
             		// Error conditions - clear out bolus storage values and do not store delivered insulin in the database
-            		else if (PUMP.delivered_U > requested_amt_U_max || PUMP.delivered_U < EPSILON) {
+            		else if (PUMP.delivered_U > requested_amt_U_max || PUMP.delivered_U < Pump.EPSILON) {
             			Debug.i(TAG, FUNC_TAG,"DELIVERY_ACK > Error conditions in bolus delivery ACK");
             			
     					PUMP.sent_basal_U = 0;
@@ -612,16 +562,6 @@ public class PumpService extends Service {
  						unackCount = countUnacknowledgedInsulin();
  						if(unackCount > 0)
  							checkUnacknowledgedInsulin();
- 						
- 						// Wait until after we've checked unacknowledged insulin and reset the TBR before transitioning to IDLE
- 						
- 						//	bolusAccumulatorIDEX_basal = 0;
- 						//	bolusAccumulatorIDEX_corr = 0;
- 						//	bolusAccumulatorIDEX_meal = 0;
- 						
- 						//If the value isn't above EPSILON then store the zero delivered insulin
- 						//TODO: not sure if this shouldn't be delivered storage
-						//storeRequestedInsulin(asynchronous, lastBolusSimulatedTime, 0.0, 0.0, 0.0, current_delivered_U);
  						
  						updatePumpState(Pump.PUMP_STATE_COMPLETE);
  					}
@@ -748,7 +688,7 @@ public class PumpService extends Service {
 		      	  			    		Toast.makeText(getApplicationContext(), "Bolus ID: "+_bolusId+" was cancelled at "+time+" as confirmed by query", Toast.LENGTH_SHORT).show();
 		      	  			    }
 		      	  			    
-		      	  			    log_action(TAG, "Bolus ID: "+_bolusId+" of "+deliv+"U was delivered at "+time+" as confirmed by query", Debug.LOG_ACTION_INFORMATION);
+		      	  			    log("Querying bolus ID: "+_bolusId+" of "+deliv+"U was delivered at "+time);
 	          				}
 	          				else
 	          				{
@@ -758,7 +698,7 @@ public class PumpService extends Service {
 	          					if(QUERY_LOG)
 	          						Toast.makeText(getApplicationContext(), "Bolus ID: "+_bolusId+" has status: "+description+" after query", Toast.LENGTH_SHORT).show();
 	          					
-	          					log_action(TAG, "Bolus ID: "+_bolusId+" has status: "+description+" after query", Debug.LOG_ACTION_INFORMATION);
+	          					log("Querying bolus ID: "+_bolusId+" has status: "+description);
 	          					
 	          					ContentValues values = new ContentValues();
 			      	  			values.put("status", status);
@@ -868,24 +808,23 @@ public class PumpService extends Service {
 					double meal_bolus = paramBundle.getDouble(INSULIN_MEAL_BOLUS, 0.0);
 					meal_bolus = meal_bolus + pre_authorized;
 					double corr_bolus = paramBundle.getDouble(INSULIN_CORR_BOLUS, 0.0);
-					log_action(TAG, "PUMP_SERVICE_CMD_DELIVER_BOLUS > b="+basal_bolus+", c="+corr_bolus+", m="+meal_bolus, Debug.LOG_ACTION_INFORMATION);
 					
 					//Error check values for all insulin delivery
 					if(Double.isNaN(basal_bolus) || Double.isInfinite(basal_bolus))
 					{
-						log_action(TAG, "Value exception in basal insulin: "+basal_bolus, Debug.LOG_ACTION_WARNING);
+						log("Value exception in basal insulin: "+basal_bolus);
 						basal_bolus = 0.0;
 					}
 					
 					if(Double.isNaN(meal_bolus) || Double.isInfinite(meal_bolus))
 					{
-						log_action(TAG, "Value exception in meal insulin: "+meal_bolus, Debug.LOG_ACTION_WARNING);
+						log("Value exception in meal insulin: "+meal_bolus);
 						meal_bolus = 0.0;
 					}
 					
 					if(Double.isNaN(corr_bolus) || Double.isInfinite(corr_bolus))
 					{
-						log_action(TAG, "Value exception in correction insulin: "+corr_bolus, Debug.LOG_ACTION_WARNING);
+						log("Value exception in correction insulin: "+corr_bolus);
 						corr_bolus = 0.0;
 					}
 					
@@ -931,9 +870,9 @@ public class PumpService extends Service {
 					
 					switch (DIAS_STATE) {
 						case State.DIAS_STATE_STOPPED:
-							if (basal_bolus > EPSILON || corr_bolus > EPSILON || meal_bolus > EPSILON || pre_authorized > EPSILON) {
-								log_action(TAG, "Nonzero bolus in DIAS_STATE_STOPPED", Debug.LOG_ACTION_WARNING);
-								log_action(TAG, "basal="+basal_bolus+", corr="+corr_bolus+", meal="+meal_bolus, Debug.LOG_ACTION_WARNING);
+							if (basal_bolus > Pump.EPSILON || corr_bolus > Pump.EPSILON || meal_bolus > Pump.EPSILON || pre_authorized > Pump.EPSILON) {
+								log("Nonzero bolus in DIAS_STATE_STOPPED");
+								log("basal="+basal_bolus+", corr="+corr_bolus+", meal="+meal_bolus);
 								basal_bolus = 0.0;
 								corr_bolus = 0.0;
 								meal_bolus = 0.0;
@@ -946,7 +885,7 @@ public class PumpService extends Service {
 							//Limits on total bolus allowed parameterized from Pump
 							if((basal_bolus + corr_bolus + meal_bolus) > (PUMP.max_bolus))
 							{
-								log_action(TAG, "Total bolus exceeds maximum of "+PUMP.max_bolus+"U, resetting values to zero!", Debug.LOG_ACTION_WARNING);
+								log("Total bolus exceeds maximum of "+PUMP.max_bolus+"U, resetting values to zero!");
 								
 								Debug.w(TAG, FUNC_TAG, "MEAL: "+meal_bolus);
 			      	  			Debug.w(TAG, FUNC_TAG, "CORR: "+corr_bolus);
@@ -985,62 +924,17 @@ public class PumpService extends Service {
 			      	  			Debug.w(TAG, FUNC_TAG, "CORR: "+corr_bolus);
 			      	  			Debug.w(TAG, FUNC_TAG, "BASAL: "+basal_bolus);
 							}
-							
-							/*
-							if (basal_bolus > basal) {
-								log_action(TAG, "Basal bolus too large in DIAS_STATE="+DIAS_STATE, Debug.LOG_ACTION_WARNING);
-								log_action(TAG, "basal_bolus request="+basal_bolus+", basal profile="+basal, Debug.LOG_ACTION_WARNING);
-								basal_bolus = basal;
-							}
-							*/
 							break;
-							/*							
-						case State.DIAS_STATE_SAFETY_ONLY:
-							if (basal_bolus > basal) {
-								log_action(TAG, "Basal bolus too large in DIAS_STATE="+DIAS_STATE, Debug.LOG_ACTION_WARNING);
-								log_action(TAG, "basal_bolus request="+basal_bolus+", basal profile="+basal, Debug.LOG_ACTION_WARNING);
-								basal_bolus = basal;
-							}
-							if (corr_bolus > EPSILON) {
-								log_action(TAG, "Nonzero corr_bolus in DIAS_STATE_SAFETY_ONLY", Debug.LOG_ACTION_WARNING);
-								log_action(TAG, "corr_bolus="+corr_bolus, Debug.LOG_ACTION_WARNING);
-								corr_bolus = 0.0;
-							}
-							if (meal_bolus > EPSILON) {
-								log_action(TAG, "Nonzero meal_bolus in DIAS_STATE_SAFETY_ONLY", Debug.LOG_ACTION_WARNING);
-								log_action(TAG, "meal_bolus="+meal_bolus, Debug.LOG_ACTION_WARNING);
-								meal_bolus = 0.0;
-							}
-							if (pre_authorized > EPSILON) {
-								log_action(TAG, "Nonzero pre_authorized in DIAS_STATE_SAFETY_ONLY", Debug.LOG_ACTION_WARNING);
-								log_action(TAG, "pre_authorized="+pre_authorized, Debug.LOG_ACTION_WARNING);
-								pre_authorized = 0.0;
-							}
-							break;
-							*/							
 						default:
 							break;
 					}
 					
 					// Log the inputs to the Pump Service
-					log_action(TAG, "basal="+basal_bolus+", corr="+corr_bolus, Debug.LOG_ACTION_INFORMATION);
-					log_action(TAG, "meal="+meal_bolus+", async="+asynchronous, Debug.LOG_ACTION_INFORMATION);
-					log_action(TAG, "bmax="+bolus_max+", pre_auth="+pre_authorized, Debug.LOG_ACTION_INFORMATION);
+					log("Command Bolus: b="+basal_bolus+" c"+corr_bolus+"m="+meal_bolus+" async="+asynchronous);
 					
 					Debug.i(TAG, FUNC_TAG, "CMD_DELIVER_BOLUS > START OF BOLUS COMMAND --------------------------------------------------------------");
 					
 					deliverBolus(asynchronous, pre_authorized, bolus_max, basal_bolus, meal_bolus, corr_bolus);
-					break;
-				case Pump.PUMP_SERVICE_CMD_SET_BASAL_RATE:
-					if (PUMP.state == Pump.PUMP_STATE_IDLE || PUMP.state == Pump.PUMP_STATE_COMPLETE) 
-					{
-						state_data.basal_rate = paramBundle.getDouble("basal_rate", -1.0);
-						Debug.i(TAG, FUNC_TAG, "PUMP_SERVICE_CMD_SET_RATE > basal_rate="+state_data.basal_rate);		//The basal rate that should be set in the pump is stored in state_data.basal_rate
-					}
-					else 
-					{
-						Debug.i(TAG, FUNC_TAG, "PUMP_SERVICE_CMD_SET_RATE > Error: Not ready for command, PUMP_STATE="+PUMP.state);
-					}
 					break;
 				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS:
 					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS");
@@ -1224,120 +1118,6 @@ public class PumpService extends Service {
     	}
     }
     
-    public void retryBolus(double meal, double correction, double basal)
-    {
-    	final String FUNC_TAG = "retryBolus";
-    	
-    	int retryCount = -1;
-    	
-    	Debug.i(TAG, FUNC_TAG, "Retrying bolus ID: "+PUMP.retryId+"!  Meal: "+meal+" Corr: "+correction+" Basal: "+basal);
-    	
-//    	double notify_thresh = Params.getDouble(this.getContentResolver(), "bolus_notify_threshold_units", 1.0);
-//    	
-//    	Debug.i(TAG, FUNC_TAG, "Notify threshold is "+notify_thresh+" U");
-    	
-//    	if((meal+correction+basal) > notify_thresh)
-//    	{
-//    		Bundle b = new Bundle();
-//    		b.putString("description", "Bolus missed!");
-//    		b.putString("amount", String.valueOf(meal+correction+basal));	
-//    		Event.addEvent(me, Event.EVENT_PUMP_MISSED_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
-//    	}
-    	
-    	if(PUMP.retries)		//Check if the pump supports retrying
-    	{
-    		//Check the insulin table in reverse for the Retry ID
-//    		Cursor c=getContentResolver().query(INSULIN_URI, null, null, null, null);
-//    		c.moveToLast();
-//			while (c.getCount() != 0 && c.isBeforeFirst() == false) 
-//			{
-//    			int id = c.getInt(c.getColumnIndex("identifier"));
-//    			Debug.i(TAG, FUNC_TAG, "ID: "+id+" found in table!");
-//    			if(id == PUMP.retryId)
-//    			{  
-//    				retryCount = c.getInt(c.getColumnIndex("num_retries"));
-//    			}
-//    			c.moveToPrevious();
-//			}
-//			c.close();
-//    		
-//			Debug.i(TAG, FUNC_TAG, "Retry Count: "+retryCount+" Max Retries: "+PUMP.max_retries);
-//			
-//			if(retryCount != -1 && retryCount < PUMP.max_retries)
-//			{
-//	    		//Run bolus command again
-//	    		double bolus_total_U = meal + correction + basal;
-//	    		retryCount++;
-//	    		
-//	    		Debug.i(TAG, FUNC_TAG, "Bolus for "+bolus_total_U+" U resent, retry number "+retryCount+"!");
-//	    		
-//	    		Bundle data = new Bundle();
-//				data.putDouble("bolus", bolus_total_U*PUMP.conversion);
-//				data.putInt("bolusId", PUMP.retryId);										//Use retry ID here so we don't rewrite things
-//	    		
-//	    		if(bolus_total_U < 1)				//If the bolus is less than 1U then we can automatically retry
-//	    		{
-//					sendPumpBolus(PUMP.driverTransmitter, PUMP_SERVICE2DRIVER_BOLUS, data);
-//					
-//					updatePumpState(Pump.PUMP_STATE_COMMAND_AWAITING_DEVICE_RESPONSE);
-//					
-//					updateRequestedInsulin(data.getInt("bolusId"), retryCount);
-//	    		}
-//	    		else								//Otherwise the bolus is greater or equal to 1U and we need to inform the user 
-//	    		{
-//	    			Debug.i(TAG, FUNC_TAG, "Launching retry activity...");
-//	    			
-//	    			Intent retryActivity = new Intent();
-//	    	 		retryActivity.setClass(me, RetryActivity.class);
-//	    	 		retryActivity.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//	    	 		retryActivity.putExtra("bolus", bolus_total_U);				//Don't convert for the pop-up version
-//	    	 		retryActivity.putExtra("bolusId", PUMP.retryId);
-//	    	 		me.startActivity(retryActivity);
-//	    			
-//	    	 		Debug.i(TAG, FUNC_TAG, "Updating retry count!");
-//	    	 		
-//	    			updateRequestedInsulin(data.getInt("bolusId"), retryCount);
-//	    		}
-//			}
-//			else
-//			{
-//				PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
-//				PUMP.sent_corr_U = 0;
-//				PUMP.sent_meal_U = 0;
-//				
-//	    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
-//	    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
-//				PUMP.acc_corr_U = 0;
-//				PUMP.acc_meal_U = 0;
-//				
-//				//Be sure to return the Pump state to idle
-//				updatePumpState(Pump.PUMP_STATE_COMMAND_IDLE);
-//				
-//				Debug.i(TAG, FUNC_TAG, "Retry ID not found or over the maximum retries...resetting bolus memory!");
-//			}
-    	}
-    	else
-    	{
-    		Debug.i(TAG, FUNC_TAG, "Retries not enabled!");
-    		
-    		PUMP.sent_basal_U = 0;		// If a bolus command times out then clear all current bolus memory
-			PUMP.sent_corr_U = 0;
-			PUMP.sent_meal_U = 0;
-			
-    		// The only reason these values should be non-zero is if the bolus has multiple segments and if a segment fails all additional segments are cleared
-    		// It is possible for basal boluses to arrive and be accumulated while a bolus is being sent so do not clear the basal accumulator
-			PUMP.acc_corr_U = 0;
-			PUMP.acc_meal_U = 0;
-			
-			//Be sure to return the Pump state to idle
-			//updatePumpState(Pump.PUMP_STATE_COMMAND_IDLE);
-    	}
-    	
-    	//reportCommandStatusToSafetyService(Pump.PUMP_STATE_COMMAND_COMPLETE);
-    	
-    	Debug.i(TAG, FUNC_TAG, "Retry function end...");
-    }
-    
     private void evaluateMissedBoluses()
     {
     	final String FUNC_TAG = "evaluateMissedBoluses";
@@ -1457,7 +1237,7 @@ public class PumpService extends Service {
 		if(isDelivering)
 			Debug.e(TAG, FUNC_TAG, "PUMP IS DELIVERING, NOT PROCESSING OR CHANGING STATES UNTIL COMPLETE...");
 		
-		if (basal_bolus+corr_bolus+meal_bolus > EPSILON)		//Check that the total is non-zero 
+		if (basal_bolus+corr_bolus+meal_bolus > Pump.EPSILON)		//Check that the total is non-zero 
 		{	
 			if (PUMP.state == Pump.PUMP_STATE_IDLE) 
 			{
@@ -1474,8 +1254,8 @@ public class PumpService extends Service {
 					Debug.i(TAG, FUNC_TAG, "Sent_basal="+PUMP.sent_basal_U+", Sent_corr="+PUMP.sent_corr_U+", Sent_meal="+PUMP.sent_meal_U);
 					Debug.i(TAG, FUNC_TAG, "Acc_basal="+PUMP.acc_basal_U+", Acc_corr="+PUMP.acc_corr_U+", Acc_meal="+PUMP.acc_meal_U);
 					
-					log_action(TAG, "Sent_basal="+PUMP.sent_basal_U+", Sent_corr="+PUMP.sent_corr_U+", Sent_meal="+PUMP.sent_meal_U, Debug.LOG_ACTION_INFORMATION);
-					log_action(TAG, "Acc_basal="+PUMP.acc_basal_U+", Acc_corr="+PUMP.acc_corr_U+", Acc_meal="+PUMP.acc_meal_U, Debug.LOG_ACTION_INFORMATION);
+					log("Sent: b="+PUMP.sent_basal_U+" c="+PUMP.sent_corr_U+" m="+PUMP.sent_meal_U);
+					log("Acc: b="+PUMP.acc_basal_U+" c="+PUMP.acc_corr_U+" m="+PUMP.acc_meal_U);
 
 					
 					//This call is initiated by a command to the Pump Service from the SSM
@@ -1508,7 +1288,7 @@ public class PumpService extends Service {
 					toast4.show();
 					
 					//If the value isn't above the minimum bolus then store the zero delivered insulin
-					storeZeroDeliveredInsulin();
+					storeZeroDeliveredInsulin(asynchronous);
 					
 					unackCount = countUnacknowledgedInsulin();
 					if(unackCount > 0)
@@ -1522,7 +1302,7 @@ public class PumpService extends Service {
 			{
 				Debug.w(TAG, FUNC_TAG, "PUMP STATE IS NOT IDLE (CURRENT: "+Pump.serviceStateToString(PUMP.state)+")...ACCUMULATING");
 				
-				log_action(TAG, "deliverBolus > Pump state is not IDLE (it is "+Pump.serviceStateToString(PUMP.state)+")", Debug.LOG_ACTION_WARNING);
+				log("Pump state is not IDLE (it is "+Pump.serviceStateToString(PUMP.state)+")");
 				
 				if(!isDelivering)
 					updatePumpState(Pump.PUMP_STATE_ACC);
@@ -1550,7 +1330,7 @@ public class PumpService extends Service {
 			if(!isDelivering)
 				updatePumpState(Pump.PUMP_STATE_ACC);
 			
-			storeZeroDeliveredInsulin();
+			storeZeroDeliveredInsulin(asynchronous);
 			
 			unackCount = countUnacknowledgedInsulin();
 			if(unackCount > 0)
@@ -1567,11 +1347,11 @@ public class PumpService extends Service {
 
     	double bolus_send_U, bolus_rem_U, bolus_send_temp_U;
     	
-    	if(PUMP.acc_basal_U < EPSILON)		//Check for zeros or negatives
+    	if(PUMP.acc_basal_U < Pump.EPSILON)		//Check for zeros or negatives
     		PUMP.acc_basal_U = 0.0;
-    	if(PUMP.acc_corr_U < EPSILON)
+    	if(PUMP.acc_corr_U < Pump.EPSILON)
     		PUMP.acc_corr_U = 0.0;
-    	if(PUMP.acc_meal_U < EPSILON)
+    	if(PUMP.acc_meal_U < Pump.EPSILON)
     		PUMP.acc_meal_U = 0.0;
     	
     	bolus_send_U = PUMP.acc_basal_U + PUMP.acc_corr_U + PUMP.acc_meal_U;		//Sum all accumulated insulin
@@ -1595,7 +1375,7 @@ public class PumpService extends Service {
   		double test_rem = bolus_rem_U + (PUMP.min_quanta * (0.1));
   		Debug.i(TAG, FUNC_TAG, "bolusRem + minBolus: "+test_rem+" 1/10th of minimum quanta: "+(PUMP.min_quanta * (0.1)));	
   		
-  		if((test_rem >= PUMP.min_quanta) && (bolus_rem_U > EPSILON))		//If the remainder is within 1/10 of the minimum bolus and greater than zero
+  		if((test_rem >= PUMP.min_quanta) && (bolus_rem_U > Pump.EPSILON))		//If the remainder is within 1/10 of the minimum bolus and greater than zero
   		{
   			bolus_send_U += PUMP.min_quanta;								//We add on another min_bolus sized bolus
   			bolus_rem_U -= PUMP.min_quanta;
@@ -1623,12 +1403,12 @@ public class PumpService extends Service {
   		else if(bolus_send_U >= PUMP.min_bolus) {
   			Debug.i(TAG, FUNC_TAG, "Bolus is under the maximum size and over the minimum size");
   			
-  	  		if(bolus_rem_U < EPSILON)
+  	  		if(bolus_rem_U < Pump.EPSILON)
   	  			bolus_rem_U = 0.0;
   	  		
   	  		Debug.i(TAG, FUNC_TAG, "bolus_send: "+bolus_send_U+" bolus_rem: "+bolus_rem_U);
   	  		
-  	  		if (bolus_rem_U < EPSILON) {
+  	  		if (bolus_rem_U < Pump.EPSILON) {
   	  			Debug.i(TAG, FUNC_TAG, "Bolus remainder is less than EPSILON (or zero), setting all accumulated to sent...");
   	  			
   	  			// If there is no remainder than the assumption is that all the insulin accumulated is rounded and quantized correctly
@@ -1726,18 +1506,30 @@ public class PumpService extends Service {
 		return tvector;
 	}
 	
-	public void log_action(String service, String action, int priority) {
-		final String FUNC_TAG = "log_action";
-
-		Debug.i(TAG, FUNC_TAG, "LOG ACTION > "+action);
+	private void log(String message)
+	{
+		final String FUNC_TAG = "log";
 		
 		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", service);
-        i.putExtra("Status", action);
-        i.putExtra("priority", priority);
+		i.putExtra("Service", TAG);
+        i.putExtra("Status", message);
+        i.putExtra("priority", Debug.LOG_ACTION_INFORMATION);
         i.putExtra("time", getCurrentTimeSeconds());
         sendBroadcast(i);
 	}
+	
+//	public void log_action(String service, String action, int priority) {
+//		final String FUNC_TAG = "log_action";
+//
+//		Debug.i(TAG, FUNC_TAG, "LOG ACTION > "+action);
+//		
+//		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
+//        i.putExtra("Service", service);
+//        i.putExtra("Status", action);
+//        i.putExtra("priority", priority);
+//        i.putExtra("time", getCurrentTimeSeconds());
+//        sendBroadcast(i);
+//	}
 	
 	private void reportCommandStatusToSafetyService(int status) {
 		final String FUNC_TAG = "reportCommandStatusToSafetyService";
@@ -1824,7 +1616,7 @@ public class PumpService extends Service {
 		if(messenger!=null)
 		{
 			double bolus = data.getDouble("bolus");
-			//Toast.makeText(getApplicationContext(), "Sending "+String.format("%.2f",bolus)+" U", Toast.LENGTH_SHORT).show();
+			Toast.makeText(getApplicationContext(), "Commanding "+String.format("%.2f",bolus)+" Units", Toast.LENGTH_SHORT).show();
 		
 			Debug.i(TAG, FUNC_TAG, "Sending "+String.format("%.2f",bolus)+" U");
 			
@@ -1845,49 +1637,6 @@ public class PumpService extends Service {
 		else
 			Debug.i(TAG, FUNC_TAG, "Messenger NULL!");
 	}
-	
-//	private void wakeDriver()
-//	{
-//		final String FUNC_TAG = "wakeDriver";
-//		
-//		Debug.e(TAG, FUNC_TAG, "There is an error with the pump...");
-//		updatePumpState(Pump.PUMP_STATE_PUMP_ERROR);
-//		
-//		//Fire event!
-//		Bundle b = new Bundle();
-//		b.putString("description", "Pump Error!");
-//		Event.addEvent(this, Event.EVENT_PUMP_STOPPED, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
-//		
-//		//Start driver!
-//		Debug.e(TAG, FUNC_TAG, "Restarting pump...");
-//		
-//		Cursor c = getContentResolver().query(Biometrics.HARDWARE_CONFIGURATION_URI, null, null, null, null);
-//		if(c!=null)
-//		{
-//			if(c.moveToFirst())
-//			{
-//				String pump = c.getString(c.getColumnIndex("running_pump"));
-//				
-//				Intent driver = new Intent();
-//				if(pump != null && !pump.equalsIgnoreCase(""))
-//				{
-//					Debug.w(TAG, FUNC_TAG, "Previously running pump was found: "+pump);
-//					String p_pump = pump.substring(0, pump.lastIndexOf('.'));
-//					Debug.w(TAG, FUNC_TAG, "Pump Package name: "+p_pump);
-//					
-//					driver.setClassName(p_pump, pump);
-//					driver.putExtra("auto", true);
-//					this.startService(driver);
-//				}
-//				else
-//					Debug.i(TAG, FUNC_TAG, "No previously running Pump!");
-//			}
-//		}
-//		else
-//			Debug.i(TAG, FUNC_TAG, "Cursor is null!");
-//		
-//		c.close();
-//	}
 	
 	/**********************************************************************************************************
 	 * Content Provider Access Functions
@@ -1942,20 +1691,11 @@ public class PumpService extends Service {
 		}
 	}
 	
-	private void storeZeroDeliveredInsulin() {
+	private void storeZeroDeliveredInsulin(boolean async) {
 		final String FUNC_TAG = "storeZeroDeliveredInsulin";
 
 		//  Write values to the database in the INSULIN table
 		Debug.i(TAG, FUNC_TAG, "storeZeroDeliveredInsulin");
-		
-		/*
-		valuesdelivered.put(TIME, getCurrentTimeSeconds());
-		valuesdelivered.put(INSULINRATE1, 0.0);
-		valuesdelivered.put(INSULINBOLUS1, 0.0);				// Store the total bolus delivered here
-		valuesdelivered.put(INSULIN_BASAL_BOLUS,  0.0);
-		valuesdelivered.put(INSULIN_CORR_BOLUS,  0.0);		    	
-		valuesdelivered.put(INSULIN_MEAL_BOLUS,  0.0);
-		*/
 		
 		ContentValues values = new ContentValues();
 	    
@@ -1972,6 +1712,11 @@ public class PumpService extends Service {
 		values.put("deliv_basal", 0.0);
 		values.put("deliv_meal", 0.0);
 		values.put("deliv_corr", 0.0);
+		
+		if(async)
+			values.put("type", Pump.TYPE_ASYNC);
+		else
+			values.put("type", Pump.TYPE_SYNC);
 		
 		values.put("status", Pump.DELIVERED);						// Since this is zero, it is more of a placeholder and cannot be queried thus it is automatically delivered, since it never gets sent
 		
@@ -2018,7 +1763,7 @@ public class PumpService extends Service {
 				PUMP.sent_meal_U = PUMP.sent_meal_U - insulin_to_deliver;
 				insulin_to_deliver = 0;
 			}
-			else if (PUMP.sent_meal_U > EPSILON) {								// A portion of insulin_to_deliver is categorized as meal.
+			else if (PUMP.sent_meal_U > Pump.EPSILON) {								// A portion of insulin_to_deliver is categorized as meal.
 				meal_delivered = PUMP.sent_meal_U;								// All bolusSentIDEX_meal insulin is now accounted for
 				insulin_to_deliver = insulin_to_deliver - PUMP.sent_meal_U;
 				PUMP.sent_meal_U = 0;
@@ -2033,7 +1778,7 @@ public class PumpService extends Service {
 				PUMP.sent_corr_U = PUMP.sent_corr_U - insulin_to_deliver;
 				insulin_to_deliver = 0;
 			}
-			else if (PUMP.sent_corr_U > EPSILON) {								// A portion of insulin_to_deliver is categorized as corr.
+			else if (PUMP.sent_corr_U > Pump.EPSILON) {								// A portion of insulin_to_deliver is categorized as corr.
 				corr_delivered = PUMP.sent_corr_U;								// All bolusSentIDEX_corr insulin is now accounted for
 				insulin_to_deliver = insulin_to_deliver - PUMP.sent_corr_U;
 				PUMP.sent_corr_U = 0;
@@ -2048,7 +1793,7 @@ public class PumpService extends Service {
 				PUMP.sent_basal_U = PUMP.sent_basal_U - insulin_to_deliver;
 				insulin_to_deliver = 0;
 			}
-			else if (PUMP.sent_basal_U > EPSILON) {								// A portion of insulin_to_deliver is categorized as basal.
+			else if (PUMP.sent_basal_U > Pump.EPSILON) {								// A portion of insulin_to_deliver is categorized as basal.
 				basal_delivered = PUMP.sent_basal_U;							// All bolusSentIDEX_basal insulin is now accounted for
 				insulin_to_deliver = insulin_to_deliver - PUMP.sent_basal_U;
 				PUMP.sent_basal_U = 0;
@@ -2057,9 +1802,6 @@ public class PumpService extends Service {
 				basal_delivered = 0.0;
 			}
 		}
-		
-		// Write values to the database in the INSULIN table
-		Debug.i(TAG, FUNC_TAG, "storeDeliveredInsulin > undelivered insulin after processing:  basal="+undelivered_basal_insulin+", corr="+undelivered_corr_insulin+", meal="+undelivered_meal_insulin);
 		
 		// Fetch the most recent record in the INSULIN table
 		Cursor c=getContentResolver().query(Biometrics.INSULIN_URI, null, null, null, null);
@@ -2088,7 +1830,6 @@ public class PumpService extends Service {
 				getContentResolver().update(Biometrics.INSULIN_URI, values, "_id="+_id, null);
 		    }
 		    catch (Exception e) {
-		    	log_action(TAG, "storeDeliveredInsulin > Error writing INSULIN_URI with _id="+_id+", "+deliveryTime, Debug.LOG_ACTION_WARNING);
 				Debug.e(TAG, FUNC_TAG, e.getMessage());
 		    }
 		}
@@ -2127,7 +1868,6 @@ public class PumpService extends Service {
 			    }
 			    catch (Exception e) 
 			    {
-			    	log_action(TAG, "updateRequestedInsulinId > Error writing INSULIN_URI with _id="+_id, Debug.LOG_ACTION_WARNING);
 					Debug.e(TAG, FUNC_TAG, e.getMessage());
 			    }
 			}
@@ -2136,23 +1876,6 @@ public class PumpService extends Service {
 		}
 		
 		c.close();
-	}
-	
-	private void updateRequestedInsulin(int bolusId, int retryCount)
-	{
-		final String FUNC_TAG = "updateRequestedInsulin";
-		
-		ContentValues c = new ContentValues();
-		c.put("num_retries", retryCount);
-		
-		try 
-	    {
-	    	getContentResolver().update(Biometrics.INSULIN_URI, c, "identifier = '"+bolusId+"'", null);
-	    }
-	    catch (Exception e) 
-	    {
-	    	Debug.e("Error", FUNC_TAG,(e.getMessage() == null) ? "null" : e.getMessage());
-	    }
 	}
 	
 	private void storeRequestedInsulin(boolean asynchronous, double basal_req_U, double meal_req_U, double corr_req_U, double current_total_U, int bolusId, int retryCount) 
@@ -2212,57 +1935,6 @@ public class PumpService extends Service {
     	}
     }
 	
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/pumpServiceLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
-		}
-	}
-	
 	class SystemObserver extends ContentObserver 
     {	
     	private int count;
@@ -2297,32 +1969,11 @@ public class PumpService extends Service {
 	       	{
 	       		if(c.moveToLast())
 	       		{
-	       			int diasState = c.getInt(c.getColumnIndex("diasState"));
+	       			DIAS_STATE = c.getInt(c.getColumnIndex("diasState"));
 	       			PUMP_STATE = c.getInt(c.getColumnIndex("pumpState"));
-	       			
-	       			PREV_DIAS_STATE = DIAS_STATE;
-	       			DIAS_STATE = diasState;
-	       			
        			}
 	       		c.close();
 	       	}
        }		
     }
-	
-	class MealBolus
-	{
-		private double first_meal, first_corr, second_meal, second_corr;
-		private boolean first_sent, second_sent;
-		private boolean first_delivered, second_delivered;
-		private long first_id, second_id;
-		
-		public MealBolus()
-		{
-			first_meal = first_corr = 0.0;
-			second_meal = second_corr = 0.0;
-			first_sent = second_sent = false;
-			first_delivered = second_delivered = false;
-			first_id = second_id = -1;
-		}
-	}
 }

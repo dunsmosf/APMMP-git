@@ -75,11 +75,6 @@ public class RocheDriver extends Service {
     private static final double INFUSION_RATE = 0.5;
     private boolean connecting = false;
     
-    public static boolean waking=false;
-	public static boolean breaking=false;
-    private int prev_request, request;
-    private FsmObserver fsmObserver;
-    
     PowerManager pm; 
 	PowerManager.WakeLock wl;
 	
@@ -201,9 +196,6 @@ public class RocheDriver extends Service {
 		drv.db = new RocheDB(this.getApplicationContext());
 		drv.updatePumpState(Pump.NONE);
 		drv.settings = getSharedPreferences(Driver.PREFS, 0);
-		
-		fsmObserver = new FsmObserver(new Handler());
-		getContentResolver().registerContentObserver(Biometrics.STATE_URI, true, fsmObserver);
 		
 		if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2)
 			InterfaceData.getInstance().bt = ((android.bluetooth.BluetoothManager)getSystemService(BLUETOOTH_SERVICE)).getAdapter();
@@ -391,9 +383,6 @@ public class RocheDriver extends Service {
 				}
 			}
 		}
-		
-		if(fsmObserver != null)
-			getContentResolver().unregisterContentObserver(fsmObserver);
 	}
 	
 	// onBind calls this which returns the binder object
@@ -717,70 +706,4 @@ public class RocheDriver extends Service {
         i.putExtra("time", (long)(System.currentTimeMillis()/1000));
         sendBroadcast(i);
 	}
-	
-	class FsmObserver extends ContentObserver
-    {
-    	private int count;
-    	
-		public FsmObserver(Handler handler) 
-		{
-			super(handler);
-			
-			final String FUNC_TAG = "FSM Observer";
-    		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		
-    		count = 0;
-		}
-		
-		@Override
-		public void onChange(boolean selfChange) 
-		{
-			this.onChange(selfChange, null);
-		}		
-
-		public void onChange(boolean selfChange, Uri uri) 
-		{
-			final String FUNC_TAG = "FSM onChange";
-    	   
-    	   	count++;
-//    	   	Debug.i(TAG, FUNC_TAG, "FSM Observer: "+count);
-    	   
-    	   	Cursor c = getContentResolver().query(Biometrics.STATE_URI, null, null, null, null);
-    	   	if(c != null)
-    	   	{
-    	   		if(c.moveToLast())
-    	   		{
-    	   			prev_request = request;
-    	   			request = c.getInt(c.getColumnIndex("dev_req"));
-    	   			
-//    	   			Debug.i(TAG, FUNC_TAG, "_____REQUEST: "+FSM.devStateToString(request));
-//    	   			Debug.i(TAG, FUNC_TAG, "PREV_REQUEST: "+FSM.devStateToString(prev_request));
-    	   			
-    	   			
-    	   			if(prev_request != request)
-    	   			{
-    	   				if(Params.getBoolean(getContentResolver(), "connection_scheduling", false))
-    	   				{
-	    	   				if(request == FSM.DEV_WAKE)
-	    	   				{
-	    	   					Debug.w(TAG, FUNC_TAG, "Waking devices...");
-	    	   					waking = true;
-	    	   					
-	    	   					InterfaceData.remotePumpBt.connect(data.bt.getRemoteDevice(drv.deviceMac), true, true);
-	    	   				}
-	    	   				else if(request == FSM.DEV_DISCON)
-	    	   				{
-	    	   					Debug.w(TAG, FUNC_TAG, "Breaking devices...");
-	    	   					
-	    	   					InterfaceData.remotePumpBt.stop();
-	    	   					
-	    	   					drv.updateDevState(FSM.DEV_DISCON);
-	    	   				}
-    	   				}
-    	   			}
-    	   		}
-    	   	}
-    	   	c.close();
-		}
-    }
 }

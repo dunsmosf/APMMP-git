@@ -39,6 +39,7 @@ adb uninstall edu.virginia.dtc.BTLE_Tandem
 adb uninstall edu.virginia.dtc.BTLE_G4
 adb uninstall edu.virginia.dtc.HR_Driver
 adb uninstall edu.virginia.dtc.ExerciseService
+adb uninstall edu.virginia.dtc.Bioharness_Driver
 
 ::Service packages
 ::---------------------------------------------------------

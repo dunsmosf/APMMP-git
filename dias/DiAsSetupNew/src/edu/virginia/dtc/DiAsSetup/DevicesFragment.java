@@ -62,29 +62,6 @@ public class DevicesFragment extends Fragment {
 		this.main = main;
 
 		hardware = DriverData.getInstance();
-		
-		resultReceiver = new BroadcastReceiver(){
-			final String FUNC_TAG = "resultReceiver";
-			
-			public void onReceive(Context context, Intent intent) {
-				String device = intent.getStringExtra("name");
-				int cgms = intent.getIntExtra("cgms", -1);
-				int pumps = intent.getIntExtra("pumps", -1);
-
-				DriverInfo targetDevice = hardware.getByName(device);
-				
-				Debug.i(TAG, FUNC_TAG, "Target: "+device+" CGM: "+cgms+" PUMP: "+pumps);
-				
-				if(targetDevice != null)
-				{
-					driverAdapter.setCheckBoxes(targetDevice, cgms > 0, pumps > 0);
-					driverAdapter.notifyDataSetChanged();
-				}
-				else
-					Debug.i(TAG, FUNC_TAG,"Target device is null");
-			}			
-		};
-		main.registerReceiver(resultReceiver, new IntentFilter("edu.virginia.dtc.DEVICE_RESULT"));
 
 		SharedPreferences prefs = main.getSharedPreferences(DiAsSetup1.PREFS_NAME, 0);
 		hardware.realTime = prefs.getBoolean("realtime", true);
@@ -129,20 +106,6 @@ public class DevicesFragment extends Fragment {
 		}
 
 		activeDevice = d;
-	}
-
-	public void stopDriver(int position) {
-		final String FUNC_TAG = "stopDriver";
-		
-		DriverInfo d = hardware.availableDrivers.get(position);
-		Debug.i(TAG, FUNC_TAG,"Stopping Driver - " + d.package_name);
-
-		Intent finishDriver = new Intent("edu.virginia.dtc.STOP_DRIVER");
-		finishDriver.putExtra("package", d.package_name);
-		main.sendBroadcast(finishDriver);
-
-		//hardware.stopDriver(d);
-		driverAdapter.notifyDataSetChanged();
 	}
 
 	public void updateDisplay() {
@@ -200,8 +163,6 @@ public class DevicesFragment extends Fragment {
 					String name = meta.getString("driver_name");
 					String displayname = meta.getString("driver_displayname", "");
 					String serv = meta.getString("driver_service");
-					boolean speedup = meta.getBoolean("supports_speedup");
-					boolean multi = meta.getBoolean("supports_multi");
 
 					Debug.i(TAG, FUNC_TAG,"Found " + name + " driver in " + app.packageName);
 					Debug.i(TAG, FUNC_TAG,"Service: "+serv);
@@ -211,23 +172,23 @@ public class DevicesFragment extends Fragment {
 						displayname = name;
 
 					if (cgm && pump) {
-						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, speedup, multi, DriverInfo.CGM_PUMP);
+						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, DriverInfo.CGM_PUMP);
 						if (!hardware.exists(d)) {
 							hardware.addDriver(main, driverAdapter, hardware.availableDrivers, d);
 						}
 					} else if (cgm) {
-						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, speedup, multi, DriverInfo.CGM);
+						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, DriverInfo.CGM);
 						if (!hardware.exists(d)) {
 							hardware.addDriver(main, driverAdapter, hardware.availableDrivers, d);
 						}
 					} else if (pump) {
-						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, speedup, multi, DriverInfo.PUMP);
+						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, DriverInfo.PUMP);
 						if (!hardware.exists(d)) {
 							hardware.addDriver(main, driverAdapter, hardware.availableDrivers, d);
 						}
 					}
 					else {
-						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, speedup, multi, DriverInfo.MISC);
+						DriverInfo d = new DriverInfo(name, displayname, app.packageName, serv, DriverInfo.MISC);
 						if (!hardware.exists(d)) {
 							hardware.addDriver(main, driverAdapter, hardware.availableDrivers, d);
 						}
@@ -276,13 +237,7 @@ public class DevicesFragment extends Fragment {
 					}
 				}
 			});
-			((LinearLayout) v.findViewById(R.id.driverCGMLayout)).setVisibility((type.contains("CGM")) ? CheckBox.VISIBLE : CheckBox.INVISIBLE);
-			((LinearLayout) v.findViewById(R.id.driverPumpLayout)).setVisibility((type.contains("Pump")) ? CheckBox.VISIBLE : CheckBox.INVISIBLE);
-			boolean[] checks = { false, false };
-			if (checkBoxes.containsKey(hardware.availableDrivers.get(position).package_name))
-				checks = checkBoxes.get(hardware.availableDrivers.get(position).package_name);
-			((CheckBox) v.findViewById(R.id.driverCGMBox)).setChecked(checks[0]);
-			((CheckBox) v.findViewById(R.id.driverPumpBox)).setChecked(checks[1]);
+			
 			return v;
 		}
 

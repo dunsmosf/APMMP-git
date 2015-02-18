@@ -71,10 +71,6 @@ public class ZoomScrollListener implements OnTouchListener, OnLongClickListener{
 				oldUpperBound = main.getInsulinPlotBounds()[PlotsActivity.UPPER];
 				oldRightBound = main.getInsulinPlotBounds()[PlotsActivity.RIGHT];
 				break;
-			case R.id.highInsulinPlot:
-				oldUpperBound = main.getHighInsulinPlotBounds()[PlotsActivity.UPPER];
-				oldRightBound = main.getHighInsulinPlotBounds()[PlotsActivity.RIGHT];
-				break;			
 			}
 //			Log.d(TAG, "Down(" + mode + "," + oldX1 + "," + oldY1 + ")");
 			mode = ONEFINGER; // finger movement will scroll now
@@ -185,10 +181,6 @@ public class ZoomScrollListener implements OnTouchListener, OnLongClickListener{
 			case R.id.insulinPlot:
 				oldUpperBound = main.getInsulinPlotBounds()[PlotsActivity.UPPER];
 				oldRightBound = main.getInsulinPlotBounds()[PlotsActivity.RIGHT];
-				break;
-			case R.id.highInsulinPlot:
-				oldUpperBound = main.getHighInsulinPlotBounds()[PlotsActivity.UPPER];
-				oldRightBound = main.getHighInsulinPlotBounds()[PlotsActivity.RIGHT];
 				break;
 			}
 			oldDist = FloatMath.sqrt((oldY2-oldY1)*(oldY2-oldY1) + (oldX2-oldX1)*(oldX2-oldX1));

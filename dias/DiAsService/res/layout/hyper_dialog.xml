@@ -31,13 +31,6 @@
         android:layout_below="@id/smbg_layout"
         android:layout_centerInParent="true"
         android:orientation="horizontal" >
-
-	    <Button
-	        android:layout_width="fill_parent"
-	        android:layout_height="wrap_content"
-	        android:layout_weight="1"
-	        android:id="@+id/cancel_hypo"
-	        android:text="Cancel"/>
 	    <Button
 	        android:layout_width="fill_parent"
 	        android:layout_height="wrap_content"

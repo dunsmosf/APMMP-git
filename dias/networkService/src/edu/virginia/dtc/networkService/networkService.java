@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -28,6 +29,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
@@ -58,40 +60,30 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.Log;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 //import android.content.SharedPreferences;
 
 public class networkService extends Service {
-	public final String TAG = "NetworkService";
-	
-	private static final boolean MESSAGE_LOGGING_ENABLED = false;
-	private static final int LOG_ACTION_SERIOUS = 5;
-	public static final String PREFS_NAME = "HardwareSettingsFile";
+	private final String TAG = "NetworkService";
 
 
-	public static final String PING_URL_PATH = "/diabetesassistant/webservices/ping.php";
-
-	public static final String SSM_PROVIDER_NAME = "edu.virginia.dtc.provider.SSM";
-	public static final Uri SSM_CONTENT_URI = Uri.parse("content://" + SSM_PROVIDER_NAME + "/SSM");
-
-	public static final String HMS_PROVIDER_NAME = "edu.virginia.dtc.provider.SSM";
-	public static final Uri HMS_CONTENT_URI = Uri.parse("content://" + HMS_PROVIDER_NAME + "/HMS");
+	private static final String PING_URL_PATH = "/diabetesassistant/webservices/ping.php";
 
 	// Power management
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;
 
 	// Current remote monitoring database
-	public BroadcastReceiver TickReceiver;
-	public BroadcastReceiver ProfileReceiver;
+	private BroadcastReceiver ProfileReceiver;
 	
 	private boolean remoteMonitoringURIValid = true;
 	private String remoteMonitoringURI;
 	
-	public static final int REMOTE_MONITORING_ICON_ID = 0x10000000;
-	public static final int NO_REMOTE_MONITORING_ICON_ID = 0x10000001;
-	public static final int WEAK_REMOTE_MONITORING_ICON_ID = 0x10000010;
+	private static final int REMOTE_MONITORING_ICON_ID = 0x10000000;
+	private static final int NO_REMOTE_MONITORING_ICON_ID = 0x10000001;
+	private static final int WEAK_REMOTE_MONITORING_ICON_ID = 0x10000010;
 
 	private String DeviceID;
 	private String subject_number;
@@ -99,14 +91,7 @@ public class networkService extends Service {
 	String returnString;
 	Integer battery_level = 100;
 
-	public long lastCGMTime = 0;
-	public long lastInsulinTime = 0;
-	public long lastMealTime = 0;
-	public long lastStateEstimateTime = 0;
-	public long lastLogTime = 0;
-	public long lastDeviceDataTime = 0;
-
-	public static final int SEND_BIOMETRICS_SLEEP_SECS = 30;
+	private static final int SEND_BIOMETRICS_SLEEP_SECS = 30;
 
 	private int timeoutConnection = 10000; // In milliseconds
 	private int timeoutSocket = 10000; // In milliseconds
@@ -119,10 +104,7 @@ public class networkService extends Service {
 	private int hourlyPingAttempts = 0;
 	private int hourlyPingSuccess = 0;
 	
-	public static final int DATA_BUNDLE_SIZE = 15; //Number of rows to include in one "Send Request"
-	
-    
-    public static String[] PARAMS_PARAMS = {"id", "name", "value", "type"};
+	private static final int DATA_BUNDLE_SIZE = 15; //Number of rows to include in one "Send Request"
     
 
 	/***
@@ -140,7 +122,7 @@ public class networkService extends Service {
 			}
 			catch (Exception e) {
 				Debug.e(TAG, FUNC_TAG, "Sending_biometrics > error in Ping=" + e.getMessage());
-				log_action(TAG, "Sending_biometrics, Error in Ping: " + e.getMessage(), LOG_ACTION_SERIOUS);
+				log_action("Sending_biometrics, Error in Ping: " + e.getMessage(), Log.LOG_ACTION_ERROR);
 			}
 			
 			if (hourlyPingAttempts >= 120 && isSubjectReady()) {
@@ -162,7 +144,7 @@ public class networkService extends Service {
 			}
 			else {
 				Debug.e(TAG, FUNC_TAG, "Sending_diasdata > Server unreachable, Diasdata not sent");
-				log_action(TAG, "Sending_diasdata, Error: Server unreachable, Diasdata not sent", LOG_ACTION_SERIOUS);
+				log_action("Sending_diasdata, Error: Server unreachable, Diasdata not sent", Log.LOG_ACTION_ERROR);
 			}
 		}	
 	};
@@ -193,8 +175,8 @@ public class networkService extends Service {
         	JSONArray data = buildData(content_uri);
 	        
             if (data.length() > 0) {
-            
-            	HttpResponse response = postRequest(content_uri, data);
+            	JSONObject post = buildPostFromData(data);
+            	HttpResponse response = postRequest(content_uri, post);
             	boolean received = handleResponse(content_uri, response);
             	if (received)
             		Debug.w(TAG, FUNC_TAG, "HandleResponse result: "+received);
@@ -305,16 +287,17 @@ public class networkService extends Service {
 						if (hba1c > 0.0) {
 							object.put("hba1c", hba1c);
 						}
-						
 		            }
-	            } catch (JSONException e) {
+	            }
+	            catch (JSONException e) {
 	            	Debug.i(TAG, FUNC_TAG, "JSON Error adding data bundle: "+e.toString());
 	            }
 	            
 	            try {
 					data.put(index, object);
 					index += 1;
-				} catch (JSONException e) {
+				}
+	            catch (JSONException e) {
 					Debug.i(TAG, FUNC_TAG, "JSON Error building data bundle: "+e.toString());
 				}
 	            
@@ -327,39 +310,39 @@ public class networkService extends Service {
         	Cursor profiles_to_send = getContentResolver().query(content_uri, null, "received_server = 0", null, null);
 			
         	if (profiles_to_send.getCount() > 0) {
-				Debug.i(TAG, FUNC_TAG, profiles_to_send.getCount()+" new profile info to send");
-				try {
-					
-					Cursor sub = getContentResolver().query(content_uri, null, null, null, null);
-					Integer cursor_count = sub.getCount();
-					Debug.i(TAG, FUNC_TAG, "Sending_subjectData: " + cursor_count.toString());
-					sub.moveToFirst();
-					JSONArray profile = new JSONArray();
-					Integer index = 0;
-					while (sub.getCount() != 0 && sub.isAfterLast() == false) {
-						JSONObject object = new JSONObject();
-						try {
-							object.put("time", sub.getString(1));
-							object.put("value", sub.getString(2));
-							profile.put(index, object);
-							
-						} catch (JSONException e) {
-							Debug.i(TAG, FUNC_TAG, "JSON Encode for profile error: "+e.toString());
-						}
-						index +=1;
-						sub.moveToNext();
+				
+        		Debug.i(TAG, FUNC_TAG, profiles_to_send.getCount()+" new profile info to send");
+				Cursor sub = getContentResolver().query(content_uri, null, null, null, null);
+				Integer cursor_count = sub.getCount();
+				Debug.i(TAG, FUNC_TAG, "Sending_subjectData: " + cursor_count.toString());
+				sub.moveToFirst();
+				JSONArray profile = new JSONArray();
+				Integer index = 0;
+				while (sub.getCount() != 0 && sub.isAfterLast() == false) {
+					JSONObject object = new JSONObject();
+					try {
+						object.put("time", sub.getString(1));
+						object.put("value", sub.getString(2));
+						profile.put(index, object);
+						
+					} catch (JSONException e) {
+						Debug.i(TAG, FUNC_TAG, "JSON Encode for profile error: "+e.toString());
 					}
-					if (profile.length() > 0) {
-						JSONObject profiles = new JSONObject();
+					index +=1;
+					sub.moveToNext();
+				}
+				sub.close();
+				if (profile.length() > 0) {
+					JSONObject profiles = new JSONObject();
+					try {
 						profiles.put("profiles", profile);
 						data.put(0, profiles);
 					}
-					sub.close();
+					catch (JSONException e) {
+						Debug.i(TAG, FUNC_TAG, "JSON Encode for Profiles error: "+e.toString());
+					}
 				}
-				catch (Exception e) {
-					Debug.e(TAG, FUNC_TAG, "Sending_profiledata > error=" + e.getMessage());
-					log_action(TAG, "Sending_profiledata, Error: " + e.getMessage(), LOG_ACTION_SERIOUS);
-				}
+				
 			}
 			else {
 				Debug.i(TAG, FUNC_TAG, "Profile info already sent");
@@ -415,6 +398,23 @@ public class networkService extends Service {
 		return data;
 	}
 	
+
+	private JSONObject buildPostFromData(JSONArray data){
+		
+		final String FUNC_TAG = "buildPostFromData";
+		
+		JSONObject post = new JSONObject();
+		try {
+			post.put("subjectnumber", subject_number);
+			post.put("macaddress", DeviceID);
+			post.put("data", data);
+			
+		} catch (JSONException e) {
+			Debug.i(TAG, FUNC_TAG, "JSONException when building post content: "+e.getMessage());
+		}
+		return post;
+	}
+	
 	
 	/***
 	 * Send the data bundled as 'data' for the table 'content_uri' to the server through and HTTP POST request.
@@ -423,49 +423,51 @@ public class networkService extends Service {
 	 * @param data, the bundle of data enclosed with the POST request.
 	 * @return the response from the server, or null if an issue occurred.
 	 */
-	public HttpResponse postRequest(Uri content_uri, JSONArray data) {
+	public HttpResponse postRequest(Uri content_uri, JSONObject post) {
 		
 		final String FUNC_TAG = "postRequest";
 		
 		String tableName = Biometrics.getTableName(content_uri);
 		HttpResponse response = null;
 		
-		JSONObject post = new JSONObject();
-		
+		//HTTP Post
 		try {
-			post.put("subjectnumber", subject_number);
-			post.put("macaddress", DeviceID);
-			post.put("data", data);
+			DefaultHttpClient httpclient = new DefaultHttpClient();
+			HttpParams httpParameters = new BasicHttpParams();
+			HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
+			HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
+			httpclient.setParams(httpParameters);
 			
-			//HTTP post
-			try {
-				DefaultHttpClient httpclient = new DefaultHttpClient();
-				HttpParams httpParameters = new BasicHttpParams();
-				HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
-				HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
-				httpclient.setParams(httpParameters);
-				
-				String PostString;
-				if (remoteMonitoringURIValid) {
-					PostString = new String(remoteMonitoringURI);
-					PostString = PostString.concat(getUrlPath(tableName));
-				}
-				else {
-					PostString = new String(getUrlPath(tableName));
-				}
-				Debug.i(TAG, FUNC_TAG, "Table Name: " + tableName + ", URL=" + PostString);
-				
-				HttpPost httppost = new HttpPost(PostString);
-				httppost.setEntity(new StringEntity(post.toString()));
-				response = httpclient.execute(httppost);
-				
-			} catch (Exception e) {
-				Debug.i(TAG, FUNC_TAG, "Error in http connection " + e.toString());
-				log_action(TAG, FUNC_TAG+", Connection error: " + e.toString(), LOG_ACTION_SERIOUS);
+			String PostString;
+			if (remoteMonitoringURIValid) {
+				PostString = new String(remoteMonitoringURI);
+				PostString = PostString.concat(getUrlPath(tableName));
 			}
+			else {
+				PostString = new String(getUrlPath(tableName));
+			}
+			Debug.i(TAG, FUNC_TAG, "Table Name: " + tableName + ", URL=" + PostString);
+			
+			HttpPost httppost = new HttpPost(PostString);
+			httppost.setEntity(new StringEntity(post.toString()));
+			response = httpclient.execute(httppost);
+			
 		}
-		catch (JSONException e) {
-			Debug.i(TAG, FUNC_TAG, "JSONException when building post content: "+e.getMessage());
+		catch (SocketTimeoutException e) 
+		{
+		     e.printStackTrace();
+		     Debug.i(TAG, FUNC_TAG, "Error in http connection, SocketTimeoutException: " + e.toString());
+		     log_action(FUNC_TAG+", SocketTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		}
+		catch (ConnectTimeoutException e)
+		{
+		     e.printStackTrace();
+		     Debug.i(TAG, FUNC_TAG, "Error in http connection, ConnectTimeoutException: " + e.toString());
+		     log_action(FUNC_TAG+", ConnectTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		}
+		catch (Exception e) {
+			Debug.i(TAG, FUNC_TAG, "Error in http connection " + e.toString());
+			log_action(FUNC_TAG+", Connection error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		
 		return response;
@@ -487,6 +489,10 @@ public class networkService extends Service {
 		
 		boolean received = false;
 		
+		if (response == null) {
+			Debug.i(TAG, FUNC_TAG, "Response is NULL");
+			return received;
+		}
 		try {
 			is = response.getEntity().getContent();
 		}
@@ -502,7 +508,7 @@ public class networkService extends Service {
     	StringBuilder sb = new StringBuilder();
         String line = null;
         BufferedReader reader;
-        JSONArray result =null;
+        JSONArray result = null;
         
 		try {
 			reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
@@ -552,8 +558,7 @@ public class networkService extends Service {
 		        		ContentValues new_values = new ContentValues();
 		                new_values.put("received_server", true);
 		                
-		                // Set "received_server" to false to re-send data when status is not final
-		                // For Insulin ("pending" or "delivering")
+		                // Set "received_server" to false to re-send data when status is not final for Insulin ("pending" or "delivering")
 		                if (content_uri == Biometrics.INSULIN_URI) {
 		                	Cursor insulinRow = getContentResolver().query(content_uri, new String[] {"status"}, "_id = "+id, null, null);
 		                	insulinRow.moveToFirst();
@@ -562,15 +567,6 @@ public class networkService extends Service {
 		                	}
 		                	insulinRow.close();
 		                }
-		                // For Meal ("pending")
-		//                    if (diasdata == "meal") {
-		//                    	Cursor mealRow = getContentResolver().query(content_uri, new String[] {"meal_status"}, "_id = "+id, null, null);
-		//                    	mealRow.moveToFirst();
-		//                    	if (mealRow.getInt(mealRow.getColumnIndex("meal_status")) == Meal.MEAL_STATUS_PENDING) {
-		//                    		new_values.put("received_server", false);
-		//                    	}
-		//                    	mealRow.close();
-		//                    }
 		                
 		                int new_row = getContentResolver().update(content_uri, new_values, "_id = "+id, null);
 		                Debug.i(TAG, FUNC_TAG, tableName+" data received: "+new_row+" row");
@@ -644,13 +640,24 @@ public class networkService extends Service {
 			HttpEntity entity = response.getEntity();
 			is = entity.getContent();
 
-		} catch (Exception e) {
+		}
+		catch (SocketTimeoutException e) 
+		{
+		     Debug.i(TAG, FUNC_TAG, "Error in http connection, SocketTimeoutException: " + e.toString());
+		     log_action(FUNC_TAG+", SocketTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		}
+		catch (ConnectTimeoutException e)
+		{
+		     Debug.i(TAG, FUNC_TAG, "Error in http connection, ConnectTimeoutException: " + e.toString());
+		     log_action(FUNC_TAG+", ConnectTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		}
+		catch (Exception e) {
 			Debug.i(TAG, FUNC_TAG, "Error in http connection " + e.toString());
-			log_action(TAG, "Send_Request_ping, Connection error: " + e.toString(), LOG_ACTION_SERIOUS);
+			log_action(FUNC_TAG+", Connection error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		
         //convert response to string
-        try{
+        try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
             StringBuilder sb = new StringBuilder();
             String line = null;
@@ -665,10 +672,11 @@ public class networkService extends Service {
             {
             	output += 1;
             }
-            Debug.i("HERE FOCUS state", FUNC_TAG,returnString+lastCGMTime);
-        }catch(Exception e){
-                Debug.i(TAG, FUNC_TAG, "Error converting result "+e.toString());
-				log_action(TAG, "Send_Ping, Response conversion error: "+e.toString(), LOG_ACTION_SERIOUS);
+            
+        }
+        catch (Exception e) {
+            Debug.i(TAG, FUNC_TAG, "Error converting result "+e.toString());
+			log_action("Send_Ping, Response conversion error: "+e.toString(), Log.LOG_ACTION_ERROR);
         }
         Debug.i(TAG, FUNC_TAG, "Send_Request_Ping result = "+ output);
 
@@ -762,7 +770,6 @@ public class networkService extends Service {
 		if(remoteMonitoringURI!=null && !remoteMonitoringURI.equalsIgnoreCase(""))
 			remoteMonitoringURIValid = true;
 		
-		Debug.i(TAG, FUNC_TAG, "onCreate()");
 		Debug.i(TAG, FUNC_TAG, "Remote Monitoring URI: "+remoteMonitoringURI);
 		
 		ProfileReceiver = new BroadcastReceiver() {
@@ -777,11 +784,7 @@ public class networkService extends Service {
 		
 
 		// Tracking System
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-		i.putExtra("Service", "Network");
-		i.putExtra("Status", "Created");
-		i.putExtra("time", getCurrentTimeSeconds());
-		sendBroadcast(i);
+		log_action(FUNC_TAG, Log.LOG_ACTION_INFORMATION);
 
 		// Startup executors
 		futureDiasdata = systemScheduler.scheduleAtFixedRate(SendDiasdata, 0, SEND_BIOMETRICS_SLEEP_SECS, TimeUnit.SECONDS);
@@ -812,14 +815,17 @@ public class networkService extends Service {
 
 	
 	@Override
-	public void onDestroy() {	   
-		Toast.makeText(this, "Data sending Service Stopped", Toast.LENGTH_LONG).show();
+	public void onDestroy() {
+		final String FUNC_TAG = "onDestroy";
+		
+		Debug.i(TAG, FUNC_TAG, "Done");
+		//Toast.makeText(this, "Network Service Stopped", Toast.LENGTH_SHORT).show();
 		
 		//Tracking System
 		if (futureDiasdata != null)
 			futureDiasdata.cancel(true);
 		unregisterReceiver(ProfileReceiver);
-		//unregisterReceiver(TickReceiver);
+
 		wl.release();
 	}
 
@@ -833,7 +839,9 @@ public class networkService extends Service {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		final String FUNC_TAG = "onStartCommand";
 
-		Debug.i(TAG, FUNC_TAG, "onStartCommand()");
+		Debug.i(TAG, FUNC_TAG, "Done");
+		
+		Toast.makeText(this, "Network Service Started", Toast.LENGTH_LONG).show();
 		
 		//Tracking System
 		Intent i = new Intent("edu.virginia.dtc.LOG_ACTION");
@@ -902,15 +910,9 @@ public class networkService extends Service {
         c.close();
 	}
 
-	public void log_action(String service, String action, int priority) {
-		if (MESSAGE_LOGGING_ENABLED) {
-			Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-			i.putExtra("Service", service);
-			i.putExtra("Status", action);
-			i.putExtra("priority", priority);
-			i.putExtra("time", getCurrentTimeSeconds());
-			sendBroadcast(i);
-		}
+	
+	public void log_action(String status, int priority) {
+		Log.log_action(this, TAG, status, getCurrentTimeSeconds(), priority);
 	}
 	
 	
@@ -928,11 +930,12 @@ public class networkService extends Service {
 		}
 	}
 	
+	
 	/***
 	 * Get the URL path to build the HTTP query for a given URI
 	 * 
 	 * @param uri
-	 * @return
+	 * @return the URL path
 	 */
 	public String getUrlPath(String uri) {
 		//TODO: Remove those exceptions when the server's webservice is updated with those new values

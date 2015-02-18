@@ -14,6 +14,7 @@ import android.database.CursorIndexOutOfBoundsException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import edu.virginia.dtc.SysMan.Debug;
+import edu.virginia.dtc.Tvector.Tvector;
 
 public class BrmDB extends SQLiteOpenHelper 
 {
@@ -35,6 +36,13 @@ public class BrmDB extends SQLiteOpenHelper
     		"CREATE TABLE " + HISTORY_TABLE + "(" +
     		"_id integer primary key autoincrement, " +
     		"time long, starttime long, duration long, d1 double, d2 double, d3 double);";
+    private static final String TDI_HISTORY_TABLE = "TDIhistory";
+    private static final String TDI_HISTORY_TABLE_CREATE =
+    		"CREATE TABLE " + TDI_HISTORY_TABLE + "(" +
+    		"_id integer primary key autoincrement, " +
+    		"time long, subjectID text, TDIc double, TDIest double);";
+    
+    
     public Context context;
 
     BrmDB(Context context) {
@@ -49,16 +57,57 @@ public class BrmDB extends SQLiteOpenHelper
 		Debug.i(TAG, FUNC_TAG, "");
 		
 		db.execSQL(HISTORY_TABLE_CREATE);
+		db.execSQL(TDI_HISTORY_TABLE_CREATE);
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + HISTORY_TABLE);
- 
+        db.execSQL("DROP TABLE IF EXISTS " + TDI_HISTORY_TABLE);
         onCreate(db);
 	}
 	
-
+	public void UpdateTDIest(String subjectID, long time,double TDIest) {
+		
+		final String FUNC_TAG = "modifyBrmDB";
+	
+		SQLiteDatabase db = this.getWritableDatabase();
+		
+		ContentValues values = new ContentValues();
+		values.put("time", time);
+		values.put("TDIest", TDIest);
+		values.put("subjectID", subjectID);
+		
+		int rows = db.update(TDI_HISTORY_TABLE, values, "time="+time, null);
+		
+		Debug.i(TAG, FUNC_TAG, "Rows modified: "+rows);
+		
+		db.close();
+		
+		saveDatabase();
+	}
+	
+public void UpdateTDIc(String subjectID, long time,double TDIc) {
+		
+		final String FUNC_TAG = "UpdateTDIc";
+		
+		
+		
+		SQLiteDatabase db = this.getWritableDatabase();
+		
+		ContentValues values = new ContentValues();
+		values.put("time", time);
+		values.put("TDIc", TDIc);
+		values.put("subjectID", subjectID);
+		
+		int rows = db.update(TDI_HISTORY_TABLE, values, "time="+time, null);
+		
+		Debug.i(TAG, FUNC_TAG, "Rows modified: "+rows);
+		
+		db.close();
+		
+		saveDatabase();
+	}
 
 
 //	public void modifyBrmDB(long time,
@@ -124,7 +173,36 @@ public class BrmDB extends SQLiteOpenHelper
 		
 	}
 	
+    public void addTDItoBrmDB(String subjectID, long time,double TDIc, double TDIest) 
+	{
+			final String FUNC_TAG = "TDItoBrmDB";
+			
+			SQLiteDatabase db = this.getWritableDatabase();
+			
+			//if(lookupEventCounterInHistory(e.eventCounter))
+			//{
+			//Debug.i(TAG, FUNC_TAG, "Event already exists, cannot add again!");
+			//return;
+			//}
+			//else
+			Debug.i(TAG, FUNC_TAG, "Adding TDI to database");
+			
+			ContentValues values = new ContentValues();
+			values.put("time", time);
+			values.put("subjectID", subjectID);
+			
+			if (TDIc !=0){
+				values.put("TDIc", TDIc);
+			}
+			if (TDIest !=0){
+				values.put("TDIest", TDIest);
+			}
+			db.insert(TDI_HISTORY_TABLE, null, values);
+			db.close();
+			
+			saveDatabase();  // save to sd card
 	
+	}
 	
 	public Settings getBrmDB(int id)
 	{
@@ -146,7 +224,29 @@ public class BrmDB extends SQLiteOpenHelper
         st.d1 = c.getDouble(c.getColumnIndex("d1"));
         st.d2 = c.getDouble(c.getColumnIndex("d2"));
         st.d3 = c.getDouble(c.getColumnIndex("d3"));
+        c.close();
         
+		return st;
+	}
+	
+	public Settings getTDI_DB(int id)
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		String query = "SELECT * FROM " + TDI_HISTORY_TABLE + " where _id='"+id+"'";
+
+		Settings st = new Settings();
+		
+		Cursor c = db.rawQuery(query, null);
+        
+		if (c != null) {
+			c.moveToFirst();
+		}
+		
+        //Fill in event data
+		st.subjectID = c.getString(c.getColumnIndex("subjectID"));
+        st.time = c.getLong(c.getColumnIndex("time"));
+        st.TDIc = c.getDouble(c.getColumnIndex("TDIc"));
+        st.TDIest = c.getDouble(c.getColumnIndex("TDIest"));
         c.close();
         
 		return st;
@@ -179,7 +279,66 @@ public class BrmDB extends SQLiteOpenHelper
 		return st;
 	}	
 
+	public Settings getLastTDIestBrmDB(String subjectID)
+	{
+		final String FUNC_TAG = "getLastTDIestBrmDB";
+		
+		SQLiteDatabase db = this.getReadableDatabase();
+		String query = "SELECT * FROM " + TDI_HISTORY_TABLE+ " where TDIest IS NOT NULL AND subjectID="+"'"+subjectID+"'";
+
+		Settings st = new Settings();
+		
+		Cursor c = db.rawQuery(query, null);
+		Debug.i(TAG,FUNC_TAG,"last tdi est query >>>>"+c.getCount());
+		if (c.getCount() != 0) {
+			
+			c.moveToLast();   //// need to verify
+			st.time = c.getLong(c.getColumnIndex("time"));
+	        st.TDIest = c.getDouble(c.getColumnIndex("TDIest"));
+	        
+		}
+		else {
+			
+			st.time = getCurrentTimeSeconds();
+	        st.TDIest = 0;
+	        
+		}
+		c.close();
+		
+        
+        return st;
+	}
+	//getTDIcHistory== gets history of TDIc since time t
+	public Tvector getTDIcHistory(String subjectID, long time)
+	{
+		final String FUNC_TAG = "getTDIcHistory";
+		Tvector temp= new Tvector();
+		
+		SQLiteDatabase db = this.getReadableDatabase();
+		String query = "SELECT * FROM " + TDI_HISTORY_TABLE+ " where TDIc IS NOT NULL AND time > "+time+" AND subjectID="+"'"+subjectID+"'";
+
+		Settings st = new Settings();
+		
+		Cursor c = db.rawQuery(query, null);
+		Debug.i(TAG,FUNC_TAG,"TDIc History >>>>"+c.getCount()+" since >>>  "+time);	
+		if((c.moveToFirst())&&(c.getCount() != 0))
+			{
+				do
+				{
+					temp.put(c.getLong(c.getColumnIndex("time")), c.getDouble(c.getColumnIndex("TDIc")));
+				} while (c.moveToNext());
+			}
+		
+		c.close();
+		
+        
+        return temp;
+	}
 	
+	public long getCurrentTimeSeconds() {
+		return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
+	}
+
 //	public List<Events> getManualInsulinHistory()
 //	{
 //		SQLiteDatabase db = this.getReadableDatabase();

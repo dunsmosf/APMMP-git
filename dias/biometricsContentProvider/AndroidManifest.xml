@@ -29,6 +29,6 @@
         <receiver  android:process=":remote" android:name="edu.virginia.dtc.biometricsContentProvider.biometricsCleanerTask"></receiver>
         <receiver  android:process=":remote" android:name="edu.virginia.dtc.biometricsContentProvider.biometricsWeeklyArchiveTask"></receiver>
         
-        <meta-data android:name="Version" android:value="$Rev: 1927 $"/>
+        <meta-data android:name="Version" android:value="$Rev: 2300 $"/>
 	  </application>
 </manifest>
