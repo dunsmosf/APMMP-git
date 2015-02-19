@@ -408,13 +408,13 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		
 		local_sd.AITValid = true;
 		
-		if (readTvector(local_sd.subjectCF, Biometrics.CF_PROFILE_URI))
+		if (Tvector.readTvector(local_sd.subjectCF, Biometrics.CF_PROFILE_URI, getContentResolver()))
 			local_sd.subjectCFValid = true;
-		if (readTvector(local_sd.subjectCR, Biometrics.CR_PROFILE_URI))
+		if (Tvector.readTvector(local_sd.subjectCR, Biometrics.CR_PROFILE_URI, getContentResolver()))
 			local_sd.subjectCRValid = true;
-		if (readTvector(local_sd.subjectBasal, Biometrics.BASAL_PROFILE_URI))
+		if (Tvector.readTvector(local_sd.subjectBasal, Biometrics.BASAL_PROFILE_URI, getContentResolver()))
 			local_sd.subjectBasalValid = true;
-		if (readTvector(local_sd.subjectSafety, Biometrics.USS_BRM_PROFILE_URI))
+		if (Tvector.readTvector(local_sd.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, getContentResolver()))
 			local_sd.subjectSafetyValid = true;
 		
 		//If all these things are valid then we don't allow modification of the subject info
@@ -706,65 +706,19 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 //			subject_data.AITValid = true;
 		}
 		
-		if (readTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, getContentResolver()))
 			subject_data.subjectCFValid = true;
-		if (readTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, getContentResolver()))
 			subject_data.subjectCRValid = true;
-		if (readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, getContentResolver()))
 			subject_data.subjectBasalValid = true;
-		if (readTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, getContentResolver()))
 			subject_data.subjectSafetyValid = true;
 		c.close();
 		
 		DiAsSubjectData.print(TAG, subject_data);
 		
 		return subject_data;
-	}
-
-	public boolean readTvector(Tvector tvector, Uri uri) 
-	{
-		final String FUNC_TAG = "readTvector";
-		
-		boolean retvalue = false;
-		Cursor c = getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					//Debug.i(TAG, FUNC_TAG,"readTvector: t=" + t + ", v=" + v);
-					tvector.put(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					//Debug.i(TAG, FUNC_TAG,"readTvector: t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_range(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
-	}
-
-	public void putTvector(Bundle bundle, Tvector tvector, String startTimeKey, String endTimeKey, String valueKey) 
-	{
-		long[] times = new long[tvector.count()];
-		long[] endTimes = new long[tvector.count()];
-		double[] values = new double[tvector.count()];
-		int ii;
-		for (ii = 0; ii < tvector.count(); ii++) {
-			times[ii] = tvector.get_time(ii).longValue();
-			endTimes[ii] = tvector.get_end_time(ii).longValue();
-			values[ii] = tvector.get_value(ii).doubleValue();
-		}
-		if (startTimeKey != null)
-			bundle.putLongArray(startTimeKey, times);
-		if (endTimeKey != null)
-			bundle.putLongArray(endTimeKey, endTimes);
-		if (valueKey != null)
-			bundle.putDoubleArray(valueKey, values);
 	}
 	
 	//*********************************************************************************

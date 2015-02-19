@@ -215,7 +215,7 @@ public class Mode {
 	public static boolean isInProfileRange(ContentResolver resolver, int timeInMinutes)
 	{
 		Tvector safetyRanges = new Tvector(12);
-		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, resolver)) {
+		if (Tvector.readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, resolver)) {
 			for (int i = 0; i < safetyRanges.count(); i++) 
 			{
 				int t = safetyRanges.get_time(i).intValue();
@@ -236,36 +236,6 @@ public class Mode {
 		else {
 			return false;
 		}
-	}
-	
-	
-	/**
-	 * Utility function that populates the Tvector object based on the database content of Uri
-	 * @param tvector
-	 * @param uri
-	 * @param resolver
-	 * @return boolean
-	 */
-	public static boolean readTvector(Tvector tvector, Uri uri, ContentResolver resolver) {
-		boolean retvalue = false;
-		Cursor c = resolver.query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					tvector.put_with_replace(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_time_range_with_replace(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
 	}
 	
 }

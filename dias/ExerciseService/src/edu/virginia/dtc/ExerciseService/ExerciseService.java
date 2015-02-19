@@ -38,6 +38,7 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Exercise;
+import edu.virginia.dtc.SysMan.Mode;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.Tvector.Tvector;
 
@@ -294,7 +295,7 @@ public class ExerciseService extends Service
 		Calendar now = Calendar.getInstance();
 		now.setTimeInMillis(getCurrentTimeSeconds()*1000);
 		int now_minutes = 60*now.get(Calendar.HOUR_OF_DAY) + now.get(Calendar.MINUTE); 
-		boolean inRange= inBrmRange(now_minutes) ;
+		boolean inRange= Mode.isInProfileRange(getContentResolver(), now_minutes);
 		boolean currentlyExercising = false;
 		
 		//default value for VCU, not exercising
@@ -320,56 +321,6 @@ public class ExerciseService extends Service
 		Debug.i(TAG, FUNC_TAG,"  From Exercise Service  currently exercising ==>"+currentlyExercising+"  time in BRM profile range  = "+inRange+now_minutes);
 	}
     
-    public boolean inBrmRange(int timeNowMins) 
-	{
-		final String FUNC_TAG = "inBrmRange";
-//		Tvector safetyRanges = DiAsSubjectData.getInstance().subjectSafety;
-		Tvector safetyRanges = new Tvector(12);
-		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, this)) {
-			for (int i = 0; i < safetyRanges.count(); i++) 
-			{
-				int t = safetyRanges.get_time(i).intValue();
-				int t2 = safetyRanges.get_end_time(i).intValue();
-				
-				if (t > t2)			//Handle case of range over midnight
-				{ 					
-					t2 += 24*60;
-				}
-				
-				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2))
-				{
-					return true;
-				}
-			}
-			return false;			
-		}
-		else {
-			return false;
-		}
-	}
-    public boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
-		boolean retvalue = false;
-		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					//Log.i(TAG, "readTvector: t=" + t + ", v=" + v);
-					tvector.put_with_replace(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					//Log.i(TAG, "readTvector: t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_time_range_with_replace(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
-	}
     
 	public long getCurrentTimeSeconds() 
 	{

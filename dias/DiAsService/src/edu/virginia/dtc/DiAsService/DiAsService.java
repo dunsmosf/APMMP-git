@@ -609,10 +609,10 @@ public class DiAsService extends Service
 	    		Bundle paramBundle = new Bundle();
 	    		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
 	    		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-	    		putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
-	    		putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
-	    		putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
-	    		putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
+	    		Tvector.putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
+	    		Tvector.putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
+	    		Tvector.putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
+	    		Tvector.putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
 	    		paramBundle.putDouble("TDI", subject_data.subjectTDI);
 	    		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
 	    		
@@ -748,10 +748,10 @@ public class DiAsService extends Service
         		Bundle paramBundle = new Bundle();
         		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
         		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-        		putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
-        		putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
-        		putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
-        		putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
+        		Tvector.putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
+        		Tvector.putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
+        		Tvector.putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
+        		Tvector.putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
         		paramBundle.putDouble("TDI", subject_data.subjectTDI);
         		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
         		
@@ -3654,7 +3654,7 @@ public class DiAsService extends Service
 		Calendar now = Calendar.getInstance();
 		now.setTimeInMillis(getCurrentTimeSeconds()*1000);
 		int now_minutes = 60*now.get(Calendar.HOUR_OF_DAY) + now.get(Calendar.MINUTE); 
-		boolean inRange= inBrmRange(now_minutes) ;
+		boolean inRange= Mode.isInProfileRange(getContentResolver(), now_minutes);
 		//default value for VCU, not exercising
 		if (Params.getInt(getContentResolver(), "exercise_detection_mode", 0)==1){
 			currentlyExercising = false;
@@ -3894,26 +3894,7 @@ public class DiAsService extends Service
 		}
 	}
     
-    private void putTvector(Bundle bundle, Tvector tvector, String startTimeKey, String endTimeKey, String valueKey) {
-		long[] times = new long[tvector.count()];
-		long[] endTimes = new long[tvector.count()];
-		double[] values = new double[tvector.count()];
-		int ii;
-		
-		for (ii = 0; ii < tvector.count(); ii++) {
-			times[ii] = tvector.get_time(ii).longValue();
-			endTimes[ii] = tvector.get_end_time(ii).longValue();
-			values[ii] = tvector.get_value(ii).doubleValue();
-		}
-		
-		if (startTimeKey != null)
-			bundle.putLongArray(startTimeKey, times);
-		if (endTimeKey != null)
-			bundle.putLongArray(endTimeKey, endTimes);
-		if (valueKey != null)
-			bundle.putDoubleArray(valueKey, values);
-	}
-   
+	
 	private void storeInjectedInsulin(double insulin_injected) {
 		long time = getCurrentTimeSeconds();
 		ContentValues values = new ContentValues(); 
@@ -4019,39 +4000,6 @@ public class DiAsService extends Service
 		return retValue;
 	}
 	
-	private void getDiAsSubjectData(Bundle bundle, DiAsSubjectData subject_data) {
-   		subject_data.subjectName = bundle.getString("subjectName");
-   		subject_data.subjectSession = bundle.getString("subjectSession");
-   		subject_data.subjectAIT = bundle.getInt("subjectAIT");
-   		subject_data.subjectWeight = bundle.getInt("subjectWeight");
-   		subject_data.subjectHeight = bundle.getInt("subjectHeight");
-   		subject_data.subjectAge = bundle.getInt("subjectAge");
-   		subject_data.subjectTDI = bundle.getDouble("subjectTDI");
-   		subject_data.subjectFemale = bundle.getBoolean("subjectFemale");
-   		subject_data.subjectCR = getTvector(bundle, "CRtimes", null, "CRvalues");
-   		subject_data.subjectCF = getTvector(bundle, "CFtimes", null, "CFvalues");
-   		subject_data.subjectBasal = getTvector(bundle, "Basaltimes", null, "Basalvalues");
-   		subject_data.subjectSafety = getTvector(bundle, "SafetyStarttimes", "SafetyEndtimes", null);
-   		subject_data.subjectSafetyValid = bundle.getBoolean("SafetyOnlyModeIsEnabled", true);
-   		brmEnabled = bundle.getBoolean("SafetyOnlyModeIsEnabled", true);
-    }
-
-	private Tvector getTvector(Bundle bundle, String startTimeKey, String endTimeKey, String valueKey) {
-		int ii;
-		long[] times = bundle.getLongArray(startTimeKey);
-		long[] endTimes = bundle.getLongArray(endTimeKey);
-		double[] values = bundle.getDoubleArray(valueKey);
-		Tvector tvector = new Tvector(times.length);
-		for (ii=0; ii<times.length; ii++) {
-			if (endTimes == null){
-				tvector.put(times[ii], values[ii]);	
-			} else if (values == null){
-				tvector.put_range(times[ii], endTimes[ii]);
-			}			
-		}
-		return tvector;
-    }
-
 	private long getCurrentTimeSeconds() {
 		final String FUNC_TAG = "getCurrentTimeSeconds";
 		
@@ -4068,57 +4016,6 @@ public class DiAsService extends Service
         i.putExtra("priority", priority);
         i.putExtra("time", (long)getCurrentTimeSeconds());
         sendBroadcast(i);
-	}
-	
-	private boolean inBrmRange(int timeNowMins) 
-	{
-		final String FUNC_TAG = "inBrmRange";
-		Tvector safetyRanges = new Tvector(12);
-		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, this)) {
-			for (int i = 0; i < safetyRanges.count(); i++) 
-			{
-				int t = safetyRanges.get_time(i).intValue();
-				int t2 = safetyRanges.get_end_time(i).intValue();
-				
-				if (t > t2)			//Handle case of range over midnight
-				{ 					
-					t2 += 24*60;
-				}
-				
-				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2))
-				{
-					return true;
-				}
-			}
-			return false;			
-		}
-		else {
-			return false;
-		}
-	}
-	
-	private boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
-		boolean retvalue = false;
-		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					Log.i(TAG, "readTvector: t=" + t + ", v=" + v);
-					tvector.put_with_replace(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					Log.i(TAG, "readTvector: t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_time_range_with_replace(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
 	}
 	
 	private boolean checkProfiles() {
@@ -4197,44 +4094,19 @@ public class DiAsService extends Service
 		}
 		c.close();
 		
-		if (readTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, this.getContentResolver()))
 			subject_data.subjectCFValid = true;
-		if (readTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, this.getContentResolver()))
 			subject_data.subjectCRValid = true;
-		if (readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, this.getContentResolver()))
 			subject_data.subjectBasalValid = true;
-		if (readTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI))
+		if (Tvector.readTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, this.getContentResolver()))
 			subject_data.subjectSafetyValid = true;
 		c.close();
 		
 		return subject_data;
 	}
 
-	private boolean readTvector(Tvector tvector, Uri uri) {
-		final String FUNC_TAG = "readTvector";
-		
-		boolean retvalue = false;
-		Cursor c = getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					Debug.i(TAG, FUNC_TAG,"readTvector: t=" + t + ", v=" + v);
-					tvector.put(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					Debug.i(TAG, FUNC_TAG,"readTvector: t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_range(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
-	}
 		
 	private double getCurrentBasalProfile() {
 		

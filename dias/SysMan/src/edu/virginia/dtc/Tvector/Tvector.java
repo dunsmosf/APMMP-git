@@ -9,13 +9,14 @@
 package edu.virginia.dtc.Tvector;
 
 import java.util.ArrayList;
-import java.lang.String;
-import android.util.Log;
-import java.util.List;
 import java.util.Collections;
-import java.lang.Long;
-import java.lang.Double;
-import java.lang.Integer;
+import java.util.List;
+
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
+import android.util.Log;
 
 public class Tvector extends Object {
 	private static final String TAG = "Tvector > ";
@@ -384,6 +385,68 @@ public class Tvector extends Object {
 		for (ii=startIndex; ii<pairCount; ii++)	{
 			Log.i(s1, s2+" > ii="+ii+", time="+get_time(ii)+", value="+get_value(ii));
 		}
+	}
+	
+	
+	public static void putTvector(Bundle bundle, Tvector tvector, String startTimeKey, String endTimeKey, String valueKey) {
+		long[] times = new long[tvector.count()];
+		long[] endTimes = new long[tvector.count()];
+		double[] values = new double[tvector.count()];
+		int ii;
+		
+		for (ii = 0; ii < tvector.count(); ii++) {
+			times[ii] = tvector.get_time(ii).longValue();
+			endTimes[ii] = tvector.get_end_time(ii).longValue();
+			values[ii] = tvector.get_value(ii).doubleValue();
+		}
+		
+		if (startTimeKey != null)
+			bundle.putLongArray(startTimeKey, times);
+		if (endTimeKey != null)
+			bundle.putLongArray(endTimeKey, endTimes);
+		if (valueKey != null)
+			bundle.putDoubleArray(valueKey, values);
+	}
+	
+	
+	public static Tvector getTvector(Bundle bundle, String startTimeKey, String endTimeKey, String valueKey) {
+		int ii;
+		long[] times = bundle.getLongArray(startTimeKey);
+		long[] endTimes = bundle.getLongArray(endTimeKey);
+		double[] values = bundle.getDoubleArray(valueKey);
+		Tvector tvector = new Tvector(times.length);
+		for (ii=0; ii<times.length; ii++) {
+			if (endTimes == null){
+				tvector.put(times[ii], values[ii]);	
+			} else if (values == null){
+				tvector.put_range(times[ii], endTimes[ii]);
+			}			
+		}
+		return tvector;
+    }
+	
+	public static boolean readTvector(Tvector tvector, Uri uri, ContentResolver resolver) {
+		boolean retvalue = false;
+		Cursor c = resolver.query(uri, null, null, null, null);
+		long t, t2 = 0;
+		double v;
+		if (c.moveToFirst()) {
+			do {
+				t = c.getLong(c.getColumnIndex("time"));
+				if (c.getColumnIndex("endtime") < 0){
+					v = c.getDouble(c.getColumnIndex("value"));
+					Log.i(TAG, "readTvector: t=" + t + ", v=" + v);
+					tvector.put_with_replace(t, v);
+				} else if (c.getColumnIndex("value") < 0){
+					Log.i(TAG, "readTvector: t=" + t + ", t2=" + t2);
+					t2 = c.getLong(c.getColumnIndex("endtime"));
+					tvector.put_time_range_with_replace(t, t2);
+				}
+			} while (c.moveToNext());
+			retvalue = true;
+		}
+		c.close();
+		return retvalue;
 	}
 	
 }
