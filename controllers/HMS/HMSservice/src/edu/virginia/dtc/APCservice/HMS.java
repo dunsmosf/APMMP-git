@@ -134,9 +134,9 @@ public class HMS {
 		
 		// 5. Check mode of operation
 		// *******************************************************************************************
-		if(Mode.getMode(context.getContentResolver()) == Mode.CL_AVAILABLE 
-				|| Mode.getMode(context.getContentResolver()) == Mode.OL_CL_AVAILABLE
-				|| Mode.getMode(context.getContentResolver()) == Mode.OL_ALWAYS_CL_NIGHT_AVAILABLE) {
+		if (	Mode.getBrmStatus(context.getContentResolver()) == Mode.CONTROLLER_ENABLED
+			 && Mode.getApcStatus(context.getContentResolver()) == Mode.CONTROLLER_DISABLED_WITHIN_PROFILE ) {
+			
 			Debug.w(TAG, FUNC_TAG, "We are in a BRM only night mode - "+Mode.getMode(context.getContentResolver()));
 			
 			TimeZone tz = TimeZone.getDefault();

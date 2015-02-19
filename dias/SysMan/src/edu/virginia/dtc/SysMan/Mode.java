@@ -207,10 +207,10 @@ public class Mode {
 	
 	
 	/**
-	 * Indicates whether the time value (in minutes) is within the USS BRM Profile range read from the Content Provider
+	 * Indicates whether the time value (in minutes) passed as an argument is within the USS BRM Profile range read from the Content Provider
 	 * @param resolver
 	 * @param timeInMinutes
-	 * @return
+	 * @return boolean
 	 */
 	public static boolean isInProfileRange(ContentResolver resolver, int timeInMinutes)
 	{
