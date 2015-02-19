@@ -134,21 +134,35 @@ public class HMS {
 		
 		// 5. Check mode of operation
 		// *******************************************************************************************
-		if (	Mode.getBrmStatus(context.getContentResolver()) == Mode.CONTROLLER_ENABLED
-			 && Mode.getApcStatus(context.getContentResolver()) == Mode.CONTROLLER_DISABLED_WITHIN_PROFILE ) {
+		if ( Mode.getApcStatus(context.getContentResolver()) == Mode.CONTROLLER_DISABLED_WITHIN_PROFILE ) {
 			
-			Debug.w(TAG, FUNC_TAG, "We are in a BRM only night mode - "+Mode.getMode(context.getContentResolver()));
+			Debug.w(TAG, FUNC_TAG, "APC is disabled within 'BRM Profile' - Mode = "+Mode.getMode(context.getContentResolver()));
 			
 			TimeZone tz = TimeZone.getDefault();
 			int UTC_offset_secs = tz.getOffset(getCurrentTimeSeconds()*1000)/1000;
 			int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
 			
-			if(inBrmRange(timeNowMins)) {
-				Debug.w(TAG, FUNC_TAG, "We are in the BRM range, corrections set to zero!");
+			if (Mode.isInProfileRange(context.getContentResolver(), timeNowMins)) {
+				Debug.w(TAG, FUNC_TAG, "We are in the BRM range & mode=" + Mode.getMode(context.getContentResolver()) + ", corrections set to zero!");
 				return_value = 0.0;
 			}
 			else
 				Debug.i(TAG, FUNC_TAG, "We are NOT in the BRM range...");
+		}
+		else if ( Mode.getApcStatus(context.getContentResolver()) == Mode.CONTROLLER_ENABLED_WITHIN_PROFILE ) {
+			
+			Debug.w(TAG, FUNC_TAG, "APC is enabled within 'BRM Profile' - Mode = "+Mode.getMode(context.getContentResolver()));
+			
+			TimeZone tz = TimeZone.getDefault();
+			int UTC_offset_secs = tz.getOffset(getCurrentTimeSeconds()*1000)/1000;
+			int timeNowMins = (int)((getCurrentTimeSeconds()+UTC_offset_secs)/60)%1440;
+			
+			if (!Mode.isInProfileRange(context.getContentResolver(), timeNowMins)) {
+				Debug.w(TAG, FUNC_TAG, "We are not in the BRM range & mode=" + Mode.getMode(context.getContentResolver()) + ", corrections set to zero!");
+				return_value = 0.0;
+			}
+			else
+				Debug.i(TAG, FUNC_TAG, "We are in the BRM range...");
 		}
 		else
 			Debug.i(TAG, FUNC_TAG, "We are NOT in a BRM only night mode - "+Mode.getMode(context.getContentResolver()));
@@ -160,61 +174,6 @@ public class HMS {
 		return return_value;
 	}
 	
-	public boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
-		final String FUNC_TAG = "readTvector";
-		boolean retvalue = false;
-		
-		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					Debug.i(TAG, FUNC_TAG, "t=" + t + ", v=" + v);
-					tvector.put_with_replace(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					Debug.i(TAG, FUNC_TAG, "t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_time_range_with_replace(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
-	}
-	
-	public boolean inBrmRange(int timeNowMins) 
-	{
-		final String FUNC_TAG = "inBrmRange";
-		
-		Debug.i(TAG, FUNC_TAG, "Checking BRM range...");
-		
-		Tvector safetyRanges = new Tvector(12);
-		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, context)) {
-			for (int i = 0; i < safetyRanges.count(); i++) {
-				int t = safetyRanges.get_time(i).intValue();
-				int t2 = safetyRanges.get_end_time(i).intValue();
-				
-				Debug.i(TAG, FUNC_TAG, "Night Range "+i+": "+t+"  "+t2);
-				
-				if (t > t2) { 					
-					t2 += 24*60;
-				}
-				
-				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2)) {
-					Debug.i(TAG, FUNC_TAG, "Current time is within the BRM range!");
-					return true;
-				}
-			}
-			return false;			
-		}
-		else {
-			return false;
-		}
-	}
 	
 	public long getCurrentTimeSeconds() {
 		long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
