@@ -14,14 +14,32 @@
      -->
 
     <!--
-     Modes:
-     0 = No OL or CL (Sensor Only and Stopped always available)
-     1 = OL Available
-     2 = CL and Safety Available (If time within BRM schedule use BRM Only)
-     3 = OL, CL and Safety available (If time within BRM schedule use BRM Only)
-     4 = OL is always available, CL with BRM Only available if within Controller segment
+     Allowed Modes:
+     
+     Combination of Pump (1), Safety (2) and Closed Loop (4) Modes.
+     
+     0: No operating modes
+     1: Pump mode only
+     2: Safety mode only
+     3: Pump and Safety modes only
+     4: Closed Loop mode only
+     5:	Pump and Closed Loop modes allowed
+     6: Safety and Closed Loop modes allowed
+     7: Pump, Safety,and Closed Loop modes allowed
+     
+     [see "apc_enabled" and "brm_enabled" for controllers activity based on Night Profile]
      -->
-    <parameter name="mode" value="4" type="int"> </parameter>
+    <parameter name="allowed_modes" value="7" type="int"> </parameter>
+    
+    <!--
+     Controllers action ("apc_enabled", "brm_enabled"):
+     0: Disabled
+     1: Enabled
+     2: Enabled within Night Profile
+     3: Disabled within Night Profile
+     -->
+    <parameter name="apc_enabled" value="3" type="int"> </parameter>
+    <parameter name="brm_enabled" value="1" type="int"> </parameter>
     
     <!--
      Traffic Light Control:
@@ -62,9 +80,6 @@
     <parameter name="acc_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_interval" value="60000" type="long"> </parameter>
-    
-    <parameter name="apc_enabled" value="true" type="boolean"> </parameter>
-    <parameter name="brm_enabled" value="true" type="boolean"> </parameter>
 
     <parameter name="tbr_enabled" value="true" type="boolean"> </parameter>
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>

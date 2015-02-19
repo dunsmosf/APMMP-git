@@ -1190,13 +1190,11 @@ public class DiAsService extends Service
     			}
     			
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
-    				if (Mode.getMode(getContentResolver()) == Mode.OL_ALWAYS_CL_NIGHT_AVAILABLE) {
-    					if (!inBrmRange(timeNowInMinutes())) {
-            				changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-                			Bundle b = new Bundle();
-            	    		b.putString("description", "Scheduled switch to Pump mode.");
-            	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
-    					}
+    				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes()) || !Mode.isSafetyModeAvailable(getContentResolver())) {
+        				changeDiasState(State.DIAS_STATE_OPEN_LOOP);
+            			Bundle b = new Bundle();
+        	    		b.putString("description", "Scheduled switch to Pump mode.");
+        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
     				}
     			}
     			
@@ -1263,13 +1261,11 @@ public class DiAsService extends Service
     			
     			// Get the offset in minutes into the current day in the current time zone (based on smartphone time zone setting)
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
-    				if (Mode.getMode(getContentResolver()) == Mode.OL_ALWAYS_CL_NIGHT_AVAILABLE) {
-    					if (!inBrmRange(timeNowInMinutes())) {
-            				changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-                			Bundle b = new Bundle();
-            	    		b.putString("description", "Scheduled switch to Pump mode.");
-            	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
-    					}
+    				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes()) || !Mode.isSafetyModeAvailable(getContentResolver())) {
+        				changeDiasState(State.DIAS_STATE_OPEN_LOOP);
+            			Bundle b = new Bundle();
+        	    		b.putString("description", "Scheduled switch to Pump mode.");
+        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
     				}
     			}
     			
@@ -1556,8 +1552,8 @@ public class DiAsService extends Service
     {
     	final String FUNC_TAG = "initializeServiceConnections";
 
-    	boolean apc = Params.getBoolean(getContentResolver(), "apc_enabled", false);
-    	boolean brm = Params.getBoolean(getContentResolver(), "brm_enabled", false);
+    	boolean apc = Params.getInt(getContentResolver(), "apc_enabled", 0) > 0;
+    	boolean brm = Params.getInt(getContentResolver(), "brm_enabled", 0) > 0;
     	
     	if(apc && brm) {
     		CONFIG = FSM.APC_BRM;

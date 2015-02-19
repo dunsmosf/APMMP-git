@@ -36,16 +36,11 @@ import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LayerDrawable;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.PowerManager;
 import android.text.format.Time;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.KeyEvent;
@@ -76,7 +71,6 @@ import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.Safety;
 import edu.virginia.dtc.SysMan.State;
 import edu.virginia.dtc.SysMan.TempBasal;
-import edu.virginia.dtc.Tvector.Tvector;
 
 public class DiAsMain extends Activity implements OnGestureListener {
 	
@@ -1632,19 +1626,12 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   int UTC_offset_secs = tz.getOffset(getTimeSeconds()*1000)/1000;
  	   int timeNowMins = (int)((getTimeSeconds()+UTC_offset_secs)/60)%1440;    		
  	   
- 	   boolean OLenable = Mode.isOLavailable(getContentResolver());
- 	   boolean CLenable = Mode.isCLavailable(getContentResolver());
- 	   if (CLenable && Mode.getMode(getContentResolver()) == Mode.OL_ALWAYS_CL_NIGHT_AVAILABLE) {
- 		   CLenable = inBrmRange(timeNowMins);
- 	   }
-
- 	  if(!Params.getBoolean(getContentResolver(), "apc_enabled", false) && !Params.getBoolean(getContentResolver(), "brm_enabled", false))
- 	  {
- 		  Debug.i(TAG, FUNC_TAG, "There is no APC or BRM so there is no closed loop!");
- 		  CLenable = false;
- 	  }
+ 	   //TODO: Not only check Allowed Mode but also Controller Status / Night Profile Activity
+ 	   boolean PumpModeEnabled = Mode.isPumpModeAvailable(getContentResolver());
+ 	   boolean SafetyModeEnabled = Mode.isSafetyModeAvailable(getContentResolver());
+ 	   boolean ClosedLoopEnabled = Mode.isClosedLoopAvailable(getContentResolver(), timeNowMins);
  	   
- 	   Debug.i(TAG, FUNC_TAG, "CLenable: "+CLenable+" OLenable: "+OLenable+" mode:"+Mode.getMode(getContentResolver()));
+ 	   Debug.i(TAG, FUNC_TAG, "CLenable: "+ClosedLoopEnabled+" OLenable: "+PumpModeEnabled+" mode:"+Mode.getMode(getContentResolver()));
  	   
  	   switch (DIAS_STATE) 
  	   {
@@ -1675,15 +1662,15 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			{
  	   				checkVisible(frame2, FrameLayout.VISIBLE);
  	   				checkVisible(buttonSensorOnly, Button.GONE);
- 	   				if(OLenable) checkVisible(buttonOpenLoop, Button.VISIBLE);
+ 	   				if(PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
  	   				if (cgmReady() && insulinSetupComplete)
  	   				{
  	   					checkVisible(frame3, FrameLayout.VISIBLE);
- 	   					if(CLenable)
+ 	   					if(ClosedLoopEnabled)
  	   						checkVisible(buttonClosedLoop, Button.VISIBLE);
  	   					else
  	   						checkVisible(buttonClosedLoop, Button.INVISIBLE);
- 	   					if(CLenable)
+ 	   					if(ClosedLoopEnabled)
  	   						checkVisible(buttonSafety, Button.VISIBLE);
  	   					else
  	   						checkVisible(buttonSafety, Button.INVISIBLE);
@@ -1746,7 +1733,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	   			checkVisible(infoCGMStatus, LinearLayout.VISIBLE);
 	   			checkVisible(infoExtra, LinearLayout.VISIBLE);
 	   			checkVisible(buttonPlots, Button.VISIBLE);
-	   			if(OLenable) checkVisible(buttonOpenLoop, Button.VISIBLE);
+	   			if(PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
 	   			checkVisible(buttonStop, Button.VISIBLE);
 				break;
  	   		case State.DIAS_STATE_SAFETY_ONLY:
@@ -1841,11 +1828,11 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			
  	   			if (cgmReady()) 
  				{
- 					if(CLenable)
+ 					if(ClosedLoopEnabled)
  						checkVisible(buttonClosedLoop, Button.VISIBLE);
  					else
  						checkVisible(buttonClosedLoop, Button.INVISIBLE);
-	   				if(CLenable)
+	   				if(ClosedLoopEnabled)
 	   					checkVisible(buttonSafety, Button.VISIBLE);
 	   				else
 	   					checkVisible(buttonSafety, Button.INVISIBLE);
@@ -1873,15 +1860,15 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			if (pumpReadyNoReco() && insulinSetupComplete)
 	   			{
  	   				Debug.i(TAG, FUNC_TAG, "=== Pump in Sensor Only");
-	   				if(OLenable)
+	   				if(PumpModeEnabled)
 	   				{
 	   					checkVisible(buttonOpenLoop, Button.VISIBLE);
 	   				}
 	   				if (cgmReady())
 	   				{
 	   					Debug.i(TAG, FUNC_TAG, "=== Pump+CGM in Sensor Only");
-	   					if(CLenable) checkVisible(buttonClosedLoop, Button.VISIBLE);
-	   					if(CLenable) checkVisible(buttonSafety, Button.VISIBLE);
+	   					if(ClosedLoopEnabled) checkVisible(buttonClosedLoop, Button.VISIBLE);
+	   					if(ClosedLoopEnabled) checkVisible(buttonSafety, Button.VISIBLE);
 	   				}
 	   			}
 	   			else if (cgmReady())
@@ -2067,65 +2054,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		alert.show();
 		
    	}
-    
-    private boolean inSimMode()
-    {
-    	if(SIM_TIME > 0)
-    		return true;
-    	else
-    		return false;
-    }
-    
-	private boolean inBrmRange(int timeNowMins) 
-	{
-		final String FUNC_TAG = "inBrmRange";
-		Tvector safetyRanges = new Tvector(12);
-		if (readTvector(safetyRanges, Biometrics.USS_BRM_PROFILE_URI, this)) {
-			for (int i = 0; i < safetyRanges.count(); i++) 
-			{
-				int t = safetyRanges.get_time(i).intValue();
-				int t2 = safetyRanges.get_end_time(i).intValue();
-				
-				if (t > t2)			//Handle case of range over midnight
-				{ 					
-					t2 += 24*60;
-				}
-				
-				if ((t <= timeNowMins && timeNowMins <= t2) || (t <= (timeNowMins + 1440) && (timeNowMins + 1440) <= t2))
-				{
-					return true;
-				}
-			}
-			return false;			
-		}
-		else {
-			return false;
-		}
-	}
-	
-	private boolean readTvector(Tvector tvector, Uri uri, Context calling_context) {
-		boolean retvalue = false;
-		Cursor c = calling_context.getContentResolver().query(uri, null, null, null, null);
-		long t, t2 = 0;
-		double v;
-		if (c.moveToFirst()) {
-			do {
-				t = c.getLong(c.getColumnIndex("time"));
-				if (c.getColumnIndex("endtime") < 0){
-					v = c.getDouble(c.getColumnIndex("value"));
-					Log.i(TAG, "readTvector: t=" + t + ", v=" + v);
-					tvector.put_with_replace(t, v);
-				} else if (c.getColumnIndex("value") < 0){
-					Log.i(TAG, "readTvector: t=" + t + ", t2=" + t2);
-					t2 = c.getLong(c.getColumnIndex("endtime"));
-					tvector.put_time_range_with_replace(t, t2);
-				}
-			} while (c.moveToNext());
-			retvalue = true;
-		}
-		c.close();
-		return retvalue;
-	}
 
 	private long getTimeSeconds() 
 	{
