@@ -158,19 +158,38 @@ public class Mode {
 	}
 	
 	
-	// TODO: Review + Doc
+	/**
+	 * Indicates whether Pump Mode is available (allowed + available)
+	 * @param resolver
+	 * @return boolean
+	 */
 	public static boolean isPumpModeAvailable(ContentResolver resolver)
 	{
 		return isPumpModeAllowed(resolver);
 	}
 	
+	
+	/**
+	 * Indicates whether Safety Mode is available (allowed + available)
+	 * @param resolver
+	 * @return boolean
+	 */
 	public static boolean isSafetyModeAvailable(ContentResolver resolver)
 	{
+		// TODO: Check for SSM availability here if it becomes a 'controller'.
 		return isSafetyModeAllowed(resolver);
 	}
 	
+	
+	/**
+	 * Indicates whether Closed Loop Mode is available (allowed + available) at a given time
+	 * @param resolver
+	 * @param timeInMinutes
+	 * @return boolean
+	 */
 	public static boolean isClosedLoopAvailable(ContentResolver resolver, int timeInMinutes)
 	{
+		// TODO: Also check for SSM availability here if it becomes a 'controller'.
 		int apcStatus = getApcStatus(resolver);
 		int brmStatus = getBrmStatus(resolver);
 		boolean withinProfile = isInProfileRange(resolver, timeInMinutes);
@@ -186,6 +205,13 @@ public class Mode {
 		return isClosedLoopAllowed(resolver) && available;
 	}
 	
+	
+	/**
+	 * Indicates whether the time value (in minutes) is within the USS BRM Profile range read from the Content Provider
+	 * @param resolver
+	 * @param timeInMinutes
+	 * @return
+	 */
 	public static boolean isInProfileRange(ContentResolver resolver, int timeInMinutes)
 	{
 		Tvector safetyRanges = new Tvector(12);
@@ -211,7 +237,15 @@ public class Mode {
 			return false;
 		}
 	}
-		
+	
+	
+	/**
+	 * Utility function that populates the Tvector object based on the database content of Uri
+	 * @param tvector
+	 * @param uri
+	 * @param resolver
+	 * @return boolean
+	 */
 	public static boolean readTvector(Tvector tvector, Uri uri, ContentResolver resolver) {
 		boolean retvalue = false;
 		Cursor c = resolver.query(uri, null, null, null, null);

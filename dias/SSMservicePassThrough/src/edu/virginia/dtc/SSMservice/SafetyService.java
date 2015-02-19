@@ -351,9 +351,6 @@ public class SafetyService extends Service {
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();  
 		
-//        insulinObserver = new InsulinObserver(new Handler());
-//        getContentResolver().registerContentObserver(Biometrics.INSULIN_URI, true, insulinObserver);
-
         constraintsObserver = new ConstraintsObserver(new Handler());
 		getContentResolver().registerContentObserver(Biometrics.CONSTRAINTS_URI, true, constraintsObserver);
 		
