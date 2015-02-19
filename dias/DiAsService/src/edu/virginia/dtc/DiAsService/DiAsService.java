@@ -1289,9 +1289,12 @@ public class DiAsService extends Service
             	Toast.makeText(getApplicationContext(), "Insulin Injected: "+insulin_injected, Toast.LENGTH_LONG).show();
 	    		Bundle b;
             	if (status == MDI_ACTIVITY_STATUS_SUCCESS) {
-            		if (insulin_injected > Pump.EPSILON) {
+            		
+            		if (insulin_injected > Pump.EPSILON)
             			storeInjectedInsulin(insulin_injected);
-            		}
+            		else
+            			storeInjectedInsulin(0.0);
+            		
     	    		b = new Bundle();
     	    		b.putString(	"description", "DiAsService, MDI_ACTIVITY_STATUS_SUCCESS, insulin_injected="+insulin_injected+"U"+", "+
     	    						"state_change_command="+state_change_command);

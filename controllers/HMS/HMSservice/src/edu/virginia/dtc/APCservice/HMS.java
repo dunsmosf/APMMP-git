@@ -8,134 +8,138 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.APCservice;
 
-import java.util.List;
 import java.util.TimeZone;
 
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Mode;
+import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.Tvector.Tvector;
 
 public class HMS {
-	private Context context;
-	private Subject subject;
-	public HMSData hms_data; 		// This class encapsulates the state variables that are being estimated and that must persist.
 	public final String TAG = "HMSservice";
 	
-	// Identify owner of record in User Table 1
-	public static final int HMS_IOB_CONTROL = 50;
-
 	// Parameter definitions
-    static double CORRECTION_TARGET = 110.0;
-    static double CORRECTION_THRESHOLD = 180.0;
-    static double CORRECTION_FACTOR = 0.6;
-    static double MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS = 60;
-    static double MINIMUM_CORRECTION_BOLUS = 0.10;
+    private static double CORRECTION_TARGET = 110.0;
+    private static double CORRECTION_THRESHOLD = 180.0;
+    private static double CORRECTION_FACTOR = 0.6;
+    private static double MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS = 60;
+    private static double MINIMUM_CORRECTION_BOLUS = 0.10;
     
-	public static final int CGM_window_size_seconds = 62*60;		// Accommodate 8 data points: 60 minute window with 2 minutes of margin
-	
-	boolean valid = false;
-	boolean firstTick=false;
-	boolean secondTick=false;
+	private static final int CGM_window_size_seconds = 62*60;		// Accommodate 8 data points: 60 minute window with 2 minutes of margin
 
-	public HMS(
-				long time,				// Seconds since 1/1/1970 
-				double IOB,
-				double cgm,
-				double Gest,
-				double Gpred_30m, 
-				Context calling_context) {
-				
-		context = calling_context;
-		subject = new Subject(time, calling_context);
+	private double correctionUnits = 0.0;
+	private long correctionTimeSec = -1;
+	
+	private Context context;
+	public Subject subject;
+	
+	double Iob, Gpred, Gpred_30m;
+	
+	private boolean firstTick=false;
+	private boolean secondTick=false;
+
+	public HMS(Context ctx) {
+		context = ctx;
+		subject = new Subject(getCurrentTimeSeconds(), ctx);
 		
-		// Initialize the class that holds our state data
-		if ((hms_data = HMSData.getInstance()) != null) {
-			valid = subject.valid;
-		}
+		correctionUnits = 0.0;
+		correctionTimeSec = -1;
 	}
 	
-	public double HMS_calculation(
-			long time, 
-			double IOB,
-			Tvector Tvec_cgm,
-			double Gest,
-			double Gpred_30m, 
-			Context calling_context) {
-		
+	// **************************************************************************************************
+	// **************************************************************************************************
+	// MAIN CALCULATION
+	// **************************************************************************************************
+	// **************************************************************************************************
+	
+	public double HMS_calculation() {
 		final String FUNC_TAG = "HMS_calculation";
-		double return_value = 0.0;
 		
-		// 1. Update the subject data by reading latest profile values from the database
-		// *******************************************************************************************
-		subject.read(time, context);
-		if (subject.valid == false) {		// Protect against state estimates with uninitialized data.
+		long time = getCurrentTimeSeconds();
+		double bolus = 0.0;
+		double reference = 0.0;
+		Iob = Gpred = Gpred_30m = 0.0;
+		
+		// 1. Get the most recent state estimate data
+		// ==================================================================================
+		if(!fetchStateEstimateData()) {
+			Debug.w(TAG, FUNC_TAG, "Unable to read State Estimate table...returning zero");
 			return 0.0;
 		}
 		
-		// 2. Are we in a time interval during which HMS corrections are permitted?
-		// *******************************************************************************************
-		hms_data.read(calling_context);
-		Debug.i(TAG, FUNC_TAG, "First Corr Time in Sec: "+hms_data.correction_time_in_seconds);
+		// 2. Check for any pending or delivering meals
+		// ==================================================================================
+		if(!hms_req_meal_protect(10)) {
+			Debug.w(TAG, FUNC_TAG, "There is still a meal being delivered within the last 10 minutes...returning zero");
+			return 0.0;
+		}
+		
+		// 3. Update the subject data by reading latest profile values from the database
+		// ==================================================================================
+		subject.read(time, context);
+		if (!subject.valid) {
+			Debug.w(TAG, FUNC_TAG, "There is not sufficient subject data to estimate...returning zero");
+			return 0.0;
+		}
+		
+		//TODO: use local function to check for corrections...
+		correctionTimeSec = checkForPreviousCorrections();
+		
+		
+		Debug.i(TAG, FUNC_TAG, "First Corr Time in Sec: "+correctionTimeSec);
 		Debug.i(TAG, FUNC_TAG, "First Tick: "+firstTick+" Second Tick: "+secondTick);
 		
 		//Detect the second alg tick
 		if (firstTick) {
-			secondTick=true;
-			firstTick=false;
+			secondTick = true;
+			firstTick = false;
 		}
 		
 		//Detect the first tick then do nothing if it is the first tick !
-		if  (hms_data.correction_time_in_seconds == -1) {
+		if  (correctionTimeSec == -1) {
 			firstTick=true;
 		}
 		
-		Debug.i(TAG, FUNC_TAG,"Reference: "+CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest));
+		reference = CGM_8point_protection(time, Gpred_30m, Gpred);
+		Debug.i(TAG, FUNC_TAG, "Reference: "+reference);
 		
-		//TODO: Add time checks to the bolus return values (simplest...)
-		//TODO: Don't look in state estimate, look in insulin for requested corrections (any!)
+		//TODO: Add time checks to the bolus return values (simplest...)						DONE
+		//TODO: Don't look in state estimate, look in insulin for requested corrections (any!)	DONE
 		//TODO: If no boluses in 25 hours then it will run the double bolus check
 		//TODO: no corrections until MDI is entered
 		
 		// 3a. If the predicted BG greater than the threshold then calculate correction bolus
-		// *******************************************************************************************
+		// ==================================================================================
 		if (secondTick){
-			if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
-				return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
+			if (reference > CORRECTION_THRESHOLD && subject.CF >= 10.0 && subject.CF <= 200.0) {
+				bolus = CORRECTION_FACTOR*((reference-CORRECTION_TARGET)/subject.CF - Math.max(Iob, 0.0));
 			}
 			secondTick=false;
 		}
 		
-		if (hms_data.valid) {
-			if (time > hms_data.correction_time_in_seconds + MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS*60) {
-				// 3b. If the predicted BG greater than the threshold then calculate correction bolus
-				// *******************************************************************************************
-				if (CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)>CORRECTION_THRESHOLD && subject.CF>=10.0 && subject.CF<=200.0) {
-					return_value = CORRECTION_FACTOR*((CGM_8point_protection(time,Tvec_cgm, Gpred_30m, Gest)-CORRECTION_TARGET)/subject.CF - Math.max(IOB, 0.0));
-				}
+		if (time > correctionTimeSec + MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS*60) {
+			// 3b. If the predicted BG greater than the threshold then calculate correction bolus
+			// ==================================================================================
+			if (reference > CORRECTION_THRESHOLD && subject.CF >= 10.0 && subject.CF <= 200.0) {
+				bolus = CORRECTION_FACTOR * ((reference - CORRECTION_TARGET)/subject.CF - Math.max(Iob, 0.0));
 			}
-			Debug.i(TAG, FUNC_TAG,"Second Corr Time in Sec: "+hms_data.correction_time_in_seconds+" Corr: "+return_value);
 		}
+		Debug.i(TAG, FUNC_TAG,"Second Corr Time in Sec: "+correctionTimeSec+" Corr: "+bolus);
 		
 		// 4. Enforce a minimum correction bolus size
-		// *******************************************************************************************
-		if (return_value > MINIMUM_CORRECTION_BOLUS) {
-			hms_data.correction_time_in_seconds = time;
-		}
-		else {
-			return_value = 0.0;
-		}
+		// ==================================================================================
+		if (bolus > MINIMUM_CORRECTION_BOLUS)
+			correctionTimeSec = time;
+		else
+			bolus = 0.0;
 		
 		// 5. Check mode of operation
 		// *******************************************************************************************
 		if ( Mode.getApcStatus(context.getContentResolver()) == Mode.CONTROLLER_DISABLED_WITHIN_PROFILE ) {
-			
 			Debug.w(TAG, FUNC_TAG, "APC is disabled within 'BRM Profile' - Mode = "+Mode.getMode(context.getContentResolver()));
 			
 			TimeZone tz = TimeZone.getDefault();
@@ -144,7 +148,7 @@ public class HMS {
 			
 			if (Mode.isInProfileRange(context.getContentResolver(), timeNowMins)) {
 				Debug.w(TAG, FUNC_TAG, "We are in the BRM range & mode=" + Mode.getMode(context.getContentResolver()) + ", corrections set to zero!");
-				return_value = 0.0;
+				bolus = 0.0;
 			}
 			else
 				Debug.i(TAG, FUNC_TAG, "We are NOT in the BRM range...");
@@ -159,7 +163,7 @@ public class HMS {
 			
 			if (!Mode.isInProfileRange(context.getContentResolver(), timeNowMins)) {
 				Debug.w(TAG, FUNC_TAG, "We are not in the BRM range & mode=" + Mode.getMode(context.getContentResolver()) + ", corrections set to zero!");
-				return_value = 0.0;
+				bolus = 0.0;
 			}
 			else
 				Debug.i(TAG, FUNC_TAG, "We are in the BRM range...");
@@ -169,90 +173,111 @@ public class HMS {
 		
 		
 		Debug.i(TAG, FUNC_TAG, "--------------------------------------");
-		Debug.i(TAG, FUNC_TAG, "Final HMS Return Value: "+return_value);
+		Debug.i(TAG, FUNC_TAG, "Final HMS Return Value: "+bolus);
 		Debug.i(TAG, FUNC_TAG, "--------------------------------------");
+		return bolus;
+	}
+	
+	// **************************************************************************************************
+	// **************************************************************************************************
+	// HELPER FUNCTIONS
+	// **************************************************************************************************
+	// **************************************************************************************************
+	
+	private long checkForPreviousCorrections() {
+   		long time = -1;
+   		Cursor c = context.getContentResolver().query(Biometrics.INSULIN_URI, new String[]{"req_time","req_corr"}, "req_corr > 0.0", null, null);
+   		
+   		if(c.moveToFirst())
+   		{
+   			time = c.getLong(c.getColumnIndex("req_time"));
+   			c.close();
+   		}
+   		
+   		return time;
+   	}
+	
+	//TODO: check type, this checks all boluses sync or async
+	private boolean hms_req_meal_protect(int duration) {
+		final String FUNC_TAG = "hms_req_meal_protect";
+		boolean return_value = false;
+		
+		// Function to protect against injecting corrections within a certain amount of time "duration" after requesting a meal bolus.
+		Cursor c = context.getContentResolver().query(Biometrics.INSULIN_URI,new String[]{"req_time","req_meal","req_corr","status"},"req_meal>0 OR req_corr>0", null, "req_time DESC Limit 1");
+		long requested_meal_time = 0;
+		int status = -1;
+		if (c.moveToFirst()) {
+			if (!c.isNull(c.getColumnIndex("status"))) {
+				requested_meal_time = c.getLong(c.getColumnIndex("req_time"));
+				status=c.getInt(c.getColumnIndex("status"));
+				if (((getCurrentTimeSeconds()-requested_meal_time) < (duration*60)) && ((status==Pump.PENDING) || (status==Pump.DELIVERING))) {
+					return_value = true;
+				}				
+			}			
+		}
+		else {
+			Debug.e(TAG, FUNC_TAG, "Insulin Table empty!");
+		}
+		c.close();
+		
 		return return_value;
 	}
 	
-	
-	public long getCurrentTimeSeconds() {
-		long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
-			return SystemTime;
-	}
-	
-	//function returns Gest if less than 8 pints cgm , Gpred otherwise
-    public double CGM_8point_protection(long time, Tvector Tvec_cgm, double Gpred, double Gest) {
-    	final String FUNC_TAG = "CGM_8point_protection";
-    	List<Integer> indices;
-    	double reference=0;
-    	if ((indices = Tvec_cgm.find(">", time-CGM_window_size_seconds, "<=", time)) != null) {
-				if (indices.size() <= 8) {
-					reference=Gest;
-					Debug.i(TAG, FUNC_TAG,"There is more than 8 ==>> "+indices.size());
-				}
-				else { 
-					reference=Gpred;	
-					Debug.i(TAG, FUNC_TAG,"There is less than 8 ==>> "+indices.size());
-				}
-			
-    	}
-    	return reference;
+	private boolean fetchStateEstimateData() {
+		final String FUNC_TAG = "fetchStateEstimateData";
 		
-    }
- 	
-	public void log_action(String service, String action, int priority) {
-		Debug.i(TAG, "log_action", action);
+		boolean return_value = false;
 		
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", service);
-        i.putExtra("Status", action);
-        i.putExtra("priority", priority);
-        i.putExtra("time", (long)(System.currentTimeMillis()/1000));
-        context.sendBroadcast(i);
-	}
-	
-	public void storeUserTable1Data(long time,
-			double INS_target_sat,
-			double INS_target_slope_sat,
-			double differential_basal_rate, 
-			double MealBolusA,
-			double MealBolusArem,
-			double spend_request,
-			double CorrA,
-			double IOBrem,
-			double d,
-			double h,
-			double H,
-			double cgm_slope1,
-			double cgm_slope2,
-			double cgm_slope_diff,
-			double X,
-			double detect_meal) {
-				ContentValues values = new ContentValues();
-				values.put("time", time);
-				values.put("l0", HMS_IOB_CONTROL);
-				values.put("d0", INS_target_sat);
-				values.put("d1", INS_target_slope_sat);
-				values.put("d2", differential_basal_rate);
-				values.put("d3", MealBolusA);
-				values.put("d4", MealBolusArem);
-				values.put("d5", spend_request);
-				values.put("d6", CorrA);
-				values.put("d7", IOBrem);
-				values.put("d8", d);
-				values.put("d9", h);
-				values.put("d10", H);
-				values.put("d11", cgm_slope1);
-				values.put("d12", cgm_slope2);
-				values.put("d13", cgm_slope_diff);
-				values.put("d14", X);
-				values.put("d15", detect_meal);
-				try {
-					context.getContentResolver().insert(Biometrics.USER_TABLE_1_URI, values);
-				}
-				catch (Exception e) {
-					Log.e(TAG, e.getMessage());
-				}		
+		// Initialize
+		Iob = Gpred = Gpred_30m = 0.0;
+		
+		// Fetch most recent synchronous row from State Estimate data records
+		Cursor c = context.getContentResolver().query(Biometrics.STATE_ESTIMATE_URI, new String[]{"asynchronous", "time", "IOB", "Gpred", "Gbrakes"}, "asynchronous = 0", null, "time DESC LIMIT 1");
+		
+		if (c.moveToFirst()) {
+			Iob = c.getDouble(c.getColumnIndex("IOB"));
+			Gpred = c.getDouble(c.getColumnIndex("Gpred"));			//AKA Gest
+			Gpred_30m = c.getDouble(c.getColumnIndex("Gbrakes"));	//AKA Gpred_30m
+			return_value = true;
 		}
-
+		else {
+			Debug.e(TAG, FUNC_TAG, "State Estimate Table empty!");
+		}
+		c.close();
+		
+		return return_value;
+	}
+	
+	//TODO: check if this is intended? <= 8 or <8 ???
+	// Function returns Gest if less than 8 points of cgm, Gpred otherwise
+	private double CGM_8point_protection(long time, double Gpred, double Gest) {
+    	final String FUNC_TAG = "CGM_8point_protection";
+    	
+    	// Create the timestamp for 62 minutes ago
+    	long duration = time - CGM_window_size_seconds;
+    	double reference;
+    	
+    	Cursor c = context.getContentResolver().query(Biometrics.CGM_URI, new String[]{"cgm", "time"}, "time > "+duration, null, "time DESC");
+    	
+    	if(!c.moveToFirst()) {
+    		Debug.e(TAG, FUNC_TAG, "The cursor is null, using Gest!");
+    		return Gest;
+    	}
+    	
+    	if(c.getCount() <= 8) {
+    		Debug.i(TAG, FUNC_TAG, "There are 8 or fewer CGM points, using Gest...");
+    		reference = Gest;
+    	} else {
+    		Debug.i(TAG, FUNC_TAG, "There are more than 8 CGM points, using Gpred...");
+    		reference = Gpred;
+    	}
+    	
+    	c.close();
+    	
+    	return reference;
+    }
+	
+	private long getCurrentTimeSeconds() {
+		return (System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
+	}
 }

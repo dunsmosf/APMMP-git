@@ -219,8 +219,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
                 obs.removeGlobalOnLayoutListener(this);
             }
         });
-        
-        
     }
     
     @Override
@@ -991,8 +989,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	//Call functions to update the UI each time there is a change in the SYSTEM table
     	if(this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
     	{
-	    	updateDiasState(diasState);
-	    	
 	    	updateLastBolus(diasState, pumpLastBolus, pumpLastBolusTime);
 	    	
 	    	updateTrafficLights(diasState, hypoLight, hyperLight, alarmHypo);
@@ -1040,42 +1036,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
         Button b = (Button)this.findViewById(R.id.buttonMeal);
         if(icon != null)
         	b.setBackground(icon);
-    }
-    
-    private void updateDiasState(int diasState)
-    {
-    	final String FUNC_TAG = "updateDiasState";
-    	long start = System.currentTimeMillis();
-    	long stop;
-    	
-    	String dias_state = "";
-		
-    	switch(diasState)
-    	{
-	    	case State.DIAS_STATE_STOPPED:
-				dias_state = "STOPPED";
-				break;
-			case State.DIAS_STATE_OPEN_LOOP:
-				dias_state = "OPEN";
-				break;
-			case State.DIAS_STATE_CLOSED_LOOP:
-				dias_state = "CLOSED";
-				break;
-			case State.DIAS_STATE_SAFETY_ONLY:
-				dias_state = "SAFETY_ONLY";
-				break;
-			case State.DIAS_STATE_SENSOR_ONLY:
-				dias_state = "SENSOR_ONLY";
-				break;
-			default:
-				dias_state = "WHAT/"+diasState;
-				break;
-    	}
-		
-		Debug.i(TAG, FUNC_TAG, "Current state: " + dias_state);
-		
-    	stop = System.currentTimeMillis();
-    	Debug.i(TAG, FUNC_TAG, "Update Complete..."+(stop-start)+" ms to complete!");
     }
     
     private void updateDiasMain() 

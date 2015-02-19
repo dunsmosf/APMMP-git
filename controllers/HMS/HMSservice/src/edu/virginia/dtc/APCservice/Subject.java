@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
 
-import android.content.SharedPreferences;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -31,18 +30,13 @@ public class Subject {
 	public double weight;
 	public double height;
 	public double age;
+	
 	public boolean valid = false;
 	
 	private static final String TAG = "HMSservice";
 
 	public Subject(long time, Context calling_context) {
 		valid = read(time, calling_context);
-	}
-	
-	public void dump() {
-		final String FUNC_TAG = "dump";
-		Debug.i(TAG, FUNC_TAG, "CF:"+CF+" CR:"+CR+" Basal:"+basal+" TDI:"+TDI);
-		Debug.i(TAG, FUNC_TAG, "Weight:"+weight+" Height:"+height+" Age:"+age+" Valid:"+valid);
 	}
 	
 	public boolean read(long time, Context calling_context) {
@@ -194,7 +188,6 @@ public class Subject {
 		if (readTvector(subject_data.subjectSafety, Biometrics.SAFETY_PROFILE_URI, calling_context))
 			subject_data.subjectSafetyValid = true;
 		
-		c.close();
 		return subject_data;
 	}
 	
