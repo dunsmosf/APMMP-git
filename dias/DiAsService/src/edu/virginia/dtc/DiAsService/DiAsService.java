@@ -191,7 +191,6 @@ public class DiAsService extends Service
 	private double latestIOB;
 	
 	// Last four CGM data points stored for slope calculation
-	private Tvector Tvec_cgm1;
 	private long startTimeSeconds;			// The system start time which is broadcast by the supervisorService
 	
 	// Track time stamps and exercise state
@@ -215,10 +214,7 @@ public class DiAsService extends Service
 	
 	private Controller Apc, Brm, Mcm, Ssm;
 	
-	private double cgm_min_value;
-	private double cgm_max_value;
-		
-    private CellularRssiListener cellRssi;
+	private CellularRssiListener cellRssi;
 	private TelephonyManager telMan;
 	
 	private String connection = "";
@@ -247,10 +243,10 @@ public class DiAsService extends Service
 	private static final String PREFS_NAME = "BasalPause";
 	
 	private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-	private static ScheduledFuture<?> waitTimer, pingTimer;
+	private static ScheduledFuture<?> waitTimer;
 	
 	private Machine ASYNC, SYNC, TBR;
-	private int DEF_CONFIG = FSM.NONE, CONFIG = FSM.NONE;
+	private int CONFIG = FSM.NONE;
 	
 	private static DiAsSubjectData subject_data;
 	
@@ -606,15 +602,6 @@ public class DiAsService extends Service
 	    		
 	    		// Send an initialize message to the service
 	    		msg = Message.obtain(null, APC_SERVICE_CMD_START_SERVICE, 0, 0);
-	    		Bundle paramBundle = new Bundle();
-	    		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
-	    		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-	    		Tvector.putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
-	    		Tvector.putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
-	    		Tvector.putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
-	    		Tvector.putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
-	    		paramBundle.putDouble("TDI", subject_data.subjectTDI);
-	    		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
 	    		
 	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
 	        		Bundle b1 = new Bundle();
@@ -627,7 +614,6 @@ public class DiAsService extends Service
 	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
 	    		}
 	    		
-	    		msg.setData(paramBundle);
 	    		Apc.send(msg);
            }
             
@@ -927,9 +913,6 @@ public class DiAsService extends Service
 		changeAsyncState(FSM.IDLE);
 		changeTbrState(FSM.IDLE);
 		
-        cgm_min_value = 39.0;
-        cgm_max_value = 401.0;
-        
         // Initialize some values
         Supervisor_Tick_Free_Running_Counter = 0;
         
@@ -962,7 +945,6 @@ public class DiAsService extends Service
     	Debug.i(TAG, FUNC_TAG, "calFlagTime="+calFlagTime+", hypoFlagTime="+hypoFlagTime+", corrFlagTime="+corrFlagTime+", mealFlagTime="+mealFlagTime+", hypoMuteDuration="+hypoMuteDuration);
 		
 		isMealBolus = false;
-		Tvec_cgm1 = new Tvector(12);
 		battCharge = 100;
 		
 		// Keep the CPU running even after the screen dims
@@ -1176,7 +1158,7 @@ public class DiAsService extends Service
      		@Override
             public void onReceive(Context context, Intent intent) 
      		{
-     			long tick = intent.getLongExtra("tick", -1);
+     			intent.getLongExtra("tick", -1);
      			
         		int OLD_DIAS_STATE = DIAS_STATE;
         		
@@ -1573,8 +1555,6 @@ public class DiAsService extends Service
 
     	//Keep track of the default configuration for later comparison
     	Debug.i(TAG, FUNC_TAG, "Configuration: "+FSM.configToString(CONFIG));
-    	DEF_CONFIG = CONFIG;
-    	
     	switch(CONFIG)
     	{
 	    	case FSM.APC_BRM:
@@ -2171,9 +2151,7 @@ public class DiAsService extends Service
 	 * Updates Status Bar Notifications
 	 */
 	private void updateStatusNotifications() {
-		final String FUNC_TAG = "updateStatusNotifications";
-		
-        // Update CGM trend arrow
+		// Update CGM trend arrow
         // ***************************************************************
         int arrowResource = R.drawable.arrow_0;
 		
@@ -2507,8 +2485,7 @@ public class DiAsService extends Service
 	private void updateBasalPauseStatus() {
 		final String FUNC_TAG = "updateBasalPauseStatus";
 		
-		SharedPreferences basalPauseSetting = getSharedPreferences(PREFS_NAME, 0);
-		// True if we have *valid* CGM data from within the last 20 minutes
+		getSharedPreferences(PREFS_NAME, 0);
     
 		// Handle loss of CGM when we are in Closed Loop mode
 		if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
@@ -3353,8 +3330,6 @@ public class DiAsService extends Service
     
     public Message callCalcSSM()
     {
-    	final String FUNC_TAG = "callCalcSSM";
-    	
     	Message ssmMessage = Message.obtain(null, Safety.SAFETY_SERVICE_CMD_CALCULATE_STATE, 0, 0);
 		Bundle paramBundle = new Bundle();
 		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
@@ -3844,40 +3819,6 @@ public class DiAsService extends Service
 		}
 	}
 	
-    public boolean checkIfEnoughCgmData() {
-    	final String FUNC_TAG = "checkIfEnoughCgmData";
-    	
-    	boolean retVal = false;
-		List<Integer> indices;
-		long currentTimeMinutes = getCurrentTimeSeconds()/60;
-		indices = Tvec_cgm1.find(">", currentTimeMinutes-60, "<=", currentTimeMinutes);
-		if (indices != null) {
-			if (indices.size() > 0) {
-				long last_time = Tvec_cgm1.get_time(indices.get(indices.size()-1));
-				long first_time = Tvec_cgm1.get_time(indices.get(0));
-				long elapsed_time = last_time-first_time;
-				Debug.i(TAG, FUNC_TAG, "last_time="+last_time+", first_time="+first_time+", elapsed_time="+elapsed_time+", count="+indices.size());
-				if (indices != null) {
-					if (indices.size() >= 4 && (last_time-first_time)>=45) {
-						retVal = true;
-						int ii;
-						double val;
-						for (ii=0; ii<indices.size(); ii++) {
-							val = Tvec_cgm1.get_value(indices.get(ii));
-							if (val >= 2048) {
-								val = val - 2048;				// Remove bit 11 (calibration bit) if present
-							}
-							if(val < cgm_min_value || val > cgm_max_value) {
-								retVal = false;
-							}
-						}
-					}
-				}
-			}
-		}
-   		return retVal;
-    }
-	
 	public void log_IO(String tag, String message) {
 		Debug.i(IO_TEST_TAG, tag, message);
 	}
@@ -3890,7 +3831,6 @@ public class DiAsService extends Service
 		@Override
 		public void onSignalStrengthsChanged(SignalStrength sig)
 		{
-			final String FUNC_TAG = "onSignalStrengthsChanged";
 			super.onSignalStrengthsChanged(sig);
 	
 			conn_rssi = sig.getGsmSignalStrength();
@@ -3939,7 +3879,7 @@ public class DiAsService extends Service
 		Bundle b = new Bundle();
 		try 
 	    {
-	    	Uri uri = getContentResolver().insert(Biometrics.TEMP_BASAL_URI, values);
+	    	getContentResolver().insert(Biometrics.TEMP_BASAL_URI, values);
  	    	b.putString("description", "DiAsService > startTempBasal, start_time= "+time);
  	    	Event.addEvent(getApplicationContext(), Event.EVENT_TEMP_BASAL_STARTED, Event.makeJsonString(b), Event.SET_LOG);
 	    }
@@ -4004,9 +3944,7 @@ public class DiAsService extends Service
 	}
 	
 	private long getCurrentTimeSeconds() {
-		final String FUNC_TAG = "getCurrentTimeSeconds";
-		
-			long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
+		long SystemTime = (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970
 			//I'm sick of this...
 			//Debug.i(TAG, FUNC_TAG, "getCurrentTimeSeconds > returning System Time="+SystemTime);
 			return SystemTime;

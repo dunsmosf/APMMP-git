@@ -113,16 +113,12 @@ public class IOMain extends Service {
 					// Create Param object with subject parameters received from Application
 					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_START_SERVICE");
 					paramBundle = msg.getData();
-					double TDI = (double)paramBundle.getDouble("TDI");
-					int IOB_curve_duration_hours = paramBundle.getInt("IOB_curve_duration_hours");
 					
 					// Log the parameters for IO testing
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
                 		b.putString(	"description", "DIAsService >> (APC), IO_TEST"+", "+FUNC_TAG+", "+
-                						"APC_SERVICE_CMD_START_SERVICE"+", "+
-                						"TDI="+TDI+", "+
-                						"IOB_curve_duration_hours="+IOB_curve_duration_hours
+                						"APC_SERVICE_CMD_START_SERVICE"
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 					}
