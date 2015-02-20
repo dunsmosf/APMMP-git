@@ -592,6 +592,8 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		// Clear current subject information and overwrite with new
 		getContentResolver().delete(Uri.parse("content://" + Biometrics.PROVIDER_NAME + "/info"), null, null);
 		
+		DiAsSubjectData.print(TAG, subject_data);
+		
 		ContentValues values = new ContentValues();
 		values.put("subjectid", subject_data.subjectName);
 		values.put("session", subject_data.subjectSession);
@@ -605,11 +607,6 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		} else {
 			values.put("isfemale", 0);
 		}
-		if (subject_data.subjectTimeRangeValid) {
-			values.put("SafetyOnlyModeIsEnabled", 1);
-		} else {
-			values.put("SafetyOnlyModeIsEnabled", 0);
-		}
 		
 		values.put("AIT", subject_data.subjectAIT);
 		values.put("insulinSetupComplete", (subject_data.subjectCFValid && subject_data.subjectCRValid && subject_data.subjectBasalValid) ? 1 : 0);
@@ -617,15 +614,13 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		try {
 			getContentResolver().insert(Biometrics.SUBJECT_DATA_URI, values);
 		} catch (Exception e) {
-			Debug.i(TAG, FUNC_TAG,"saveDiAsSubjectData error =" + e.getMessage());
+			Debug.e(TAG, FUNC_TAG, "Error: " + e.getMessage());
 		}
 
 		saveTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, true);
 		saveTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, true);
 		saveTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, true);
 		saveTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, false);
-		
-		DiAsSubjectData.print(TAG, subject_data);
 	}
 
 	private void saveTvector(Tvector tvector, Uri uri, boolean value) 
@@ -647,7 +642,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 			try {
 				getContentResolver().insert(uri, content_values);
 			} catch (Exception e) {
-				Debug.i(TAG, FUNC_TAG,"getContentResolver().insert() error =" + e.getMessage());
+				Debug.e(TAG, FUNC_TAG,"Error: " + e.getMessage());
 			}
 		}
 	}
@@ -659,7 +654,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		DiAsSubjectData subject_data = new DiAsSubjectData();
 
 		Cursor c = getContentResolver().query(Biometrics.SUBJECT_DATA_URI, null, null, null, null);
-		Debug.i(TAG, FUNC_TAG,"Retrieved SUBJECT_DATA_URI with " + c.getCount() + " items");
+		Debug.i(TAG, FUNC_TAG, "Retrieved SUBJECT_DATA_URI with " + c.getCount() + " items");
 		if (c.moveToLast()) 
 		{
 			// A database exists.  Initialize subject_data.
@@ -669,8 +664,6 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 			subject_data.subjectHeight = (c.getInt(c.getColumnIndex("height")));
 			subject_data.subjectAge = (c.getInt(c.getColumnIndex("age")));
 			subject_data.subjectTDI = (c.getInt(c.getColumnIndex("TDI")));
-			
-			// subject_data.subjectAIT = (c.getInt(c.getColumnIndex("AIT")));
 			subject_data.subjectAIT = 4; // Force AIT == 4 for safety
 
 			int isfemale = c.getInt(c.getColumnIndex("isfemale"));
@@ -679,7 +672,6 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 			else
 				subject_data.subjectFemale = false;
 
-//			// Set flags
 //			subject_data.subjectNameValid = true;
 //			subject_data.subjectSessionValid = true;
 //			subject_data.weightValid = true;

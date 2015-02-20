@@ -159,17 +159,17 @@ public class Subject {
 			else
 				subject_data.subjectFemale = false;
 
-			int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
-			if (SafetyOnlyModeIsEnabled == 1)
-				subject_data.subjectSafetyValid = true;
-			else
-				subject_data.subjectSafetyValid = false;
-
-			int realtime = c.getInt(c.getColumnIndex("realtime"));
-			if (realtime == 1)
-				subject_data.realTime = true;
-			else
-				subject_data.realTime = false;
+//			int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
+//			if (SafetyOnlyModeIsEnabled == 1)
+//				subject_data.subjectSafetyValid = true;
+//			else
+//				subject_data.subjectSafetyValid = false;
+//
+//			int realtime = c.getInt(c.getColumnIndex("realtime"));
+//			if (realtime == 1)
+//				subject_data.realTime = true;
+//			else
+//				subject_data.realTime = false;
 
 			// Set flags
 			subject_data.subjectNameValid = true;

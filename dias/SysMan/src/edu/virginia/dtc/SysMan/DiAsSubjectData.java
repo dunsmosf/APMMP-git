@@ -15,10 +15,9 @@ import edu.virginia.dtc.Tvector.Tvector;
 
 public class DiAsSubjectData extends Object	
 {
-	final static String TAG = "DiAsSetup1";
+	final static String TAG = "DiAsSubjectData";
 	
 	// Default remote monitoring URI
-	public static final String REMOTE_MONITORING_URI = "https://";
 	public static final String PROFILE_CHANGE = "edu.virginia.dtc.DIASSETUP_PROFILE_CHANGED";
 	
 	// Storage for subject session parameters

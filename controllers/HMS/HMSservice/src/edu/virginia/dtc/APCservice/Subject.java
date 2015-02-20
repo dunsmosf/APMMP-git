@@ -45,7 +45,7 @@ public class Subject {
 		int UTC_offset_secs = tz.getOffset(time*1000)/1000;
 		int timeNowSecs = (int)(time+UTC_offset_secs)%(1440*60);
 		
-		Debug.i(TAG, FUNC_TAG, "Time:"+time+" Time Now Seconds:"+timeNowSecs);
+		Debug.i(TAG, FUNC_TAG, "Time: "+time+" Time Now Seconds: "+timeNowSecs);
 		List<Integer> indices = new ArrayList<Integer>();
 		
 		// Get the latest subject data and profiles from biometricsContentProvider

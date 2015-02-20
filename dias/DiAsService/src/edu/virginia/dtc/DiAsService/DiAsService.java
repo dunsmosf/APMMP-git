@@ -849,6 +849,8 @@ public class DiAsService extends Service
 		
 		super.onCreate();
 		
+		subject_data = DiAsSubjectData.readDiAsSubjectData(this);
+		
 		initialized = false;
 		
         Debug.i(TAG, FUNC_TAG, "");
@@ -1471,6 +1473,7 @@ public class DiAsService extends Service
     	
     	Debug.i(TAG, FUNC_TAG, "Reading subject data...");
 		subject_data = DiAsSubjectData.readDiAsSubjectData(this);
+		DiAsSubjectData.print(TAG, subject_data);
 		
 		if(!initialized)
 		{

@@ -102,14 +102,14 @@ public class HMS {
 		
 		// 3. Check for any pending or delivering meals
 		// ==================================================================================
-		if(!hms_req_meal_protect(10)) {
+		if(checkForPendingBolus(10)) {
 			Debug.w(TAG, FUNC_TAG, "There is still a meal being delivered within the last 10 minutes...returning zero");
 			return 0.0;
 		}
 		
 		// 4. Update the subject data by reading latest profile values from the database
 		// ==================================================================================
-		if (subject.read(context)) {
+		if (!subject.read(context)) {
 			Debug.w(TAG, FUNC_TAG, "There is not sufficient subject data to estimate...returning zero");
 			return 0.0;
 		}
@@ -117,7 +117,7 @@ public class HMS {
 		// 5. Check for previous corrections, so we don't do corrections too frequently
 		// ==================================================================================
 		if(checkForCorrections(MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS)) {
-			Debug.w(TAG, FUNC_TAG, "There was a correctiong within the last "+MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS+" minutes...returning zero");
+			Debug.w(TAG, FUNC_TAG, "There was a correction within the last "+MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS+" minutes...returning zero");
 			return 0.0;
 		}
 		
@@ -149,12 +149,19 @@ public class HMS {
 	// **************************************************************************************************
 	
 	private boolean checkForCorrections(long timeFrame) {
+		final String FUNC_TAG = "checkForCorrections";
+		
 		//Checking for any non-zero correction requests within the last 60 minutes
 		long time = (System.currentTimeMillis()/1000) - (timeFrame * 60);
-   		Cursor c = context.getContentResolver().query(Biometrics.INSULIN_URI, new String[]{"req_time","req_corr"}, "req_corr > 0.0 AND time > "+time, null, null);
+   		Cursor c = context.getContentResolver().query(Biometrics.INSULIN_URI, new String[]{"req_time","req_corr"}, "req_corr > 0.0 AND req_time > "+time, null, null);
    		
    		//Basically, if there are any results, then it is true
    		if(c.moveToFirst()) {
+   			
+   			long reqTime = c.getLong(c.getColumnIndex("req_time"));
+   			reqTime = (System.currentTimeMillis()/1000) - reqTime;
+   			Debug.i(TAG, FUNC_TAG, "Last bolus was "+(reqTime/60)+" minutes ago!");
+   			
    			c.close();
    			return true;
    		}
@@ -163,34 +170,33 @@ public class HMS {
    	}
 	
 	//TODO: check type, this checks all boluses sync or async
-	private boolean hms_req_meal_protect(int duration) {
+	private boolean checkForPendingBolus(int timeFrame) {
 		final String FUNC_TAG = "hms_req_meal_protect";
-		boolean return_value = false;
+		
+		long time = (System.currentTimeMillis()/1000) - (timeFrame * 60);
 		
 		// Function to protect against injecting corrections within a certain amount of time "duration" after requesting a meal bolus.
-		Cursor c = context.getContentResolver().query(Biometrics.INSULIN_URI, new String[]{"req_time","req_meal","req_corr","status"}, "req_meal>0 OR req_corr>0", null, "req_time DESC Limit 1");
-		long requested_meal_time = 0;
+		Cursor c = context.getContentResolver().query(Biometrics.INSULIN_URI, new String[]{"req_time","req_meal","req_corr","status"}, "(req_meal > 0 OR req_corr > 0) AND req_time > "+time, null, "req_time DESC Limit 1");
 		int status = -1;
 		if (c.moveToFirst()) {
 			if (!c.isNull(c.getColumnIndex("status"))) {
-				requested_meal_time = c.getLong(c.getColumnIndex("req_time"));
 				status = c.getInt(c.getColumnIndex("status"));
-				if (((getCurrentTimeSeconds()-requested_meal_time) < (duration*60)) && ((status==Pump.PENDING) || (status==Pump.DELIVERING)))
-					return_value = true;
+				if ((status == Pump.PENDING) || (status == Pump.DELIVERING)) {
+					c.close();
+					return true;
+				}
 			}			
 		}
 		else {
-			Debug.e(TAG, FUNC_TAG, "Insulin Table empty!");
+			Debug.w(TAG, FUNC_TAG, "Insulin table empty!");
 		}
 		c.close();
 		
-		return return_value;
+		return false;
 	}
 	
 	private boolean fetchStateEstimateData() {
 		final String FUNC_TAG = "fetchStateEstimateData";
-		
-		boolean return_value = false;
 		
 		Iob = Gpred = Gpred_30m = 0.0;
 		
@@ -201,14 +207,15 @@ public class HMS {
 			Iob = c.getDouble(c.getColumnIndex("IOB"));
 			Gpred = c.getDouble(c.getColumnIndex("Gpred"));			//AKA Gest
 			Gpred_30m = c.getDouble(c.getColumnIndex("Gbrakes"));	//AKA Gpred_30m
-			return_value = true;
+			c.close();
+			return true;
 		}
 		else {
-			Debug.e(TAG, FUNC_TAG, "State Estimate Table empty!");
+			Debug.w(TAG, FUNC_TAG, "State estimate table empty!");
 		}
 		c.close();
 		
-		return return_value;
+		return false;
 	}
 	
 	//TODO: check if this is intended? <= 8 or < 8 ???
