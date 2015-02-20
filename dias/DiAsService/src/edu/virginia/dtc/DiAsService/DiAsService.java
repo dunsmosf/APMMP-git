@@ -1536,7 +1536,7 @@ public class DiAsService extends Service
     	final String FUNC_TAG = "checkInitialization";
     	
     	Debug.i(TAG, FUNC_TAG, "Reading subject data...");
-		subject_data = readDiAsSubjectData();
+		subject_data = DiAsSubjectData.readDiAsSubjectData(this);
 		
 		if(!initialized)
 		{
@@ -4048,69 +4048,6 @@ public class DiAsService extends Service
 		return retValue;
 	}
 	
-	private DiAsSubjectData readDiAsSubjectData() {
-		final String FUNC_TAG = "readDiAsSubjectData";
-		
-		DiAsSubjectData subject_data = new DiAsSubjectData();
-
-		Cursor c = getContentResolver().query(Biometrics.SUBJECT_DATA_URI, null, null, null, null);
-		Debug.i(TAG, FUNC_TAG,"Retrieved SUBJECT_DATA_URI with " + c.getCount() + " items");
-		if (c.moveToLast()) 
-		{
-			// A database exists.  Initialize subject_data.
-			subject_data.subjectName = new String(c.getString(c.getColumnIndex("subjectid")));
-			subject_data.subjectSession = new String(c.getString(c.getColumnIndex("session")));
-			subject_data.subjectWeight = (c.getInt(c.getColumnIndex("weight")));
-			subject_data.subjectHeight = (c.getInt(c.getColumnIndex("height")));
-			subject_data.subjectAge = (c.getInt(c.getColumnIndex("age")));
-			subject_data.subjectTDI = (c.getInt(c.getColumnIndex("TDI")));
-			
-			// subject_data.subjectAIT = (c.getInt(c.getColumnIndex("AIT")));
-			subject_data.subjectAIT = 4; // Force AIT == 4 for safety
-
-			int isfemale = c.getInt(c.getColumnIndex("isfemale"));
-			if (isfemale == 1)
-				subject_data.subjectFemale = true;
-			else
-				subject_data.subjectFemale = false;
-
-			int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
-			if (SafetyOnlyModeIsEnabled == 1)
-				subject_data.subjectSafetyValid = true;
-			else
-				subject_data.subjectSafetyValid = false;
-
-			int realtime = c.getInt(c.getColumnIndex("realtime"));
-			if (realtime == 1)
-				subject_data.realTime = true;
-			else
-				subject_data.realTime = false;
-
-			// Set flags
-			subject_data.subjectNameValid = true;
-			subject_data.subjectSessionValid = true;
-			subject_data.weightValid = true;
-			subject_data.heightValid = true;
-			subject_data.ageValid = true;
-			subject_data.TDIValid = true;
-			subject_data.AITValid = true;
-		}
-		c.close();
-		
-		if (Tvector.readTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, this.getContentResolver()))
-			subject_data.subjectCFValid = true;
-		if (Tvector.readTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, this.getContentResolver()))
-			subject_data.subjectCRValid = true;
-		if (Tvector.readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, this.getContentResolver()))
-			subject_data.subjectBasalValid = true;
-		if (Tvector.readTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, this.getContentResolver()))
-			subject_data.subjectSafetyValid = true;
-		c.close();
-		
-		return subject_data;
-	}
-
-		
 	private double getCurrentBasalProfile() {
 		
 		double basal = 0.0;

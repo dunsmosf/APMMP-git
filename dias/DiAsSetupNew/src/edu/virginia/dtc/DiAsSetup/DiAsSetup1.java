@@ -415,7 +415,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		if (Tvector.readTvector(local_sd.subjectBasal, Biometrics.BASAL_PROFILE_URI, getContentResolver()))
 			local_sd.subjectBasalValid = true;
 		if (Tvector.readTvector(local_sd.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, getContentResolver()))
-			local_sd.subjectSafetyValid = true;
+			local_sd.subjectTimeRangeValid = true;
 		
 		//If all these things are valid then we don't allow modification of the subject info
 		if(subjectDataExists())
@@ -463,7 +463,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 				&& subject_data.ageValid && subject_data.TDIValid && subject_data.AITValid;
 		activeOpenLoop = activeSensorOnly && subject_data.subjectCFValid && subject_data.subjectCRValid && subject_data.subjectBasalValid;
 		activeClosedLoop = activeOpenLoop;
-		activeUSSBRM = activeOpenLoop && subject_data.subjectSafetyValid;
+		activeUSSBRM = activeOpenLoop && subject_data.subjectTimeRangeValid;
 
 		Debug.i(TAG, FUNC_TAG, "Sensor: "+activeSensorOnly+" Open Loop: "+activeOpenLoop+" Closed Loop: "+activeClosedLoop+" BRM: "+activeUSSBRM);
 		
@@ -605,15 +605,10 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		} else {
 			values.put("isfemale", 0);
 		}
-		if (subject_data.subjectSafetyValid) {
+		if (subject_data.subjectTimeRangeValid) {
 			values.put("SafetyOnlyModeIsEnabled", 1);
 		} else {
 			values.put("SafetyOnlyModeIsEnabled", 0);
-		}
-		if (subject_data.realTime) {
-			values.put("realtime", 1);
-		} else {
-			values.put("realtime", 0);
 		}
 		
 		values.put("AIT", subject_data.subjectAIT);
@@ -684,18 +679,6 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 			else
 				subject_data.subjectFemale = false;
 
-			int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
-			if (SafetyOnlyModeIsEnabled == 1)
-				subject_data.subjectSafetyValid = true;
-			else
-				subject_data.subjectSafetyValid = false;
-
-			int realtime = c.getInt(c.getColumnIndex("realtime"));
-			if (realtime == 1)
-				subject_data.realTime = true;
-			else
-				subject_data.realTime = false;
-
 //			// Set flags
 //			subject_data.subjectNameValid = true;
 //			subject_data.subjectSessionValid = true;
@@ -713,7 +696,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		if (Tvector.readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, getContentResolver()))
 			subject_data.subjectBasalValid = true;
 		if (Tvector.readTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, getContentResolver()))
-			subject_data.subjectSafetyValid = true;
+			subject_data.subjectTimeRangeValid = true;
 		c.close();
 		
 		DiAsSubjectData.print(TAG, subject_data);

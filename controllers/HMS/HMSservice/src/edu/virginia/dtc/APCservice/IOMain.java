@@ -36,9 +36,6 @@ public class IOMain extends Service {
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;
 	
-	// Identify owner of record in User Table 1
-	private static final int MEAL_IOB_CONTROL = 10;
-	
 	private static final String TAG = "HMSservice";
     private boolean asynchronous;
 	private int Timer_Ticks_Per_Control_Tick = 1;
