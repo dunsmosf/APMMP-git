@@ -3308,8 +3308,6 @@ public class DiAsService extends Service
     	
     	double diff_rate = 0.0, correction = 0.0;
     	
-		//TODO: setup what the modes and backups are really supposed to do
-		
     	switch(DIAS_STATE)
     	{
 	    	case State.DIAS_STATE_CLOSED_LOOP:
