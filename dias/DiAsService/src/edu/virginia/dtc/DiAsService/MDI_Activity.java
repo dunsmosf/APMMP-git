@@ -25,20 +25,20 @@ public class MDI_Activity extends Activity{
 	
 	public static final String TAG = "MDI_Activity";
 	public static final boolean DEBUG = false;
-	public static final int DIAS_UI_START_SAFETY_CLICK = 5;
+	private static final int DIAS_SERVICE_COMMAND_START_SAFETY_CLICK = 26;
 	public static final int MDI_ACTIVITY_STATUS_SUCCESS = 0;
 	public static final int MDI_ACTIVITY_STATUS_TIMEOUT = -1;
 	
 	private Timer time;
 	private int status;
-	private int state_change_command = DIAS_UI_START_SAFETY_CLICK;
+	private int state_change_command = DIAS_SERVICE_COMMAND_START_SAFETY_CLICK;
 	EditText mdi_injection;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		state_change_command = getIntent().getIntExtra("state_change_command", DIAS_UI_START_SAFETY_CLICK);
+		state_change_command = getIntent().getIntExtra("state_change_command", DIAS_SERVICE_COMMAND_START_SAFETY_CLICK);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.mdiscreen);
 		debug_message(TAG, "OnCreate");

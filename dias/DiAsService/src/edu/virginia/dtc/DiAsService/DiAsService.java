@@ -83,14 +83,6 @@ public class DiAsService extends Service
     private static final String IO_TEST_TAG = "DiAsServiceIO";
 	private final String TAG = "DiAsService";
 	
-	// Define types of clicks that can cause DIAS_STATE transitions
-	private static final int DIAS_UI_CLICK_NULL = 0;
-	private static final int DIAS_UI_START_CLOSED_LOOP_CLICK = 1;
-	private static final int DIAS_UI_STOP_CLICK = 2;	
-	private static final int DIAS_UI_START_OPEN_LOOP_CLICK = 3;
-	private static final int DIAS_UI_START_SENSOR_ONLY_CLICK = 4;
-	private static final int DIAS_UI_START_SAFETY_CLICK = 5;
-    
     private static final String EXERCISE_FLAG_TIME_START = "exerciseFlagTimeStart";
     private static final String EXERCISE_FLAG_TIME_STOP = "exerciseFlagTimeStop";
     private static final String HYPO_FLAG_TIME = "hypoFlagTime";
@@ -408,7 +400,9 @@ public class DiAsService extends Service
 	        		super.handleMessage(msg);
             }
             
-            updateDiasService(DIAS_UI_CLICK_NULL);			// Update DIAS_STATE
+            updateBarIcon();
+            updateStatusNotifications();
+            updateSystem(null);
         }
     }
     
@@ -465,8 +459,7 @@ public class DiAsService extends Service
        			
         	   if(DIAS_STATE != State.DIAS_STATE_STOPPED && DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY) {
        				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to sensor/stopped mode!");
-	       			changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
-	       			updateDiasService(DIAS_UI_CLICK_NULL);
+	       			updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
         	   }
         	   
         	   Debug.e(TAG, FUNC_TAG, "The SSM service connection was killed attempting to restart...");
@@ -577,7 +570,9 @@ public class DiAsService extends Service
 	        		break;
             }
             
-            updateDiasService(DIAS_UI_CLICK_NULL);			// Update DIAS_STATE
+            updateBarIcon();
+            updateStatusNotifications();
+            updateSystem(null);
         }
     }
 
@@ -643,9 +638,13 @@ public class DiAsService extends Service
 
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
-      				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to sensor/stopped mode!");
-	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-	       			updateDiasService(DIAS_UI_CLICK_NULL);
+      				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to safety, pump, sensor or stopped mode (DESC availability)");
+      				if (Mode.isSafetyModeAvailable(getContentResolver()))
+      					updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
+      				else if (Mode.isPumpModeAvailable(getContentResolver()))
+      					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+      				else
+      					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
       			}
         	   
         	   Debug.e(TAG, FUNC_TAG, "The APC service connection was killed attempting to restart...");
@@ -782,8 +781,12 @@ public class DiAsService extends Service
       			
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
-	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-	       			updateDiasService(DIAS_UI_CLICK_NULL);
+      				if (Mode.isSafetyModeAvailable(getContentResolver()))
+      					updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
+      				else if (Mode.isPumpModeAvailable(getContentResolver()))
+      					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+      				else
+      					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
       			}
 
         	   
@@ -884,8 +887,12 @@ public class DiAsService extends Service
       			
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
-	      			changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
-	       			updateDiasService(DIAS_UI_CLICK_NULL);
+      				if (Mode.isSafetyModeAvailable(getContentResolver()))
+      					updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
+      				else if (Mode.isPumpModeAvailable(getContentResolver()))
+      					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+      				else
+      					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
       			}
         	   
         	   Debug.e(TAG, FUNC_TAG, "The MCM service connection was killed attempting to restart...");
@@ -970,7 +977,7 @@ public class DiAsService extends Service
 		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		wl.acquire();    
 		
-		changeDiasState(State.DIAS_STATE_STOPPED);
+		updateDiasService(State.DIAS_STATE_STOPPED, false);
 		
         // Initialize the value of prev_pump_state, pump_state and TEMP_BASAL_ENABLED for the pump
  	   	Cursor c = getContentResolver().query(Biometrics.PUMP_DETAILS_URI, new String[]{"state", "service_state", "temp_basal"}, null, null, null);
@@ -1182,7 +1189,7 @@ public class DiAsService extends Service
         		
     			if (DIAS_STATE != State.DIAS_STATE_SENSOR_ONLY && DIAS_STATE != State.DIAS_STATE_STOPPED) {
     				if (!checkProfiles()) {
-        				changeDiasState(State.DIAS_STATE_STOPPED);
+    					updateDiasService(State.DIAS_STATE_STOPPED, false);
             			Bundle b = new Bundle();
         	    		b.putString("description", "Missing profile data - system Stopped.");
         	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
@@ -1191,10 +1198,16 @@ public class DiAsService extends Service
     			
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
     				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes()) || !Mode.isSafetyModeAvailable(getContentResolver())) {
-        				changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-            			Bundle b = new Bundle();
-        	    		b.putString("description", "Scheduled switch to Pump mode.");
-        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					if (Mode.isPumpModeAvailable(getContentResolver())) {
+          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+	    					Bundle b = new Bundle();
+	        	    		b.putString("description", "Scheduled switch to Pump mode.");
+	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					}
+          				else {
+          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
+          				}
+            			
     				}
     			}
     			
@@ -1207,7 +1220,9 @@ public class DiAsService extends Service
     			checkForHypo();
     			checkForCgm();
     			
-    			updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateBarIcon();
+                updateStatusNotifications();
+                updateSystem(null);
     			
     			recovery();
             }
@@ -1252,7 +1267,7 @@ public class DiAsService extends Service
     			{
     				if (!checkProfiles()) 
     				{
-        				changeDiasState(State.DIAS_STATE_STOPPED);
+    					updateDiasService(State.DIAS_STATE_STOPPED, false);
             			Bundle b = new Bundle();
         	    		b.putString("description", "Missing profile data - system Stopped.");
         	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
@@ -1262,10 +1277,15 @@ public class DiAsService extends Service
     			// Get the offset in minutes into the current day in the current time zone (based on smartphone time zone setting)
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
     				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes()) || !Mode.isSafetyModeAvailable(getContentResolver())) {
-        				changeDiasState(State.DIAS_STATE_OPEN_LOOP);
-            			Bundle b = new Bundle();
-        	    		b.putString("description", "Scheduled switch to Pump mode.");
-        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					if (Mode.isPumpModeAvailable(getContentResolver())) {
+          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+	    					Bundle b = new Bundle();
+	        	    		b.putString("description", "Scheduled switch to Pump mode.");
+	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					}
+          				else {
+          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
+          				}
     				}
     			}
     			
@@ -1274,7 +1294,9 @@ public class DiAsService extends Service
     			else
     				Debug.e(TAG, FUNC_TAG, "DiAs Service has not been initialized!");
     			
-        		updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateBarIcon();
+                updateStatusNotifications();
+                updateSystem(null);
         	}
      	};
         registerReceiver(AlgTickReceiver, new IntentFilter("edu.virginia.dtc.intent.action.SUPERVISOR_CONTROL_ALGORITHM_TICK"));
@@ -1284,7 +1306,7 @@ public class DiAsService extends Service
 			public void onReceive(Context context, Intent intent) 
 			{
 				int status = intent.getIntExtra("status", MDI_ACTIVITY_STATUS_TIMEOUT);
-				int state_change_command = intent.getIntExtra("state_change_command", DIAS_UI_START_SAFETY_CLICK);
+				int state_change_command = intent.getIntExtra("state_change_command", State.DIAS_STATE_SAFETY_ONLY);
 				double insulin_injected = intent.getDoubleExtra("insulin_injected", 0.0);
             	Toast.makeText(getApplicationContext(), "Insulin Injected: "+insulin_injected, Toast.LENGTH_LONG).show();
 	    		Bundle b;
@@ -1306,8 +1328,7 @@ public class DiAsService extends Service
     								"state_change_command="+state_change_command);
     	    		Event.addEvent(getApplicationContext(), Event.EVENT_MDI_INPUT, Event.makeJsonString(b), Event.SET_LOG);
             	}
-    			updateDiasService(intent.getIntExtra("state_change_command", DIAS_UI_START_SAFETY_CLICK));
-    			updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateDiasService(getModeFromClickCommand(intent.getIntExtra("state_change_command", DIAS_SERVICE_COMMAND_START_SAFETY_CLICK)), true);
 			}			
 		};
 		registerReceiver(dialogReceiver, new IntentFilter("edu.virginia.dtc.intent.action.MDI_INJECTION"));  
@@ -1338,7 +1359,9 @@ public class DiAsService extends Service
         switch(command) {
     		case DIAS_SERVICE_COMMAND_NULL:
     			Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_COMMAND_NULL");
-    			updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateBarIcon();
+                updateStatusNotifications();
+                updateSystem(null);
     			break;
     		case DIAS_SERVICE_COMMAND_INIT:
     			checkInitialization();
@@ -1364,7 +1387,9 @@ public class DiAsService extends Service
         			toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
         			toast.show();
     			}
-    			updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateBarIcon();
+                updateStatusNotifications();
+                updateSystem(null);
     			break;
     		case DIAS_SERVICE_COMMAND_SET_HYPER_MUTE_DURATION:
     			int muteDuration = intent.getIntExtra("muteDuration", 0);
@@ -1390,13 +1415,12 @@ public class DiAsService extends Service
     				queryMDI = new Intent();
     				queryMDI.setComponent(new ComponentName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.MDI_Activity"));
     				queryMDI.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    				queryMDI.putExtra("state_change_command", DIAS_UI_START_CLOSED_LOOP_CLICK);
+    				queryMDI.putExtra("state_change_command", command);
     				startActivity(queryMDI);        			
     			}
     			else {
         			Debug.i(TAG, FUNC_TAG, "DIAS_UI_START_CLOSED_LOOP_CLICK");
-        			updateDiasService(DIAS_UI_START_CLOSED_LOOP_CLICK);
-        			updateDiasService(DIAS_UI_CLICK_NULL);
+        			updateDiasService(getModeFromClickCommand(command), true);
     			}
     			break;
     		case DIAS_SERVICE_COMMAND_START_SAFETY_CLICK:
@@ -1407,13 +1431,12 @@ public class DiAsService extends Service
     				queryMDI = new Intent();
     				queryMDI.setComponent(new ComponentName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.MDI_Activity"));
     				queryMDI.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    				queryMDI.putExtra("state_change_command", DIAS_UI_START_SAFETY_CLICK);
+    				queryMDI.putExtra("state_change_command", command);
     				startActivity(queryMDI);        			
     			}
     			else {
         			Debug.i(TAG, FUNC_TAG, "DIAS_UI_START_SAFETY_CLICK");
-        			updateDiasService(DIAS_UI_START_SAFETY_CLICK);
-        			updateDiasService(DIAS_UI_CLICK_NULL);
+        			updateDiasService(getModeFromClickCommand(command), true);
     			}
     			break;
     		case DIAS_SERVICE_COMMAND_START_OPEN_LOOP_CLICK:
@@ -1424,13 +1447,12 @@ public class DiAsService extends Service
     				queryMDI = new Intent();
     				queryMDI.setComponent(new ComponentName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.MDI_Activity"));
     				queryMDI.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    				queryMDI.putExtra("state_change_command", DIAS_UI_START_OPEN_LOOP_CLICK);
+    				queryMDI.putExtra("state_change_command", command);
     				startActivity(queryMDI);        			
     			}
     			else {
         			Debug.i(TAG, FUNC_TAG, "DIAS_UI_START_OPEN_LOOP_CLICK");
-        			updateDiasService(DIAS_UI_START_OPEN_LOOP_CLICK);
-        			updateDiasService(DIAS_UI_CLICK_NULL);
+        			updateDiasService(getModeFromClickCommand(command), true);
     			}
     			break;
     		case DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK:
@@ -1438,14 +1460,11 @@ public class DiAsService extends Service
 	    		b7.putString("description", "DiAsUI -> DiAsService, DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK");
 	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b7), Event.SET_LOG);
     			Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK");
-    			updateDiasService(DIAS_UI_START_SENSOR_ONLY_CLICK);
-    			updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateDiasService(getModeFromClickCommand(command), true);
     			break;
     		case DIAS_SERVICE_COMMAND_STOP_CLICK:
     			Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_COMMAND_STOP_CLICK");
-    			updateDiasService(DIAS_UI_STOP_CLICK);
-    			Debug.i(TAG, FUNC_TAG, "onStartCommand > DIAS_SERVICE_COMMAND_STOP_CLICK");
-    			updateDiasService(DIAS_UI_CLICK_NULL);
+    			updateDiasService(getModeFromClickCommand(command), true);
 	    		Bundle b3 = new Bundle();
 	    		b3.putString("description", "DiAsUI -> DiAsService, DIAS_SERVICE_COMMAND_STOP_CLICK");
 	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b3), Event.SET_LOG);
@@ -1478,7 +1497,9 @@ public class DiAsService extends Service
 	        			}
 	        			previouslyExercising = false;
 	    			}
-	        		updateDiasService(DIAS_UI_CLICK_NULL);
+	    			updateBarIcon();
+	                updateStatusNotifications();
+	                updateSystem(null);
     			}
     			else
     				Debug.e(TAG, FUNC_TAG, "Exercise detection is turned on, so we aren't accepting user input!");
@@ -1545,7 +1566,9 @@ public class DiAsService extends Service
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is initializing service connections...");
 	        
 	        initializeServiceConnections();
-			updateDiasService(DIAS_UI_CLICK_NULL);
+	        updateBarIcon();
+            updateStatusNotifications();
+            updateSystem(null);
 		}
 		else
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is already initialized!");
@@ -1855,7 +1878,9 @@ public class DiAsService extends Service
     	   }
     	   c.close();
     	   
-    	   updateDiasService(DIAS_UI_CLICK_NULL);
+    	   updateBarIcon();
+           updateStatusNotifications();
+           updateSystem(null);
        }		
     }
 	
@@ -1940,14 +1965,15 @@ public class DiAsService extends Service
     			   
     			   if(Pump.isConnected(prev_pump_state) && Pump.notConnected(pump_state) && DIAS_STATE != State.DIAS_STATE_STOPPED)
     			   {
-    				   changeDiasState(State.DIAS_STATE_SENSOR_ONLY);		//The update will automatically check if the CGM is ready and will go to stopped if it isn't
-    				   updateDiasService(DIAS_UI_CLICK_NULL);
+    				   updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
     			   }
     		   }
         	   c.close();
     	   }
     	   
-    	   updateDiasService(DIAS_UI_CLICK_NULL);
+    	   updateBarIcon();
+           updateStatusNotifications();
+           updateSystem(null);
        }		
     }
 	
@@ -2006,7 +2032,9 @@ public class DiAsService extends Service
     	   }
     	   c.close();
     	   
-    	   updateDiasService(DIAS_UI_CLICK_NULL);
+    	   updateBarIcon();
+           updateStatusNotifications();
+           updateSystem(null);
        }		
     }
 
@@ -2047,7 +2075,9 @@ public class DiAsService extends Service
           		}
       			c.close();
     	   }
-     	   updateDiasService(DIAS_UI_CLICK_NULL);
+    	   updateBarIcon();
+           updateStatusNotifications();
+           updateSystem(null);
        }
     }
 	
@@ -2122,7 +2152,9 @@ public class DiAsService extends Service
 	    				   previouslyExercising = false;
 	    			   }
 	    			   
-	    			   updateDiasService(DIAS_UI_CLICK_NULL);
+	    			   updateBarIcon();
+	    	           updateStatusNotifications();
+	    	           updateSystem(null);
     			   }
     			   else
     				   Debug.i(TAG, FUNC_TAG, "We don't care about exercise...");
@@ -2136,10 +2168,10 @@ public class DiAsService extends Service
 	// DIAS SERVICE UPDATE ROUTINES
 	// ******************************************************************************************************************************
 	
-	public void updateDiasService(int button) {
+	public void updateDiasService(int requestedMode, boolean isClick) {
 		final String FUNC_TAG = "updateDiasService";
 		
-		Debug.i(TAG, FUNC_TAG, "button="+button+", DIAS_STATE="+DIAS_STATE);
+		Debug.i(TAG, FUNC_TAG, "Requested Mode="+requestedMode+", DIAS_STATE="+DIAS_STATE+", is Button Click="+isClick);
 		updateCount++;
 		Debug.i(TAG, FUNC_TAG, "COUNT: "+updateCount);
 		
@@ -2149,7 +2181,7 @@ public class DiAsService extends Service
 		
 		Debug.i(TAG, FUNC_TAG, "Start: "+begin);
 		
-		updateDiasState(button);
+		updateDiasState(requestedMode, isClick);
 		stop = System.currentTimeMillis() - start;
 		Debug.i(TAG, FUNC_TAG, "updateDiasState: "+stop);
 		start = System.currentTimeMillis();
@@ -2459,7 +2491,7 @@ public class DiAsService extends Service
         			
         			Bundle b = new Bundle();
         			b.putString("description", "Hyperglycemia predicted. Current CGM is "+cgm_display+". Please check your blood glucose.");
-    	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_HYPER_ALARM, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
+    	    		Event.addEvent(this, Event.EVENT_SYSTEM_HYPER_ALARM, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
     			}
     		}
         }
@@ -2523,29 +2555,14 @@ public class DiAsService extends Service
 				}
 				
 				// Make the switch to Pump mode
-				updateDiasService(DIAS_UI_START_OPEN_LOOP_CLICK);
+				if (Mode.isPumpModeAvailable(getContentResolver()))
+  					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+  				else
+  					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
 
 				// Set the temporary basal rate
 				if (basalPauseDuration > 0) {
 					startTempBasal(basalPauseDuration*60, 0);
-					/*
-					basalPaused = true;
-					basalPausedTime = getCurrentTimeSeconds();
-					
-					// Persist Basal Pause info in shared preferences
-					SharedPreferences.Editor edit = basalPauseSetting.edit();
-					edit.putBoolean("basalPaused", true);
-					edit.putLong("basalResumeTimeSeconds", getCurrentTimeSeconds()+60*basalPauseDuration);
-					edit.commit();
-					Debug.i(TAG, FUNC_TAG, "SharedPreferences: Basal Paused, resume at time: "+ getCurrentTimeSeconds()+60*basalPauseDuration);
-					
-					Date d = new Date(basalPausedTime*1000);
-					
-					String s =" Basal injection Paused for "+ basalPauseDuration +" minutes";
-					desc += s;
-					
-					Debug.i(TAG, FUNC_TAG, s +" on "+DateFormat.getDateTimeInstance().format(d));
-					*/
 				}
 				
 				Bundle b = new Bundle();
@@ -2553,91 +2570,43 @@ public class DiAsService extends Service
 				Event.addEvent(getApplicationContext(), Event.EVENT_BASAL_PAUSED, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
 				Debug.i(TAG, FUNC_TAG, "Loss of CGM data signal, switch to Open Loop.");
 			}
-			/*
-			else {
-				basalPaused = false;
-				
-				// SharedPreferences
-				SharedPreferences.Editor edit = basalPauseSetting.edit();
-				edit.putBoolean("basalPaused", false);
-				edit.commit();
-				Debug.i(TAG, FUNC_TAG, "SharedPreferences: Enough CGM values, Basal not paused");
-			}
-			*/
 	    }
-		/*
-		else {
-			// SharedPreferences
-			boolean isPaused = basalPauseSetting.getBoolean("basalPaused", basalPaused);
-			long resumeBasalTime = basalPauseSetting.getLong("basalResumeTimeSeconds", basalPausedTime + basalPauseDuration*60);
-			Debug.i(TAG, FUNC_TAG, "SharedPreferences: Check if Basal Paused... "+isPaused);
-			
-			if (isPaused) {
-				long now = getCurrentTimeSeconds();
-				if (now > resumeBasalTime) {
-					Date d = new Date(now*1000);
-					
-					String desc = "Basal injection resumed after "+basalPauseDuration+" minutes of pause";
-					Bundle b = new Bundle();
-					b.putString("description", desc);
-					Event.addEvent(getApplicationContext(), Event.EVENT_BASAL_RESUMED, Event.makeJsonString(b), Event.SET_POPUP_VIBE);
-					
-					Debug.i(TAG, FUNC_TAG,desc+" on "+DateFormat.getDateTimeInstance().format(d));
-					
-					basalPaused = false;
-					basalPauseDuration = 0;
-					
-					// SharedPreferences
-					SharedPreferences.Editor edit = basalPauseSetting.edit();
-					edit.putBoolean("basalPaused", false);
-					edit.commit();
-					Debug.i(TAG, FUNC_TAG, "SharedPreferences: Time to resume");
-				}
-				else {
-					basalPaused = true;
-				}
-			}
-		}
-		*/
 	}
 	
-	private void updateDiasState(int clickType)
+	private void updateDiasState(int requestedMode, boolean isClick)
 	{
 		final String FUNC_TAG = "updateDiasState";
-		Debug.i(TAG, FUNC_TAG, "clickType="+clickType+", DIAS_STATE="+DIAS_STATE);
+		Debug.i(TAG, FUNC_TAG, "requested Mode="+requestedMode+", DIAS_STATE="+DIAS_STATE);
 		
 		int oldState = DIAS_STATE;
 		
 		//If we transition modes then we clear the recovery flag
-		if(clickType != DIAS_UI_CLICK_NULL)
-			clearRecoveryFlag();
+		clearRecoveryFlag();
 		
+		// TODO: Figure out whether we want to check 'Sensor Only' mode availability.
 		switch(DIAS_STATE) {
 			case State.DIAS_STATE_STOPPED:
-				if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
+				if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_CLOSED_LOOP && checkModeAvailability(State.DIAS_STATE_CLOSED_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
 				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
+				else if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_SAFETY_ONLY && checkModeAvailability(State.DIAS_STATE_SAFETY_ONLY, isClick)) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
 				}
-				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
+				else if (pumpReady() && requestedMode == State.DIAS_STATE_OPEN_LOOP && checkModeAvailability(State.DIAS_STATE_OPEN_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
 				}
-				else if (cgmReady() && clickType == DIAS_UI_START_SENSOR_ONLY_CLICK) {
+				else if (cgmReady() && requestedMode == State.DIAS_STATE_SENSOR_ONLY) {
 					changeDiasState(State.DIAS_STATE_SENSOR_ONLY);
 				}
 				break;
 			case State.DIAS_STATE_OPEN_LOOP:
-				if (!(pumpReady() /*&& batteryReady()*/)) {
-					changeDiasState(State.DIAS_STATE_STOPPED);
-				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
+				if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_CLOSED_LOOP && checkModeAvailability(State.DIAS_STATE_CLOSED_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
 				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
+				else if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_SAFETY_ONLY && checkModeAvailability(State.DIAS_STATE_SAFETY_ONLY, isClick)) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
 				}
-				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
+				else if(requestedMode == State.DIAS_STATE_SENSOR_ONLY)
 				{
 					if(cgmReady())
 					{
@@ -2648,7 +2617,10 @@ public class DiAsService extends Service
 						changeDiasState(State.DIAS_STATE_STOPPED);
 					}
 				}
-				else if (clickType == DIAS_UI_STOP_CLICK) {
+				else if (requestedMode == State.DIAS_STATE_STOPPED) {
+					changeDiasState(State.DIAS_STATE_STOPPED);
+				}
+				else if (!pumpReady()) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
 				}
 				break;
@@ -2659,13 +2631,13 @@ public class DiAsService extends Service
 					else
 						changeDiasState(State.DIAS_STATE_STOPPED);
 				}
-				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
+				else if (pumpReady() && requestedMode == State.DIAS_STATE_OPEN_LOOP && checkModeAvailability(State.DIAS_STATE_OPEN_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
 				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
+				else if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_SAFETY_ONLY && checkModeAvailability(State.DIAS_STATE_SAFETY_ONLY, isClick)) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
 				}
-				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
+				else if(requestedMode == State.DIAS_STATE_SENSOR_ONLY)
 				{
 					if(cgmReady())
 					{
@@ -2676,7 +2648,7 @@ public class DiAsService extends Service
 						changeDiasState(State.DIAS_STATE_STOPPED);
 					}
 				}
-				else if (clickType == DIAS_UI_STOP_CLICK) {
+				else if (requestedMode == State.DIAS_STATE_STOPPED) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
 				}
 				break;
@@ -2684,30 +2656,27 @@ public class DiAsService extends Service
 				if ( !(cgmReady())) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
 				}
-				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
+				else if (pumpReady() && requestedMode == State.DIAS_STATE_OPEN_LOOP && checkModeAvailability(State.DIAS_STATE_OPEN_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
 				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
+				else if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_CLOSED_LOOP && checkModeAvailability(State.DIAS_STATE_CLOSED_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
 				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_SAFETY_CLICK) {
+				else if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_SAFETY_ONLY && checkModeAvailability(State.DIAS_STATE_SAFETY_ONLY, isClick)) {
 					changeDiasState(State.DIAS_STATE_SAFETY_ONLY);
 				}
-				else if (clickType == DIAS_UI_STOP_CLICK) {
+				else if (requestedMode == State.DIAS_STATE_STOPPED) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
 				}
 				break;
 			case State.DIAS_STATE_SAFETY_ONLY:
-				if (!(pumpReady())) {
-					changeDiasState(State.DIAS_STATE_STOPPED);
-				}
-				else if (pumpReady() && clickType == DIAS_UI_START_OPEN_LOOP_CLICK) {
+				if (pumpReady() && requestedMode == State.DIAS_STATE_OPEN_LOOP && checkModeAvailability(State.DIAS_STATE_OPEN_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_OPEN_LOOP);
 				}
-				else if (pumpReady() && cgmReady() && clickType == DIAS_UI_START_CLOSED_LOOP_CLICK) {
+				else if (pumpReady() && cgmReady() && requestedMode == State.DIAS_STATE_CLOSED_LOOP && checkModeAvailability(State.DIAS_STATE_CLOSED_LOOP, isClick)) {
 					changeDiasState(State.DIAS_STATE_CLOSED_LOOP);
 				}
-				else if(clickType == DIAS_UI_START_SENSOR_ONLY_CLICK)
+				else if(requestedMode == State.DIAS_STATE_SENSOR_ONLY)
 				{
 					if(cgmReady())
 					{
@@ -2718,64 +2687,80 @@ public class DiAsService extends Service
 						changeDiasState(State.DIAS_STATE_STOPPED);
 					}
 				}
-				else if (clickType == DIAS_UI_STOP_CLICK) {
+				else if (requestedMode == State.DIAS_STATE_STOPPED) {
+					changeDiasState(State.DIAS_STATE_STOPPED);
+				}
+				else if (!(pumpReady())) {
 					changeDiasState(State.DIAS_STATE_STOPPED);
 				}
 				break;
 		}
 		
-		if (oldState != DIAS_STATE || clickType == DIAS_UI_CLICK_NULL) 
+		if (oldState != DIAS_STATE) 
 		{
-			Debug.i(TAG, FUNC_TAG, oldState+" => "+DIAS_STATE);
-	        
-	        if(oldState != DIAS_STATE)
-	        {
-	        	if((oldState == State.DIAS_STATE_STOPPED || oldState == State.DIAS_STATE_SENSOR_ONLY) && 
-	        			(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY))
-	        	{
-	        		sendTbrCommand(true);
-	        	}
-	        	else if((oldState == State.DIAS_STATE_CLOSED_LOOP || oldState == State.DIAS_STATE_OPEN_LOOP || oldState == State.DIAS_STATE_SAFETY_ONLY) &&
-        				(DIAS_STATE == State.DIAS_STATE_STOPPED || DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY))
-        		{
-	        		sendTbrCommand(false);
-        		}
-	        }
-	        
-	        //If the state changes then change the label in the notification bar
-			int stateColor=Color.rgb(255, 0, 0);
-			String stateText=" STOPPED ";
-			
-	    	switch(DIAS_STATE)
-	    	{
-		    	case State.DIAS_STATE_STOPPED:
-					stateText=" STOPPED ";
-					stateColor=Color.rgb(255, 0, 0);
-					break;
-				case State.DIAS_STATE_OPEN_LOOP:
-					stateText= " PUMP MODE ";
-					stateColor= Color.rgb(0, 128, 255);
-					break;
-				case State.DIAS_STATE_CLOSED_LOOP:
-					stateText=" CLOSED ";
-					stateColor= Color.rgb(0, 255, 0);
-					break;
-				case State.DIAS_STATE_SAFETY_ONLY:
-					stateText= " SAFETY ";
-					stateColor=Color.rgb(186, 85, 211);
-					break;
-				case State.DIAS_STATE_SENSOR_ONLY:
-					stateText= " SENSOR ";
-					stateColor= Color.rgb(255, 255, 0);
-					break;
-	    	}
-	    	
-	    	Intent controllerState = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
-	    	controllerState.putExtra("id", 6);
-	    	controllerState.putExtra("text", stateText);
-	    	controllerState.putExtra("color", stateColor);
-	    	sendBroadcast(controllerState);
+			updateTbr(oldState);
 		}
+		
+		updateBarIcon();
+	}
+	
+	
+	private void updateTbr(int oldState)
+	{
+		final String FUNC_TAG = "updateTbr";
+		Debug.i(TAG, FUNC_TAG, oldState+" => "+DIAS_STATE);
+        
+        if(oldState != DIAS_STATE)
+        {
+        	if((oldState == State.DIAS_STATE_STOPPED || oldState == State.DIAS_STATE_SENSOR_ONLY) && 
+        			(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_OPEN_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY))
+        	{
+        		sendTbrCommand(true);
+        	}
+        	else if((oldState == State.DIAS_STATE_CLOSED_LOOP || oldState == State.DIAS_STATE_OPEN_LOOP || oldState == State.DIAS_STATE_SAFETY_ONLY) &&
+    				(DIAS_STATE == State.DIAS_STATE_STOPPED || DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY))
+    		{
+        		sendTbrCommand(false);
+    		}
+        }
+	}
+	
+	
+	private void updateBarIcon()
+	{
+		//If the state changes then change the label in the notification bar
+		int stateColor=Color.rgb(255, 0, 0);
+		String stateText=" STOPPED ";
+		
+    	switch(DIAS_STATE)
+    	{
+	    	case State.DIAS_STATE_STOPPED:
+				stateText=" STOPPED ";
+				stateColor=Color.rgb(255, 0, 0);
+				break;
+			case State.DIAS_STATE_OPEN_LOOP:
+				stateText= " PUMP MODE ";
+				stateColor= Color.rgb(0, 128, 255);
+				break;
+			case State.DIAS_STATE_CLOSED_LOOP:
+				stateText=" CLOSED ";
+				stateColor= Color.rgb(0, 255, 0);
+				break;
+			case State.DIAS_STATE_SAFETY_ONLY:
+				stateText= " SAFETY ";
+				stateColor=Color.rgb(186, 85, 211);
+				break;
+			case State.DIAS_STATE_SENSOR_ONLY:
+				stateText= " SENSOR ";
+				stateColor= Color.rgb(255, 255, 0);
+				break;
+    	}
+    	
+    	Intent controllerState = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
+    	controllerState.putExtra("id", 6);
+    	controllerState.putExtra("text", stateText);
+    	controllerState.putExtra("color", stateColor);
+    	sendBroadcast(controllerState);
 	}
 	
 	// ******************************************************************************************************************************
@@ -3639,10 +3624,50 @@ public class DiAsService extends Service
 		c.close();
 	}    
 	
+	
+	private boolean checkModeAvailability(int mode, boolean popup)
+	{
+		boolean result = false;
+		Calendar now = Calendar.getInstance();
+		now.setTimeInMillis(getCurrentTimeSeconds()*1000);
+		int now_minutes = 60*now.get(Calendar.HOUR_OF_DAY) + now.get(Calendar.MINUTE);
+		
+		switch (mode) {
+			case State.DIAS_STATE_STOPPED:
+			case State.DIAS_STATE_SENSOR_ONLY: result = true; break;
+			case State.DIAS_STATE_OPEN_LOOP: result = Mode.isPumpModeAvailable(getContentResolver()); break;
+			case State.DIAS_STATE_SAFETY_ONLY: result = Mode.isSafetyModeAvailable(getContentResolver()); break;
+			case State.DIAS_STATE_CLOSED_LOOP: result = Mode.isClosedLoopAvailable(getContentResolver(), now_minutes); break;
+			default: break;
+		}
+		
+		if (!result && popup) {
+			Bundle b = new Bundle(); 
+			b.putString("description", "This Mode is not available right now. Please check the parameters or controllers status.");
+			Event.addEvent(this, Event.EVENT_MODE_NOT_AVAILABLE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
+		}
+		
+		return result;
+	}
+	
+	
 	// ******************************************************************************************************************************
 	// MISC FUNCTIONS
 	// ******************************************************************************************************************************
-
+	
+	private int getModeFromClickCommand(int clickType)
+	{
+		switch (clickType) {
+			case DIAS_SERVICE_COMMAND_START_CLOSED_LOOP_CLICK:		return State.DIAS_STATE_CLOSED_LOOP;
+			case DIAS_SERVICE_COMMAND_START_SAFETY_CLICK:			return State.DIAS_STATE_SAFETY_ONLY;
+			case DIAS_SERVICE_COMMAND_START_OPEN_LOOP_CLICK:		return State.DIAS_STATE_OPEN_LOOP;
+			case DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK:		return State.DIAS_STATE_SENSOR_ONLY;
+			case DIAS_SERVICE_COMMAND_STOP_CLICK:
+			default:									return State.DIAS_STATE_STOPPED;
+		}
+	}
+	
+	
 	private int timeNowInMinutes()
 	{
 		TimeZone tz = TimeZone.getDefault();

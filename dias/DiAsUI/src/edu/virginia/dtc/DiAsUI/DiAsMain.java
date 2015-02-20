@@ -1609,10 +1609,12 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(buttonStartTemporaryBasal, Button.INVISIBLE);
  	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
  	   			checkVisible(buttonHypoTreatment, Button.INVISIBLE);
- 	   			checkVisible(buttonSensorOnly, Button.GONE);
- 	   			checkVisible(buttonOpenLoop, Button.INVISIBLE);
- 	   			checkVisible(buttonSafety, Button.INVISIBLE);
+ 	   		
  	   			checkVisible(buttonClosedLoop, Button.INVISIBLE);
+ 	   			checkVisible(buttonSafety, Button.INVISIBLE);
+ 	   			checkVisible(buttonOpenLoop, Button.INVISIBLE);
+ 	   			checkVisible(buttonSensorOnly, Button.GONE);
+ 	   			
  	   			checkVisible(buttonPlots, Button.INVISIBLE);
  	   			checkVisible(buttonExercise, ToggleButton.INVISIBLE);
  	   			
@@ -1630,7 +1632,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   						checkVisible(buttonClosedLoop, Button.VISIBLE);
  	   					else
  	   						checkVisible(buttonClosedLoop, Button.INVISIBLE);
- 	   					if(ClosedLoopEnabled)
+ 	   					if(SafetyModeEnabled)
  	   						checkVisible(buttonSafety, Button.VISIBLE);
  	   					else
  	   						checkVisible(buttonSafety, Button.INVISIBLE);
@@ -1655,9 +1657,12 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(frame2, FrameLayout.VISIBLE);
  	   			checkVisible(frame3, FrameLayout.INVISIBLE);
  	   			checkVisible(frame4, FrameLayout.VISIBLE);
- 	   			checkVisible(buttonSensorOnly, Button.GONE);
- 	   			checkVisible(buttonSafety, Button.VISIBLE);
+ 	   			
  	   			checkVisible(buttonClosedLoop, Button.GONE);
+ 	   			if (SafetyModeEnabled) checkVisible(buttonSafety, Button.VISIBLE);
+	   			if (PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
+	   			checkVisible(buttonSensorOnly, Button.GONE);
+ 	   			checkVisible(buttonStop, Button.VISIBLE);
  	   			
 	   			if (EXERCISING)
 	   			{
@@ -1693,8 +1698,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	   			checkVisible(infoCGMStatus, LinearLayout.VISIBLE);
 	   			checkVisible(infoExtra, LinearLayout.VISIBLE);
 	   			checkVisible(buttonPlots, Button.VISIBLE);
-	   			if(PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
-	   			checkVisible(buttonStop, Button.VISIBLE);
+	   			
 				break;
  	   		case State.DIAS_STATE_SAFETY_ONLY:
  	   			checkVisible(frame1, FrameLayout.VISIBLE);
@@ -1704,10 +1708,11 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(infoScreen, LinearLayout.VISIBLE);
  	   			checkVisible(infoCGMStatus, LinearLayout.VISIBLE);
  	   			checkVisible(infoExtra, LinearLayout.VISIBLE);
- 	   			checkVisible(buttonSensorOnly, Button.GONE);
- 	   			checkVisible(buttonOpenLoop, Button.VISIBLE);
+ 	   			
+ 	   			if (ClosedLoopEnabled) checkVisible(buttonClosedLoop, Button.VISIBLE);
  	   			checkVisible(buttonSafety, Button.GONE);
- 	   			checkVisible(buttonClosedLoop, Button.VISIBLE);
+ 	   			if(PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
+ 	   			checkVisible(buttonSensorOnly, Button.GONE);
  	   			checkVisible(buttonStop, Button.VISIBLE);
  	   			
  	   			if (EXERCISING){
@@ -1792,11 +1797,10 @@ public class DiAsMain extends Activity implements OnGestureListener {
  						checkVisible(buttonClosedLoop, Button.VISIBLE);
  					else
  						checkVisible(buttonClosedLoop, Button.INVISIBLE);
-	   				if(ClosedLoopEnabled)
+	   				if(SafetyModeEnabled)
 	   					checkVisible(buttonSafety, Button.VISIBLE);
 	   				else
 	   					checkVisible(buttonSafety, Button.INVISIBLE);
-	   				
  				}
  				else {
 					checkVisible(buttonClosedLoop, Button.INVISIBLE);
@@ -1828,7 +1832,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	   				{
 	   					Debug.i(TAG, FUNC_TAG, "=== Pump+CGM in Sensor Only");
 	   					if(ClosedLoopEnabled) checkVisible(buttonClosedLoop, Button.VISIBLE);
-	   					if(ClosedLoopEnabled) checkVisible(buttonSafety, Button.VISIBLE);
+	   					if(SafetyModeEnabled) checkVisible(buttonSafety, Button.VISIBLE);
 	   				}
 	   			}
 	   			else if (cgmReady())

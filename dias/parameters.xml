@@ -85,7 +85,12 @@
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
     <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>
     <parameter name="audible_alarms" value="true" type="boolean"> </parameter>
-    <parameter name="audible_alarms_threshold" value="0" type="int"> </parameter>
+    <!--
+     Audible Alarms Threshold:
+     0: Hypo Only
+     1: All Events
+     -->
+    <parameter name="audible_alarms_threshold" value="1" type="int"> </parameter>
     <parameter name="vibrate_alarms" value="true" type="boolean"> </parameter>
     <parameter name="night_screen_enabled" value="false" type="boolean"> </parameter>
     <parameter name="dwm_address_default" value="https://dwm.med.virginia.edu/staging" type="string"> </parameter>
@@ -139,6 +144,6 @@
   
     <parameter name="temporaryBasalRateEnabled" value="false" type="boolean"> </parameter>
     
-    <parameter name="collectBatteryStats" value="true" type="boolean"> </parameter>
+    <parameter name="collectBatteryStats" value="false" type="boolean"> </parameter>
     <parameter name="collectBatteryStatsInterval" value="15" type="int"> </parameter>
 </parameters_list>

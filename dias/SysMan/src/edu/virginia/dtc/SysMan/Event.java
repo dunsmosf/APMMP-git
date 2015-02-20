@@ -62,6 +62,8 @@ public class Event{
 	public static final int EVENT_BEGIN_EXERCISE 						= 325;
 	public static final int EVENT_END_EXERCISE 							= 326;
 	
+	public static final int EVENT_MODE_NOT_AVAILABLE					= 330;
+	
 	public static final int EVENT_UNKNOWN_MODE 							= 339;
 	
 	public static final int EVENT_BASAL_PAUSED							= 340;
@@ -96,6 +98,9 @@ public class Event{
 	public static final int EVENT_APC_ERROR 							= 700;
 	public static final int EVENT_APC_RESPONSE 							= 701;
 	public static final int EVENT_APC_DEAD								= 702;
+	
+	public static final int EVENT_UCSB_HMS_FAILURE						= 750;
+	public static final int EVENT_UCSB_MPC_FAILURE						= 751;
 
 	public static final int EVENT_BRM_ERROR 							= 800;
 	public static final int EVENT_BRM_RESPONSE 							= 801;
@@ -165,6 +170,7 @@ public class Event{
 			case EVENT_SENSOR_MODE: return "Switched to SENSOR mode";
 			case EVENT_BEGIN_EXERCISE: return "Exercise begun";
 			case EVENT_END_EXERCISE: return "Exercise ended";
+			case EVENT_MODE_NOT_AVAILABLE: return "Mode not available";
 			case EVENT_UNKNOWN_MODE: return "Switched to UNKNOWN mode";
 
 			case EVENT_SYSTEM_ERROR: return "System Error";
@@ -187,6 +193,9 @@ public class Event{
 				
 			case EVENT_APC_ERROR: return "APC Error";
 			case EVENT_APC_RESPONSE: return "APC Response";
+			
+			case EVENT_UCSB_HMS_FAILURE: return "UCSB HMS Failure";
+			case EVENT_UCSB_MPC_FAILURE: return "UCSB MPC Failure";
 				
 			case EVENT_BRM_ERROR: return "BRM Error";
 			case EVENT_BRM_RESPONSE: return "BRM Response";

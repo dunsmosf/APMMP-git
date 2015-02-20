@@ -1,8 +1,6 @@
 package edu.virginia.dtc.SysMan;
 
 import android.content.ContentResolver;
-import android.database.Cursor;
-import android.net.Uri;
 import edu.virginia.dtc.Tvector.Tvector;
 
 public class Mode {
