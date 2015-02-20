@@ -8,22 +8,21 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.SysMan;
 
+import android.content.Context;
+import android.database.Cursor;
 import edu.virginia.dtc.Tvector.Pair;
 import edu.virginia.dtc.Tvector.Tvector;
 
 public class DiAsSubjectData extends Object	
 {
-	final static String TAG = "DiAsSetup1";
+	final static String TAG = "DiAsSubjectData";
 	
 	// Default remote monitoring URI
-	public static final String REMOTE_MONITORING_URI = "https://";
 	public static final String PROFILE_CHANGE = "edu.virginia.dtc.DIASSETUP_PROFILE_CHANGED";
 	
 	// Storage for subject session parameters
 	//---------------------------------------------
 	// - DiAsSetup 1
-	public boolean realTime;
-	public String remoteMonitoringURI;
    	public String subjectName, subjectSession;
    	public int subjectAIT, subjectWeight, subjectHeight, subjectAge;
    	public double subjectTDI;
@@ -47,13 +46,10 @@ public class DiAsSubjectData extends Object
    	public boolean subjectCFValid;
    	public boolean subjectCRValid;
    	public boolean subjectBasalValid;
-	public boolean subjectSafetyValid;
+	public boolean subjectTimeRangeValid;
 
    	public DiAsSubjectData() 
-   	{
-   		remoteMonitoringURI = new String(REMOTE_MONITORING_URI);
-   		realTime = true;
-   		
+   	{	
    		//Subject Data parameters
    		//------------------------------
    		subjectName = new String("");
@@ -84,8 +80,61 @@ public class DiAsSubjectData extends Object
    		subjectCFValid = false;
    		subjectCRValid = false;
    		subjectBasalValid = false;
-   		subjectSafetyValid = false;
+   		subjectTimeRangeValid = false;
    	}
+   	
+   	public static DiAsSubjectData readDiAsSubjectData(Context ctx) {
+		DiAsSubjectData subject_data = new DiAsSubjectData();
+		
+		Cursor c = ctx.getContentResolver().query(Biometrics.SUBJECT_DATA_URI, null, null, null, null);
+		Debug.i(TAG, "readDiAsSubjectData", "Retrieved SUBJECT_DATA_URI with " + c.getCount() + " items");
+		
+		if (c.moveToLast()) {
+			subject_data.subjectName = new String(c.getString(c.getColumnIndex("subjectid")));
+			subject_data.subjectSession = new String(c.getString(c.getColumnIndex("session")));
+			subject_data.subjectWeight = (c.getInt(c.getColumnIndex("weight")));
+			subject_data.subjectHeight = (c.getInt(c.getColumnIndex("height")));
+			subject_data.subjectAge = (c.getInt(c.getColumnIndex("age")));
+			subject_data.subjectTDI = (c.getInt(c.getColumnIndex("TDI")));
+			subject_data.subjectAIT = 4; // Force AIT == 4 for safety
+
+			int isfemale = c.getInt(c.getColumnIndex("isfemale"));
+			if (isfemale == 1)
+				subject_data.subjectFemale = true;
+			else
+				subject_data.subjectFemale = false;
+
+			// Set flags
+			subject_data.subjectNameValid = true;
+			subject_data.subjectSessionValid = true;
+			subject_data.weightValid = true;
+			subject_data.heightValid = true;
+			subject_data.ageValid = true;
+			subject_data.TDIValid = true;
+			subject_data.AITValid = true;
+		}
+		else
+			return null;
+		
+		c.close();
+		
+		if (Tvector.readTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, ctx.getContentResolver()))
+			subject_data.subjectCFValid = true;
+		else
+			return null;
+		if (Tvector.readTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, ctx.getContentResolver()))
+			subject_data.subjectCRValid = true;
+		else
+			return null;
+		if (Tvector.readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, ctx.getContentResolver()))
+			subject_data.subjectBasalValid = true;
+		else
+			return null;
+		if (Tvector.readTvector(subject_data.subjectSafety, Biometrics.SAFETY_PROFILE_URI, ctx.getContentResolver()))
+			subject_data.subjectTimeRangeValid = true;
+		
+		return subject_data;
+	}
    	
    	public static void print(String LOCAL_TAG, DiAsSubjectData base)
    	{

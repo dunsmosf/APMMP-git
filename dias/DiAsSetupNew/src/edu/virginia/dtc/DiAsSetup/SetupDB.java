@@ -25,8 +25,7 @@ public class SetupDB extends SQLiteOpenHelper
 	    "create table " + Biometrics.SUBJECT_DATA_TABLE_NAME +
 	    " (_id integer primary key autoincrement, "
 	    + "subjectid text not null, session text not null, weight int not null, height int not null, age int not null, TDI int not null, " +
-	    "isfemale int not null, AIT int not null, realtime int not null, " +
-	    "SafetyOnlyModeIsEnabled int not null, insulinSetupComplete int not null,"
+	    "isfemale int not null, AIT int not null, insulinSetupComplete int not null,"
 	    + "send_attempts_server int, received_server boolean);";
 	
     private static final String DATABASE_TABLE_CF_PROFILE_CREATE =
@@ -107,18 +106,6 @@ public class SetupDB extends SQLiteOpenHelper
 				subject_data.subjectFemale = true;
 			else
 				subject_data.subjectFemale = false;
-
-			int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
-			if (SafetyOnlyModeIsEnabled == 1)
-				subject_data.subjectSafetyValid = true;
-			else
-				subject_data.subjectSafetyValid = false;
-
-			int realtime = c.getInt(c.getColumnIndex("realtime"));
-			if (realtime == 1)
-				subject_data.realTime = true;
-			else
-				subject_data.realTime = false;
 		}
 		c.close();
 		
@@ -129,7 +116,7 @@ public class SetupDB extends SQLiteOpenHelper
 		if (readTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_TABLE_NAME))
 			subject_data.subjectBasalValid = true;
 		if (readTvector(subject_data.subjectSafety, Biometrics.SAFETY_PROFILE_TABLE_NAME))
-			subject_data.subjectSafetyValid = true;
+			subject_data.subjectTimeRangeValid = true;
 		c.close();
 		
 		return subject_data;
@@ -167,19 +154,7 @@ public class SetupDB extends SQLiteOpenHelper
 		} else {
 			values.put("isfemale", 0);
 		}
-		
-		if (subject_data.subjectSafetyValid) {
-			values.put("SafetyOnlyModeIsEnabled", 1);
-		} else {
-			values.put("SafetyOnlyModeIsEnabled", 0);
-		}
-		
-		if (subject_data.realTime) {
-			values.put("realtime", 1);
-		} else {
-			values.put("realtime", 0);
-		}
-		
+
 		values.put("AIT", subject_data.subjectAIT);
 		values.put("insulinSetupComplete", (subject_data.subjectCFValid && subject_data.subjectCRValid && subject_data.subjectBasalValid) ? 1 : 0);
 

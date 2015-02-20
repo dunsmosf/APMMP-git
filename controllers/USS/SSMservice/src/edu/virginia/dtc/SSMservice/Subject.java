@@ -115,17 +115,17 @@ public class Subject extends Object	{
 				else
 					subjectFemale = false;
 
-				int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
-				if (SafetyOnlyModeIsEnabled == 1)
-					subjectSafetyValid = true;
-				else
-					subjectSafetyValid = false;
-
-				int realtime = c.getInt(c.getColumnIndex("realtime"));
-				if (realtime == 1)
-					realTime = true;
-				else
-					realTime = false;
+//				int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
+//				if (SafetyOnlyModeIsEnabled == 1)
+//					subjectSafetyValid = true;
+//				else
+//					subjectSafetyValid = false;
+//
+//				int realtime = c.getInt(c.getColumnIndex("realtime"));
+//				if (realtime == 1)
+//					realTime = true;
+//				else
+//					realTime = false;
 
 				// Set flags
 				subjectNameValid = true;

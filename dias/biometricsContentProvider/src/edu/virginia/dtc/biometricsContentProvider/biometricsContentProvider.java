@@ -109,9 +109,8 @@ public class biometricsContentProvider extends ContentProvider {
     private static final String DATABASE_TABLE_SUBJECT_DATA_CREATE =
     "create table " + Biometrics.SUBJECT_DATA_TABLE_NAME +
     " (_id integer primary key autoincrement, "
-    + "subjectid text not null, session text not null, weight int not null, height int not null, age int not null, TDI int not null, " +
-    "isfemale int not null, AIT int not null, realtime int not null, " +
-    "SafetyOnlyModeIsEnabled int not null, insulinSetupComplete int not null,"
+    + "subjectid text not null, session text not null, weight int not null, height int not null, age int not null, TDI int not null, "
+    + "isfemale int not null, AIT int not null, insulinSetupComplete int not null,"
     + "send_attempts_server int, received_server boolean);";
     
     private static final String DATABASE_TABLE_CF_PROFILE_CREATE =

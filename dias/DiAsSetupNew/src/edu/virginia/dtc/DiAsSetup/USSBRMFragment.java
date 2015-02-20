@@ -244,7 +244,7 @@ public class USSBRMFragment extends ProfileFragment {
 	public void buildProfile() {
 		int ii, t, t2;
 		profileList.clear();
-		if (DiAsSetup1.local_sd.subjectSafetyValid) {
+		if (DiAsSetup1.local_sd.subjectTimeRangeValid) {
 			for (ii = 0; ii < DiAsSetup1.local_sd.subjectSafety.count(); ii++) {
 				t = DiAsSetup1.local_sd.subjectSafety.get_time(ii).intValue();
 				t2 = DiAsSetup1.local_sd.subjectSafety.get_end_time(ii).intValue();
@@ -288,7 +288,7 @@ public class USSBRMFragment extends ProfileFragment {
 				}
 			}
 			DiAsSetup1.local_sd.subjectSafety.put_time_range_with_replace(startMinutes, endMinutes);
-			DiAsSetup1.local_sd.subjectSafetyValid = true;
+			DiAsSetup1.local_sd.subjectTimeRangeValid = true;
 			Debug.i(TAG, FUNC_TAG,"addItemToProfile, startMinutes=" + startMinutes + ", endMinutes=" + endMinutes);
 			buildProfile();
 			displayProfile();
@@ -327,7 +327,7 @@ public class USSBRMFragment extends ProfileFragment {
 		if (DiAsSetup1.local_sd.subjectSafety.count() > 0 && profileLineSelected < DiAsSetup1.local_sd.subjectSafety.count()) {
 			DiAsSetup1.local_sd.subjectSafety.remove(profileLineSelected);
 			if (DiAsSetup1.local_sd.subjectSafety.count() == 0) {
-				DiAsSetup1.local_sd.subjectSafetyValid = false;
+				DiAsSetup1.local_sd.subjectTimeRangeValid = false;
 			}
 			buildProfile();
 			displayProfile();
@@ -341,7 +341,7 @@ public class USSBRMFragment extends ProfileFragment {
 	public void clearConfirm() {
 		DiAsSetup1.local_sd.subjectSafety.init();
 		profileLineSelected = 0;
-		DiAsSetup1.local_sd.subjectSafetyValid = false;
+		DiAsSetup1.local_sd.subjectTimeRangeValid = false;
 		buildProfile();
 		displayProfile();
 		main.updateDisplay();
