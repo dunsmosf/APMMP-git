@@ -108,12 +108,7 @@ public class IOMain extends Service {
 					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_CALCULATE_STATE");
 					Bundle paramBundle = msg.getData();
 					boolean asynchronous = paramBundle.getBoolean("asynchronous");
-					long corrFlagTime = paramBundle.getLong("corrFlagTime", 0);
-					long hypoFlagTime = paramBundle.getLong("hypoFlagTime", 0);
-					long calFlagTime = paramBundle.getLong("calFlagTime", 0);
-					long mealFlagTime = paramBundle.getLong("mealFlagTime", 0);
 					int DIAS_STATE = paramBundle.getInt("DIAS_STATE", 0);
-					double tick_modulus = paramBundle.getInt("tick_modulus", 0);
 
 					// Log the parameters for IO testing
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -121,12 +116,7 @@ public class IOMain extends Service {
                 		b.putString(	"description", "DIAsService >> (APC), IO_TEST"+", "+FUNC_TAG+", "+
                 						"APC_SERVICE_CMD_CALCULATE_STATE"+", "+
                 						"asynchronous="+asynchronous+", "+
-                						"corrFlagTime="+corrFlagTime+", "+
-                						"calFlagTime="+calFlagTime+", "+
-                						"hypoFlagTime="+hypoFlagTime+", "+
-                						"mealFlagTime="+mealFlagTime+", "+
-                						"DIAS_STATE="+DIAS_STATE+", "+
-                						"tick_modulus="+tick_modulus
+                						"DIAS_STATE="+DIAS_STATE
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 					}
@@ -175,16 +165,10 @@ public class IOMain extends Service {
                 						"APC_PROCESSING_STATE_NORMAL"+", "+
                 						"doesBolus="+responseBundle.getBoolean("doesBolus")+", "+
                 						"doesRate="+responseBundle.getBoolean("doesRate")+", "+
-                						"doesCredit="+responseBundle.getBoolean("doesCredit")+", "+
                 						"recommended_bolus="+responseBundle.getDouble("recommended_bolus")+", "+
-                						"creditRequest="+responseBundle.getDouble("creditRequest")+", "+
-                						"spendRequest="+responseBundle.getDouble("spendRequest")+", "+
                 						"new_differential_rate="+responseBundle.getBoolean("new_differential_rate")+", "+
                 						"differential_basal_rate="+responseBundle.getDouble("differential_basal_rate")+", "+
-                						"IOB="+responseBundle.getDouble("IOB")+", "+
-                						"extendedBolus="+responseBundle.getDouble("extendedBolus")+", "+
-                						"extendedBolusMealInsulin="+responseBundle.getDouble("extendedBolusMealInsulin")+", "+
-                						"extendedBolusCorrInsulin="+responseBundle.getDouble("extendedBolusCorrInsulin")
+                						"IOB="+responseBundle.getDouble("IOB")
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
         			}        			
@@ -194,7 +178,7 @@ public class IOMain extends Service {
 					
 					// Send response to DiAsService
 					response.setData(responseBundle);
-					sendMessage(response);
+					sendResponse(response);
 					break;
 				default:
 					super.handleMessage(msg);
@@ -202,7 +186,7 @@ public class IOMain extends Service {
         }
     }
 	
-	private void sendMessage(Message m)
+	private void sendResponse(Message m)
 	{
 		final String FUNC_TAG = "sendMessage";
 		
