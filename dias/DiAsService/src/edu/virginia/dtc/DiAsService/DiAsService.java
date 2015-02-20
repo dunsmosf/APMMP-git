@@ -135,7 +135,6 @@ public class DiAsService extends Service
 	private double nextSimulatedPumpValue = 0.0;								// Used to handle simulated pump input from a file
 	private int Timer_Ticks_Per_Control_Tick = 1;								// Multiple of SupervisorService algorithm ticks that is counted to before calling APController
 	private long Supervisor_Tick_Free_Running_Counter = 0;						// A free running counter incremented on each Supervisor Algorithm Tick
-	private int Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = 3;
 	
 	// BRM hour parameters from Subject Information
 	private boolean brmEnabled = true;
@@ -871,9 +870,6 @@ public class DiAsService extends Service
 		
         // Initialize some values
         Supervisor_Tick_Free_Running_Counter = 0;
-        
-        // where a user (or more likely a tester) requests a meal before the RCM has run.
-        Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = 3;
         
         Apc = new Controller("APC");
         Brm = new Controller("BRM");

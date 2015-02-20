@@ -33,9 +33,7 @@ public class Subject {
 	
 	private static final String TAG = "HMSservice";
 
-	public Subject() 
-	{
-		
+	public Subject() {
 	}
 	
 	public boolean read(Context calling_context) {

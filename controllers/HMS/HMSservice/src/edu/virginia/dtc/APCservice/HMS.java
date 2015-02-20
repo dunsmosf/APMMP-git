@@ -175,9 +175,8 @@ public class HMS {
 			if (!c.isNull(c.getColumnIndex("status"))) {
 				requested_meal_time = c.getLong(c.getColumnIndex("req_time"));
 				status = c.getInt(c.getColumnIndex("status"));
-				if (((getCurrentTimeSeconds()-requested_meal_time) < (duration*60)) && ((status==Pump.PENDING) || (status==Pump.DELIVERING))) {
+				if (((getCurrentTimeSeconds()-requested_meal_time) < (duration*60)) && ((status==Pump.PENDING) || (status==Pump.DELIVERING)))
 					return_value = true;
-				}				
 			}			
 		}
 		else {
