@@ -33,7 +33,7 @@ public class HMS {
     
     private static long MINIMUM_TIME_BETWEEN_CORRECTIONS_MINS = 60;
     
-	private static final int CGM_WINDOW_SIZE_SEC = 62*60;		// Accommodate 8 data points: 60 minute window with 2 minutes of margin
+	private static final int CGM_WINDOW_SIZE_SEC = 62*60;		// 12 data points
 
 	private Context context;
 	public Subject subject;
@@ -208,6 +208,8 @@ public class HMS {
 			Gpred = c.getDouble(c.getColumnIndex("Gpred"));			//AKA Gest
 			Gpred_30m = c.getDouble(c.getColumnIndex("Gbrakes"));	//AKA Gpred_30m
 			c.close();
+			
+			Debug.i(TAG, FUNC_TAG, "IOB: "+Iob+" Gpred: "+Gpred+" Gpred_30m: "+Gpred_30m);
 			return true;
 		}
 		else {

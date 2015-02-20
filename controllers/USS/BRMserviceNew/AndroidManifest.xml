@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      android:versionCode="1"
+      android:versionName="1.0" 
+      package="edu.virginia.dtc.BRMservice"
+      android:installLocation="preferExternal">
+      <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="15" />
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+      
+    	<supports-screens android:resizeable="true"
+                  android:smallScreens="true"
+                  android:normalScreens="true"
+                  android:largeScreens="true"
+                  android:anyDensity="true"/>	
+<permission android:name="edu.read"></permission>
+<uses-permission android:name="edu.read"></uses-permission>
+<permission android:name="edu.write"></permission>
+<uses-permission android:name="edu.write"/>
+    <application android:icon="@drawable/icon" android:label="@string/app_name">
+        
+        <activity android:label="Alarm Screen"
+                  android:configChanges="orientation|keyboardHidden" 
+                  android:name="edu.virginia.dtc.BRMservice.MDI_Activity"  
+                  android:screenOrientation="sensorLandscape"
+                  android:theme="@style/alarmScreenTheme">
+            <intent-filter> 
+                <action android:name="android.intent.action.MAIN"></action> 
+            </intent-filter>
+        </activity>
+        
+        <activity android:label="Basal Rate Modulator Screen"
+                  
+                  
+                  android:name="BRM_param_activity"  
+                  android:screenOrientation="sensorLandscape"
+         
+                  android:theme="@style/MealScreenTheme">     
+            <intent-filter> 
+                <action android:name="edu.virginia.dtc.DiAsUI.parametersAction"></action> 
+            </intent-filter>    
+        </activity>
+        
+        <service
+		 	android:name="edu.virginia.dtc.BRMservice.IOMain"
+		 	android:exported="true"
+		 	android:enabled="true" >
+            <intent-filter>
+                <action android:name="DiAs.BRMservice" />
+            </intent-filter>
+		</service>
+        
+		<meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
+        
+   </application>
+   <uses-permission android:name="android.permission.WAKE_LOCK" />
+</manifest>
