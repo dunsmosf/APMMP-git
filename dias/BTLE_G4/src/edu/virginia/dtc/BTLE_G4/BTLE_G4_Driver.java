@@ -535,8 +535,7 @@ public class BTLE_G4_Driver extends Service {
 					Debug.i(TAG, FUNC_TAG, "EGV device data index=" + d.data_index + " Record list size: "+egvRecordList.size());
 					showToast("EGV device data index=" + d.data_index);
 					
-					if(m_receiverService.systemOffset > 0)
-						Debug.e(TAG, FUNC_TAG, "System Offset: "+m_receiverService.systemOffset);
+					Debug.i(TAG, FUNC_TAG, "System Offset: "+m_receiverService.systemOffset);
 					
 					while (d.data_index < egvRecordList.size()) 
 					{
@@ -553,7 +552,7 @@ public class BTLE_G4_Driver extends Service {
 						Debug.i(TAG, FUNC_TAG, "-----------------------------------------------------------------");
 						
 						// Return new CGM data from Dexcom to service
-						if(m_receiverService.systemOffset > 0)
+						if(m_receiverService.systemOffsetReady)
 							time = (record.SystemTime.getTime()/1000) + m_receiverService.systemOffset;
 						else
 							time = record.DisplayTime.getTime()/1000;
