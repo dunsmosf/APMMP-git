@@ -60,6 +60,7 @@ import android.widget.Toast;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.CGM;
 import edu.virginia.dtc.SysMan.Constraints;
+import edu.virginia.dtc.SysMan.Controllers;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
@@ -112,16 +113,6 @@ public class DiAsService extends Service
 	// MDI_Activity status returns
 	private static final int MDI_ACTIVITY_STATUS_SUCCESS = 0;
 	private static final int MDI_ACTIVITY_STATUS_TIMEOUT = -1;
-
-	// APCservice commands
-	private static final int APC_SERVICE_CMD_START_SERVICE = 1;
-	private static final int APC_SERVICE_CMD_REGISTER_CLIENT = 2;
-	private static final int APC_SERVICE_CMD_CALCULATE_STATE = 3;
-	
-    // APCservice return values
-    private static final int APC_PROCESSING_STATE_NORMAL = 10;
-    private static final int APC_PROCESSING_STATE_ERROR = -11;
-    private static final int APC_CONFIGURATION_PARAMETERS = 12;
 
 	//********************************************************************************************************
 	// VARIABLES
@@ -491,7 +482,7 @@ public class DiAsService extends Service
         	Bundle APCBundle;
         	
             switch (msg.what) {
-        		case APC_PROCESSING_STATE_NORMAL:
+        		case Controllers.APC_PROCESSING_STATE_NORMAL:
 					APCBundle = msg.getData();
 					double APC_IOB = APCBundle.getDouble("IOB", 0.0);
 					Apc.doesBolus = APCBundle.getBoolean("doesBolus", false);
@@ -537,29 +528,6 @@ public class DiAsService extends Service
 					
                 	changeSyncState(FSM.APC_RESPONSE);
         			break;
-        		case APC_PROCESSING_STATE_ERROR:
-	    			Debug.i(TAG, FUNC_TAG, "APC_PROCESSING_STATE_ERROR");
-	    			break;
-	           	case APC_CONFIGURATION_PARAMETERS:
-					APCBundle = msg.getData();
-					Timer_Ticks_Per_Control_Tick = APCBundle.getInt("Timer_Ticks_Per_Control_Tick", 1);
-					Timer_Ticks_To_Next_Meal_From_Last_Rate_Change = APCBundle.getInt("Timer_Ticks_To_Next_Meal_From_Last_Rate_Change", 3);
-					Supervisor_Tick_Free_Running_Counter = 0;
-					
-        			// Log the parameters for IO testing
-        			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-                		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "APC >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_CONFIGURATION_PARAMETERS"+
-        								"Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick+", "+
-        								"Timer_Ticks_To_Next_Meal_From_Last_Rate_Change="+Apc.correction+", "+
-        								"creditRequest="+Timer_Ticks_To_Next_Meal_From_Last_Rate_Change
-                					);
-                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-        			}        			
-					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_Per_Control_Tick="+Timer_Ticks_Per_Control_Tick);
-					Debug.i(TAG, FUNC_TAG, "Timer_Ticks_To_Next_Meal_From_Last_Rate_Change="+Timer_Ticks_To_Next_Meal_From_Last_Rate_Change);
-	           		break;
 	        	default:
 					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
         			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -588,20 +556,8 @@ public class DiAsService extends Service
                 Apc.bound = true;
                 Debug.i(TAG, FUNC_TAG, "APC Start");
 
-	    		// Send a register-client message to the APC service with the client message handler in replyTo
-	    		Message msg = Message.obtain(null, APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
-	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-	        		Bundle b1 = new Bundle();
-	        		b1.putString(	"description", "(DiAsService) >> APC, IO_TEST"+", "+FUNC_TAG+", "+
-									"APC_SERVICE_CMD_REGISTER_CLIENT"
-	        					);
-	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
-	    		}
-	    		
-	    		Apc.send(msg);
-	    		
 	    		// Send an initialize message to the service
-	    		msg = Message.obtain(null, APC_SERVICE_CMD_START_SERVICE, 0, 0);
+	    		Message msg = Message.obtain(null, Controllers.APC_SERVICE_CMD_START_SERVICE, 0, 0);
 	    		
 	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
 	        		Bundle b1 = new Bundle();
@@ -660,7 +616,7 @@ public class DiAsService extends Service
         	Bundle BRMBundle = msg.getData();
         	
             switch (msg.what) {
-        		case APC_PROCESSING_STATE_NORMAL:
+        		case Controllers.APC_PROCESSING_STATE_NORMAL:
         			Brm.doesBolus = BRMBundle.getBoolean("doesBolus", false);
 					Brm.doesRate = BRMBundle.getBoolean("doesRate", false);
 					boolean new_diff_rate = BRMBundle.getBoolean("new_differential_rate", false);
@@ -719,7 +675,7 @@ public class DiAsService extends Service
                 Brm.tx = new Messenger(service);
                 Brm.bound = true;
                 
-        		Message msg1 = Message.obtain(null, APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
+        		Message msg1 = Message.obtain(null, Controllers.APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
         		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
             		Bundle b1 = new Bundle();
             		b1.putString(	"description", "(DiAsService) >> BRMservice, IO_TEST"+", "+FUNC_TAG+", "+
@@ -730,7 +686,7 @@ public class DiAsService extends Service
         		Brm.send(msg1);
         		
         		// Send an initialize message to the service
-        		msg1 = Message.obtain(null, APC_SERVICE_CMD_START_SERVICE, 0, 0);
+        		msg1 = Message.obtain(null, Controllers.APC_SERVICE_CMD_START_SERVICE, 0, 0);
         		Bundle paramBundle = new Bundle();
         		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
         		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
@@ -3431,8 +3387,8 @@ public class DiAsService extends Service
 	{
     	final String FUNC_TAG = "syncApcCall";
 
-    	Debug.i(TAG, FUNC_TAG, "syncApcCall > APC_SERVICE_CMD_CALCULATE_STATE");
-		Message msg1 = Message.obtain(null, APC_SERVICE_CMD_CALCULATE_STATE, 0, 0);
+    	Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_CALCULATE_STATE");
+		Message msg1 = Message.obtain(null, Controllers.APC_SERVICE_CMD_CALCULATE_STATE, 0, 0);
 		Bundle paramBundle = new Bundle();
 		paramBundle.putBoolean("asynchronous", false);
 		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
