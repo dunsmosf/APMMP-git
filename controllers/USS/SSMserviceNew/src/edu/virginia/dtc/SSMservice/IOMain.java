@@ -64,151 +64,112 @@ import java.util.concurrent.TimeUnit;
 import java.lang.ref.WeakReference;
 
 
-public class SafetyService extends Service {
-	// Power management
+public class IOMain extends Service {
+	private static final String TAG = "SSMservice";
+	
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;	
-	private static final boolean DEBUG_MODE = true;
-    public static final String TAG = "SSMservice";
-    public static final String IO_TEST_TAG = "SSMserviceIO";
-	private static final boolean DEBUG_CREDIT_POOL = false;
+	
 	private static final double NEGATIVE_EPSILON = -0.000001;			// A bolus cannot be negative but it *can* be zero
 	private static final double POSITIVE_EPSILON = 0.000001;
-	public int cycle_duration_seconds = 300;
-	public int cycle_duration_mins = cycle_duration_seconds/60;
+	
+	private int cycle_duration_seconds = 300;
+	private int cycle_duration_mins = cycle_duration_seconds/60;
 	
 	// SSMservice State Variable and Definitions - state for SSMservice only
 	private int SSMSERVICE_STATE;
-	public static final int SSMSERVICE_STATE_IDLE = 0;
-	public static final int SSMSERVICE_STATE_PROCESSING = 1;
-	public static final int SSMSERVICE_STATE_WAIT_CONSTRAINT = 2;
-	public static final int SSMSERVICE_STATE_WAIT_CONFIRMATION = 3;
-	public static final int SSMSERVICE_STATE_WAIT_PUMPSERVICE = 4;
+	private static final int SSMSERVICE_STATE_IDLE = 0;
+	private static final int SSMSERVICE_STATE_PROCESSING = 1;
+	private static final int SSMSERVICE_STATE_WAIT_CONSTRAINT = 2;
+	private static final int SSMSERVICE_STATE_WAIT_CONFIRMATION = 3;
 	
 	// DiAs State Variable and Definitions - state for the system as a whole
 	private int DIAS_STATE;
-	public static final int DIAS_STATE_STOPPED = 0;
-	public static final int DIAS_STATE_OPEN_LOOP = 1;
-	public static final int DIAS_STATE_CLOSED_LOOP = 2;
-	public static final int DIAS_STATE_SAFETY_ONLY = 3;
-	public static final int DIAS_STATE_SENSOR_ONLY = 4;
 	
-	// log_action priority levels
-	private static final int LOG_ACTION_UNINITIALIZED = 0;
-	private static final int LOG_ACTION_INFORMATION = 1;
-	private static final int LOG_ACTION_DEBUG = 2;
-	private static final int LOG_ACTION_NOT_USED = 3;
-	private static final int LOG_ACTION_WARNING = 4;
-	private static final int LOG_ACTION_SERIOUS = 5;
-	
-    public static final String INSULIN_BASAL_BOLUS = "basal_bolus";
-    public static final String INSULIN_MEAL_BOLUS = "meal_bolus";
-    public static final String INSULIN_CORR_BOLUS = "corr_bolus";
+	private static final String INSULIN_BASAL_BOLUS = "basal_bolus";
+    private static final String INSULIN_MEAL_BOLUS = "meal_bolus";
+    private static final String INSULIN_CORR_BOLUS = "corr_bolus";
     
     // Field definitions for STATE_ESTIMATE_TABLE
-    public static final String TIME = "time";
-    public static final String ENOUGH_DATA = "enough_data";
-    public static final String ASYNCHRONOUS = "asynchronous";
-    public static final String CGM = "CGM";
-    public static final String IOB = "IOB";
-    public static final String IOBLAST = "IOBlast";
-    public static final String IOBLAST2 = "IOBlast2";
-    public static final String GPRED = "Gpred";
-    public static final String GBRAKES = "Gbrakes";
-    public static final String GPRED_LIGHT = "Gpred_light";
-    public static final String XI00 = "Xi00";
-    public static final String XI01 = "Xi01";
-    public static final String XI02 = "Xi02";
-    public static final String XI03 = "Xi03";
-    public static final String XI04 = "Xi04";
-    public static final String XI05 = "Xi05";
-    public static final String XI06 = "Xi06";
-    public static final String XI07 = "Xi07";
-    public static final String ISMEALBOLUS = "isMealBolus";
-    public static final String GPRED_BOLUS = "Gpred_bolus";
-    public static final String GPRED_1H = "Gpred_1h";
-    public static final String CHOPRED = "CHOpred";
-    public static final String ABRAKES = "Abrakes";
-    public static final String UMAX_IOB = "Umax_IOB";
-    public static final String CGM_CORR = "CGM_corr";
-    public static final String IOB_CONTROLLER_RATE = "IOB_controller_rate";
-    public static final String SSM_AMOUNT = "SSM_amount";
-    public static final String STATE = "State";
-    public static final String STOPLIGHT = "stoplight";
-    public static final String STOPLIGHT2 = "stoplight2";
-    public static final String SSM_STATE = "SSM_state";
-    public static final String SSM_STATE_TIMESTAMP = "SSM_state_timestamp";
-    public static final String DIAS_state = "DIAS_state";
-    public static final String UTC_offset_seconds = "UTC_offset_seconds";
-    public static final String BRAKES_COEFF = "brakes_coeff";
+    private static final String TIME = "time";
+    private static final String ENOUGH_DATA = "enough_data";
+    private static final String ASYNCHRONOUS = "asynchronous";
+    private static final String CGM = "CGM";
+    private static final String IOB = "IOB";
+    private static final String IOBLAST = "IOBlast";
+    private static final String IOBLAST2 = "IOBlast2";
+    private static final String GPRED = "Gpred";
+    private static final String GBRAKES = "Gbrakes";
+    private static final String GPRED_LIGHT = "Gpred_light";
+    private static final String XI00 = "Xi00";
+    private static final String XI01 = "Xi01";
+    private static final String XI02 = "Xi02";
+    private static final String XI03 = "Xi03";
+    private static final String XI04 = "Xi04";
+    private static final String XI05 = "Xi05";
+    private static final String XI06 = "Xi06";
+    private static final String XI07 = "Xi07";
+    private static final String ISMEALBOLUS = "isMealBolus";
+    private static final String GPRED_BOLUS = "Gpred_bolus";
+    private static final String GPRED_1H = "Gpred_1h";
+    private static final String CHOPRED = "CHOpred";
+    private static final String ABRAKES = "Abrakes";
+    private static final String UMAX_IOB = "Umax_IOB";
+    private static final String CGM_CORR = "CGM_corr";
+    private static final String IOB_CONTROLLER_RATE = "IOB_controller_rate";
+    private static final String SSM_AMOUNT = "SSM_amount";
+    private static final String STATE = "State";
+    private static final String STOPLIGHT = "stoplight";
+    private static final String STOPLIGHT2 = "stoplight2";
+    private static final String SSM_STATE = "SSM_state";
+    private static final String SSM_STATE_TIMESTAMP = "SSM_state_timestamp";
+    private static final String DIAS_state = "DIAS_state";
+    private static final String UTC_offset_seconds = "UTC_offset_seconds";
+    private static final String BRAKES_COEFF = "brakes_coeff";
     
-	public final String TAG_CREDITPOOL = "creditpool";
-	
 	private boolean bolus_interceptor_enabled = true;
     
 	// Working storage for current cgm and insulin data
-	private Tvector Tvec_cgm_mins, Tvec_insulin_rate1_seconds, Tvec_insulin_bolus1, Tvec_bolus_hist_seconds;
+	private Tvector Tvec_cgm_mins, Tvec_insulin_rate1_seconds, Tvec_bolus_hist_seconds;
 	private Tvector Tvec_basal_bolus_hist_seconds, Tvec_meal_bolus_hist_seconds, Tvec_corr_bolus_hist_seconds;
-	private Tvector Tvec_credit, Tvec_spent, Tvec_net;
-//	private Tvector Tvec_basal;
 	private Tvector Tvec_IOB, Tvec_Rate, Tvec_GPRED;
-	public double bolus_meal;
-	public double bolus_correction;
-	public double bolusRequested;
-	public double differential_basal_rate;
-	public double credit_request, spend_request;
-	public double interceptor_insulin;
-	public boolean asynchronous;
-	public boolean exercise;
-	public static final int TVEC_SIZE = 288;				// 24 hours of samples at 12 samples per hour (5 minute samples)
-	// Store most recent timestamps in seconds for each biometric Tvector
-	Long last_Tvec_cgm_time_secs, last_Tvec_insulin_bolus1_time_secs, last_Tvec_requested_insulin_bolus1_time_secs, last_Tvec_insulin_credit_time_secs, last_state_estimate_time_secs;
-	long calFlagTime = 0;
-	long hypoFlagTime = 0;
+	private double bolus_meal;
+	private double bolus_correction;
+	private double bolusRequested;
+	private double differential_basal_rate;
+	private boolean asynchronous;
+	private boolean exercise;
+	private static final int TVEC_SIZE = 288;				// 24 hours of samples at 12 samples per hour (5 minute samples)
 	
-    public SSM_param ssm_param;
+	// Store most recent timestamps in seconds for each biometric Tvector
+	private Long last_Tvec_cgm_time_secs, last_state_estimate_time_secs;
+	private long calFlagTime = 0;
+	private long hypoFlagTime = 0;
+	
+    private SSM_param ssm_param;
 	private Subject subject_data;
-    public static ScheduledExecutorService constraintTimeoutScheduler = Executors.newScheduledThreadPool(2);
-	public static ScheduledFuture<?> constraintTimer;
+	
+    private static ScheduledExecutorService constraintTimeoutScheduler = Executors.newScheduledThreadPool(2);
+	private static ScheduledFuture<?> constraintTimer;
 	private long TIMEOUT_CONSTRAINT_MS = 5000;				// Constraint Service timeout is 5 seconds
 	
 	// Used to calculate and store the SSM_processing object
-	public SSM_processing ssm_state_estimate;
+	private SSM_processing ssm_state_estimate;
 	
-	/*
-	 * 
-	 *  Interface to DiAsService (our only Client)
-	 * 
-	 */
-    public Messenger mMessengerToDiAsService = null;													/* Messenger for sending responses to the client (Application). */
-    final Messenger mMessengerFromDiAsService = new Messenger(new IncomingHandlerFromDiAsService());		/* Target we publish for clients to send commands to IncomingHandlerFromDiAsService. */
+    private Messenger mMessengerToDiAsService = null;													/* Messenger for sending responses to the client (Application). */
+    private final Messenger mMessengerFromDiAsService = new Messenger(new IncomingHandlerFromDiAsService());		/* Target we publish for clients to send commands to IncomingHandlerFromDiAsService. */
  
     // Elements used in Constraint Service interface
     private ConstraintsObserver constraintsObserver;
     private double insulinUpperConstraint;
-    private boolean insulinUpperConstraintValid = false;
-    private Uri insulinUpperConstraintUri = null;
-	public BroadcastReceiver confirmationReceiver;				// Listens for information broadcasts from Confirmation Activity
-	public BroadcastReceiver TBRReceiver;				// Listens for information broadcasts from DiAsUI TBR button pressed
+	private BroadcastReceiver confirmationReceiver;				// Listens for information broadcasts from Confirmation Activity
+	private BroadcastReceiver TBRReceiver;						// Listens for information broadcasts from DiAsUI TBR button pressed
 
-	private boolean confirmationReceiverIsRegistered = false;
-	private boolean TBRReceiverIsRegistered = false;
-
-	private double Uconstraint;
-	
-//	private InsulinObserver insulinObserver;
+	//	private InsulinObserver insulinObserver;
 	private static final double DEFAULT_IOB_CONSTRAINT_UNITS = 20.0;
     
-	// InsulinPumpService commands
-	public static final int PUMP_SERVICE_CMD_NULL = 0;
-	public static final int PUMP_SERVICE_CMD_START_SERVICE = 1;
-	public static final int PUMP_SERVICE_CMD_REGISTER_CLIENT = 2;
-	public static final int PUMP_SERVICE_CMD_DELIVER_BOLUS = 3;
-	public static final int PUMP_SERVICE_CMD_SET_BASAL_RATE = 4;
-	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS = 5;
-	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY = 6;
-	public static final int PUMP_SERVICE_CMD_STOP_SERVICE = 7;
-	public static final int PUMP_SERVICE_CMD_SET_HYPO_TIME = 8;
+	private static final int PUMP_SERVICE_CMD_START_SERVICE = 1;
+	private static final int PUMP_SERVICE_CMD_DELIVER_BOLUS = 3;
 	
 	private static final double BASAL_MAX_CONSTRAINT = 0.5;
 	private static final double CORRECTION_MAX_CONSTRAINT = 10.0;
@@ -218,20 +179,18 @@ public class SafetyService extends Service {
 	private static final double CORRECTION_TOO_HIGH_LIMIT = 30.0;
 	private static final double MEAL_TOO_HIGH_LIMIT = 30.0;
 	
-	public static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;	
+	private static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;	
 	
 	
 	// Temporary Basal Rate variables
 	private int temp_basal_status_code, temp_basal_percent_of_profile_basal_rate, temp_basal_owner;
 	private long temp_basal_start_time, temp_basal_scheduled_end_time;
 	
-	
 	public static SSMDB db; 
 
-    private ServiceConnection mConnection;																/* Connection to the Pump Service. */
-    Messenger mMessengerToPumpService = null;															/* Messenger for communicating with the Pump Service. */
-    final Messenger mMessengerFromPumpService = new Messenger(new IncomingHandlerFromPumpService());		/* Target we publish for clients to send messages to IncomingHandler. */
-    boolean mBound;																						/* Flag indicating whether we have called bind on the PumpService. */
+    private ServiceConnection pumpService;																
+    private Messenger pumpTx = null;															
+    private final Messenger pumpRx = new Messenger(new IncomingHandlerFromPumpService());
     
     @Override
 	public void onCreate() {
@@ -239,109 +198,59 @@ public class SafetyService extends Service {
 		bolus_interceptor_enabled = Params.getBoolean(getContentResolver(), "bolus_interceptor_enabled", false);
 		calFlagTime = 0;
 		hypoFlagTime = 0;
-		Toast toast = Toast.makeText(this, "SafetyService  onCreate: Service Created", Toast.LENGTH_SHORT);
-		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-		toast.show();
-		log_action(TAG, "onCreate", LOG_ACTION_INFORMATION);
-		interceptor_insulin = 0.0;
-		credit_request = 0.0;
-		spend_request = 0.0;
 		asynchronous = false;
 		Tvec_IOB = new Tvector(TVEC_SIZE);
 		Tvec_Rate = new Tvector(TVEC_SIZE);
 		Tvec_GPRED = new Tvector(TVEC_SIZE);
 		Tvec_cgm_mins = new Tvector(TVEC_SIZE);
 		Tvec_insulin_rate1_seconds = new Tvector(TVEC_SIZE);
-		Tvec_insulin_bolus1 = new Tvector(TVEC_SIZE);
 		Tvec_bolus_hist_seconds = new Tvector(TVEC_SIZE);
-		Tvec_credit = new Tvector(TVEC_SIZE);
-		Tvec_spent = new Tvector(TVEC_SIZE);
-		Tvec_net = new Tvector(TVEC_SIZE);
 		Tvec_basal_bolus_hist_seconds = new Tvector(TVEC_SIZE);
 		Tvec_meal_bolus_hist_seconds = new Tvector(TVEC_SIZE);
 		Tvec_corr_bolus_hist_seconds = new Tvector(TVEC_SIZE);
-		Tvec_spent = new Tvector(TVEC_SIZE);
+		
 		// Initialize most recent timestamps
 		last_Tvec_cgm_time_secs = new Long(0);
 		last_state_estimate_time_secs = new Long(0);
-		last_Tvec_insulin_bolus1_time_secs = new Long(0);
-		last_Tvec_insulin_credit_time_secs = new Long(0);
-		last_Tvec_requested_insulin_bolus1_time_secs = new Long(0);
 		
-        // Create a ServiceConnection class for interacting with the main interface of the Pump Service.
-        mConnection = new ServiceConnection() {
+        pumpService = new ServiceConnection() {
             public void onServiceConnected(ComponentName className, IBinder service) {
-                // This is called when the connection with the pump service has been
-                // established, giving us the object we can use to
-                // interact with the pump service.  We are communicating with the
-                // pump service using a Messenger, so here we get a client-side
-                // representation of that from the raw IBinder object.
             	final String FUNC_TAG = "onServiceConnected";
-                debug_message(TAG, "onServiceConnected");
-                mMessengerToPumpService = new Messenger(service);
-                mBound = true;
-                debug_message(TAG, "BluetoothPumpServiceStart");
-//                debug_message(TAG, "InsulinPumpServiceStart");
-                if (!mBound) return;
+                pumpTx = new Messenger(service);
+                
                 try {
-                		// Send a register-client message to the service with the client message handler in replyTo
-                		Message msg = Message.obtain(null, PUMP_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
-                		msg.replyTo = mMessengerFromPumpService;
-                		Bundle paramBundle = new Bundle();
-                		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-        				// Log the parameters for IO testing
-        				if (true) {
-                    		Bundle b = new Bundle();
-                    		b.putString(	"description", "(SSMservice) >> PumpService, IO_TEST"+", "+FUNC_TAG+", "+
-                    						"PUMP_SERVICE_CMD_REGISTER_CLIENT"+", "+
-                    						"simulatedTime="+paramBundle.getLong("simulatedTime"));
-                    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-        				}
-                		msg.setData(paramBundle);
-                		mMessengerToPumpService.send(msg);
                 		// Send an initialize message to the service
-                		msg = Message.obtain(null, PUMP_SERVICE_CMD_START_SERVICE, 0, 0);
-                		paramBundle = new Bundle();
-                		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-                		msg.replyTo = mMessengerFromPumpService;
+                		Message msg = Message.obtain(null, PUMP_SERVICE_CMD_START_SERVICE, 0, 0);
+                		msg.replyTo = pumpRx;
+                		
         				// Log the parameters for IO testing
-        				if (true) {
+        				if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                     		Bundle b = new Bundle();
                     		b.putString(	"description", "(SSMservice) >> PumpService, IO_TEST"+", "+FUNC_TAG+", "+
-                    						"PUMP_SERVICE_CMD_START_SERVICE"+", "+
-                    						"simulatedTime="+paramBundle.getLong("simulatedTime"));
+                    						"PUMP_SERVICE_CMD_START_SERVICE");
                     		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
         				}
-                		msg.setData(paramBundle);
-                		mMessengerToPumpService.send(msg);
+                		pumpTx.send(msg);
                 }
                 catch (RemoteException e) {
-            		Bundle b = new Bundle();
-            		b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
-            		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-                	e.printStackTrace();
                 }
            }
         
             public void onServiceDisconnected(ComponentName className) {
-                // This is called when the connection with the service has been
-                // unexpectedly disconnected -- that is, its process crashed.
-                debug_message(TAG, "onServiceDisconnected");
-                mMessengerToPumpService = null;
-                mBound = false;
+                pumpTx = null;
             }
         };
         
         // Set up a Notification for this Service
         String ns = Context.NOTIFICATION_SERVICE;
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
+        getSystemService(ns);
         int icon = R.drawable.icon;
         CharSequence tickerText = "";
         long when = System.currentTimeMillis();
         Notification notification = new Notification(icon, tickerText, when);
         CharSequence contentTitle = "Safety Service v1.0";
         CharSequence contentText = "Monitoring Insulin Dosing";
-        Intent notificationIntent = new Intent(this, SafetyService.class);
+        Intent notificationIntent = new Intent(this, IOMain.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 		Context context = getApplicationContext();
         notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
@@ -367,7 +276,7 @@ public class SafetyService extends Service {
      		
             @Override
             public void onReceive(Context context, Intent intent) {        			
-    			String action = intent.getAction();
+    			intent.getAction();
     	        int status = intent.getIntExtra("ConfirmationStatus", Confirmations.CONFIRMATION_TIMED_OUT);
     	        double bolus = intent.getDoubleExtra("bolus", 0.0);
     	        Debug.i(TAG, FUNC_TAG, "confirmationReceiver > status="+status+", bolus="+bolus);
@@ -377,9 +286,8 @@ public class SafetyService extends Service {
         IntentFilter filter = new IntentFilter();
         filter.addAction("edu.virginia.dtc.intent.action.CONFIRMATION_UPDATE_STATUS");
         registerReceiver(confirmationReceiver, filter);
-        confirmationReceiverIsRegistered = true;
         
-     // Register to receive TBR broadcast messages
+        // Register to receive TBR broadcast messages
         TBRReceiver = new BroadcastReceiver() 
      	{
      		final String FUNC_TAG = "TBRReceiver";
@@ -391,7 +299,6 @@ public class SafetyService extends Service {
     			int TBR_status=intent.getIntExtra("command",0);
     			Toast.makeText(getApplicationContext(), "TBR_status="+TBR_status, Toast.LENGTH_LONG).show();
              
-
     			if(action.equals("edu.virginia.dtc.intent.action.TEMP_BASAL")&&TBR_status==TempBasal.TEMP_BASAL_START)
     			{
     				try {
@@ -402,28 +309,14 @@ public class SafetyService extends Service {
     			    catch (Exception e){
     				Debug.i(TAG, FUNC_TAG, e.getMessage());
     			    }
-    			    //Toast.makeText(getApplicationContext(), "end_trigger", Toast.LENGTH_LONG).show();
     	            Debug.i(TAG, FUNC_TAG, "status");
     			}
-    			
-    			
-    			// if TBR is not cancelled in DiAs UI, we need to cancel here when receiving broadcast
-//    			if(action.equals("edu.virginia.dtc.intent.action.TEMP_BASAL")&&TBR_status==TempBasal.TEMP_BASAL_CANCEL)
-//    			{
-//    				cancelTemporaryBasalRate();
-//        			Toast.makeText(getApplicationContext(), "cancel_TBR", Toast.LENGTH_LONG).show();
-//    			}
-            
             }	
         };
         IntentFilter filter1 = new IntentFilter();
         filter1.addAction("edu.virginia.dtc.intent.action.TEMP_BASAL");
         registerReceiver(TBRReceiver, filter1);
-        TBRReceiverIsRegistered = true;
-        
-        
-        
-     // create SSMDB        
+        // create SSMDB        
         db = new SSMDB(this.getApplicationContext());
      	Toast.makeText(getApplicationContext(), "SSMDB created", Toast.LENGTH_LONG).show();
 
@@ -438,7 +331,6 @@ public class SafetyService extends Service {
 		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
 		toast.show();
 		Log.d(TAG, "onDestroy");
-        log_action(TAG, "onDestroy", LOG_ACTION_INFORMATION);
 		if(constraintsObserver != null)
 			getContentResolver().unregisterContentObserver(constraintsObserver);
 		unregisterReceiver(confirmationReceiver);
@@ -461,7 +353,6 @@ public class SafetyService extends Service {
     }
     
     private boolean temporaryBasalRateActive() {
-		final String FUNC_TAG = "temporaryBasalRateActive";
 		boolean retValue = false;
 		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
        	if(c!=null)
@@ -479,10 +370,8 @@ public class SafetyService extends Service {
        	}
 		return retValue;
 	}
-
-    
    
-    public double getCurrentBasalProfile() {
+    private double getCurrentBasalProfile() {
 		
 		double basal = 0.0;
 		Calendar now = Calendar.getInstance();
@@ -511,7 +400,6 @@ public class SafetyService extends Service {
 		return basal;
 	}
 
-    /* Handles incoming commands from DiAsService. */
     class IncomingHandlerFromDiAsService extends Handler {
     	Bundle paramBundle;
     	Message response;
@@ -534,8 +422,9 @@ public class SafetyService extends Service {
     					SSMSERVICE_STATE = SSMSERVICE_STATE_PROCESSING;
     					Debug.i(TAG, FUNC_TAG,"SAFETY_SERVICE_CMD_START_SERVICE");
     					paramBundle = msg.getData();
+    					
     					// Log the parameters for IO testing
-    					if (true) {
+    					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                     		Bundle b = new Bundle();
                     		b.putString(	"description", "DiAsService >> (SSMservice), IO_TEST"+", "+FUNC_TAG+", "+
                     						"SAFETY_SERVICE_CMD_START_SERVICE"+", "+
@@ -543,24 +432,18 @@ public class SafetyService extends Service {
                     		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
     					}
     					
-    					/*
-    					// Create new Subject and SSM_param objects
-    					subject_data = new Subject(getCurrentTimeSeconds(), getApplicationContext());
-    					ssm_param = new SSM_param(subject_data.subjectAIT, subject_data.subjectBasal, subject_data.subjectCR, subject_data.subjectCF, subject_data.subjectTDI, subject_data.subjectWeight);
-    					*/
-    					
     			        // Bind to the Insulin Pump Service
     					Intent intent = new Intent();
     					intent.setClassName("edu.virginia.dtc.PumpService", "edu.virginia.dtc.PumpService.PumpService");
-    					bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    					bindService(intent, pumpService, Context.BIND_AUTO_CREATE);
     					SSMSERVICE_STATE = SSMSERVICE_STATE_IDLE;
     					break;
     				case Safety.SAFETY_SERVICE_CMD_REGISTER_CLIENT:
     					SSMSERVICE_STATE = SSMSERVICE_STATE_PROCESSING;
     					mMessengerToDiAsService = msg.replyTo;
-    					debug_message(TAG, "mMessengerToDiAsService="+mMessengerToDiAsService);
+    					
     					// Log the parameters for IO testing
-    					if (true) {
+    					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                     		Bundle b = new Bundle();
                     		b.putString(	"description", "DiAsService >> (SSMservice), IO_TEST"+", "+FUNC_TAG+", "+
                     						"SAFETY_SERVICE_CMD_REGISTER_CLIENT");
@@ -573,12 +456,12 @@ public class SafetyService extends Service {
     					
     					subject_data = new Subject(getCurrentTimeSeconds(), getApplicationContext());
                         paramBundle = msg.getData();
-    					DIAS_STATE = paramBundle.getInt("DIAS_STATE", DIAS_STATE_OPEN_LOOP);
+    					DIAS_STATE = paramBundle.getInt("DIAS_STATE", State.DIAS_STATE_OPEN_LOOP);
     					
     					if(checkSubjectData(subject_data))
     					{
     						Debug.i(TAG, FUNC_TAG, "Reading SSM Parameters...");
-	    					ssm_param = new SSM_param(subject_data.subjectAIT, subject_data.subjectBasal, subject_data.subjectCR, subject_data.subjectCF, subject_data.subjectTDI, subject_data.subjectWeight);
+	    					ssm_param = new SSM_param(subject_data.subjectAIT, subject_data.subjectCF, subject_data.subjectTDI);
 	    					
 	    					if (ssm_param.isValid) {
 	    					
@@ -592,8 +475,6 @@ public class SafetyService extends Service {
 		    					bolus_correction =  paramBundle.getDouble("bolus_correction", 0);
 		    					bolusRequested = bolus_meal + bolus_correction;
 		    					differential_basal_rate = paramBundle.getDouble("differential_basal_rate", 0);		// In the range [-6U/hour:6U/hour]
-		    					credit_request = paramBundle.getDouble("credit_request", 0);
-		    					spend_request = paramBundle.getDouble("spend_request", 0);
 		    					asynchronous = paramBundle.getBoolean("asynchronous", false);
 		    					calFlagTime = (long)paramBundle.getLong("calFlagTime", 0);
 		    					hypoFlagTime = (long)paramBundle.getLong("hypoFlagTime", 0);
@@ -608,8 +489,6 @@ public class SafetyService extends Service {
 		                    						"bolus_meal="+bolus_meal+", "+
 		                    						"bolus_correction="+bolus_correction+", "+
 		                    						"differential_basal_rate="+differential_basal_rate+", "+
-		                    						"credit_request="+credit_request+", "+
-		                    						"spend_request="+spend_request+", "+
 		                    						"asynchronous="+asynchronous+", "+
 		                    						"calFlagTime="+calFlagTime+", "+
 		                    						"hypoFlagTime="+hypoFlagTime+", "+
@@ -617,14 +496,6 @@ public class SafetyService extends Service {
 		                    						"DIAS_STATE="+DIAS_STATE
 		                    						);
 		                    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
-		    					}
-		    					// credit_request must NOT be accompanied by a bolus_meal or bolus_correction
-		    					if (credit_request>POSITIVE_EPSILON && (bolus_meal>POSITIVE_EPSILON || bolus_correction>POSITIVE_EPSILON)) {
-		    						Debug.e(TAG, FUNC_TAG,"ERROR > credit_request with bolus: cr="+credit_request+", bm="+bolus_meal+", bc="+bolus_correction);
-		    						returnStatusToDiAsService(Safety.SAFETY_SERVICE_STATE_INVALID_COMMAND);
-		    					}
-		    					if (credit_request<NEGATIVE_EPSILON || Math.abs(credit_request-spend_request)>POSITIVE_EPSILON) {
-		    						returnStatusToDiAsService(Safety.SAFETY_SERVICE_STATE_INVALID_COMMAND);
 		    					}
 		    					
 		    					if (!constraintServiceInstalled()) {
@@ -654,12 +525,12 @@ public class SafetyService extends Service {
     					
     					subject_data = new Subject(getCurrentTimeSeconds(), getApplicationContext());
     					paramBundle = msg.getData();
-                        DIAS_STATE = paramBundle.getInt("DIAS_STATE", DIAS_STATE_OPEN_LOOP);
+                        DIAS_STATE = paramBundle.getInt("DIAS_STATE", State.DIAS_STATE_OPEN_LOOP);
     					
     					if(checkSubjectData(subject_data))
     					{
     						Debug.i(TAG, FUNC_TAG, "Reading SSM Parameters...");
-	    					ssm_param = new SSM_param(subject_data.subjectAIT, subject_data.subjectBasal, subject_data.subjectCR, subject_data.subjectCF, subject_data.subjectTDI, subject_data.subjectWeight);
+	    					ssm_param = new SSM_param(subject_data.subjectAIT, subject_data.subjectCF, subject_data.subjectTDI);
 	    					
 	    					if (ssm_param.isValid) {
 		    					bolus_interceptor_enabled = Params.getBoolean(getContentResolver(), "bolus_interceptor_enabled", false);
@@ -672,8 +543,6 @@ public class SafetyService extends Service {
 		    					bolus_correction =  0.0;
 		    					bolusRequested = 0.0;
 		    					differential_basal_rate = 0.0;
-		    					credit_request = 0.0;
-		    					spend_request = 0.0;
 		    					asynchronous = false;
 		    					calFlagTime = (long)paramBundle.getLong("calFlagTime", 0);
 		    					hypoFlagTime = (long)paramBundle.getLong("hypoFlagTime", 0);
@@ -780,9 +649,10 @@ public class SafetyService extends Service {
 		ssm_state_estimate.start_SSM_processing(subject_data, Tvec_cgm_mins, Tvec_insulin_rate1_seconds, Tvec_bolus_hist_seconds, 
 				Tvec_basal_bolus_hist_seconds, Tvec_meal_bolus_hist_seconds, 	Tvec_corr_bolus_hist_seconds, 
 				Tvec_GPRED, Tvec_IOB, Tvec_Rate,
-				bolusRequested, differential_basal_rate, Tvec_credit,
-				Tvec_spent, Tvec_net, ssm_param, getCurrentTimeSeconds(), cycle_duration_mins, ssm_state_estimate.state_data,
-				calFlagTime, hypoFlagTime, credit_request, spend_request, exercise, asynchronous, bolus_interceptor_enabled, DIAS_STATE);
+				bolusRequested, differential_basal_rate,
+				ssm_param, getCurrentTimeSeconds(), cycle_duration_mins, ssm_state_estimate.state_data,
+				calFlagTime, hypoFlagTime, exercise, asynchronous, bolus_interceptor_enabled, DIAS_STATE);
+		
 		ssm_state_estimate.state_data.asynchronous = asynchronous;
 
 		// On a normal return write the stateestimate data because processing is complete
@@ -828,8 +698,6 @@ public class SafetyService extends Service {
 				Debug.w(TAG, FUNC_TAG, "Corr: "+bolus_correction);
 				
 				//TODO: SENDING BOLUS HERE
-				//TODO: SENDING BOLUS HERE
-				//TODO: SENDING BOLUS HERE
 				
 				if(asynchronous)	//Meal so no basal!
 					sendBolusToPumpService(0.0, bolus_meal, bolus_correction);
@@ -846,8 +714,6 @@ public class SafetyService extends Service {
 			// Bolus Intercept
 			Debug.i(TAG, FUNC_TAG, "Bolus intercept launching");
 			bolusInterceptor(ssm_state_estimate.state_data.Processing_State);
-			
-			//Meal table is handled in the responses to the intercept
 		}    	
     }    
     
@@ -888,23 +754,19 @@ public class SafetyService extends Service {
 		ssm_state_estimate.start_SSM_processing(subject_data, Tvec_cgm_mins, Tvec_insulin_rate1_seconds, Tvec_bolus_hist_seconds, 
 				Tvec_basal_bolus_hist_seconds, Tvec_meal_bolus_hist_seconds, 	Tvec_corr_bolus_hist_seconds, 
 				Tvec_GPRED, Tvec_IOB, Tvec_Rate,
-				bolusRequested, differential_basal_rate, Tvec_credit,
-				Tvec_spent, Tvec_net, ssm_param, getCurrentTimeSeconds(), cycle_duration_mins, ssm_state_estimate.state_data,
-				calFlagTime, hypoFlagTime, credit_request, spend_request, exercise, asynchronous, bolus_interceptor_enabled, DIAS_STATE);
-//		ssm_state_estimate.state_data.asynchronous = asynchronous;
+				bolusRequested, differential_basal_rate,
+				ssm_param, getCurrentTimeSeconds(), cycle_duration_mins, ssm_state_estimate.state_data,
+				calFlagTime, hypoFlagTime, exercise, asynchronous, bolus_interceptor_enabled, DIAS_STATE);
 
 		writeStateEstimateData();
 		returnStatusToDiAsService(Safety.SAFETY_SERVICE_STATE_CALCULATE_RESPONSE);				
-		
     }    
-    
     
     //***************************************************************************************
     // Apply the Insulin Constraint: returns true if constraint is applied
     //***************************************************************************************
     boolean applyInsulinConstraint() {
     	final String FUNC_TAG = "applyInsulinConstraint";
-    	boolean asynchronous = ssm_state_estimate.state_data.asynchronous;
     	double b = ssm_state_estimate.state_data.basal_added;
     	double m = bolus_meal;
     	double c = bolus_correction;
@@ -914,7 +776,7 @@ public class SafetyService extends Service {
 		if (ssm_state_estimate.state_data.asynchronous) {
 			return false;
 		}
-		if (DIAS_STATE != DIAS_STATE_CLOSED_LOOP && DIAS_STATE != DIAS_STATE_SAFETY_ONLY) {
+		if (DIAS_STATE != State.DIAS_STATE_CLOSED_LOOP && DIAS_STATE != State.DIAS_STATE_SAFETY_ONLY) {
 	    	return false;
 	    }
 	    		
@@ -949,11 +811,10 @@ public class SafetyService extends Service {
     	}
     }
     
-    
-    
     //***************************************************************************************
     // Constraint Service interface methods
     //***************************************************************************************
+    
 	private boolean constraintServiceInstalled()
     {
     	//Does a quick scan to check if the ConstraintService application is installed, if so it returns true
@@ -970,7 +831,7 @@ public class SafetyService extends Service {
    		return false;
     }
 
-    public void constraintServiceCall()
+    private void constraintServiceCall()
     {
 		SSMSERVICE_STATE = SSMSERVICE_STATE_WAIT_CONSTRAINT;
 		// Insert row into Constraint Service with status CONSTRAINT_REQUESTED to signify it should calculate
@@ -978,8 +839,6 @@ public class SafetyService extends Service {
 		cv.put("time", getCurrentTimeSeconds());	
 		cv.put("status", Constraints.CONSTRAINT_REQUESTED);									
 		insulinUpperConstraint = DEFAULT_IOB_CONSTRAINT_UNITS;							// Default upper insulin constraint so lax as to be meaningless
-		insulinUpperConstraintValid = false;
-		insulinUpperConstraintUri=getContentResolver().insert(Biometrics.CONSTRAINTS_URI, cv);
 		startConstraintServiceTimer();
 		
 		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -992,13 +851,11 @@ public class SafetyService extends Service {
     
 	class ConstraintsObserver extends ContentObserver 
     {	
-    	private int count;
     	public ConstraintsObserver(Handler handler) 
     	{
     		super(handler);    		
     		final String FUNC_TAG = "Constraints Observer";
     		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		count = 0;
     	}
     	
        @Override
@@ -1010,17 +867,8 @@ public class SafetyService extends Service {
     		   return;
     	   handleConstraints(false);
        }		
-/*
-       public void onChange(boolean selfChange, Uri uri) 
-       {
-    	   final String FUNC_TAG = "onChange(boolean selfChange, Uri uri)";
-    	   Debug.i(TAG, FUNC_TAG, "Constraints Observer");
-    	   if(selfChange)			//We don't trigger on the updates we make to the Constraint Table
-    		   return;
-    	   handleConstraints(false);
-       }
-*/	
     }
+	
     private void startConstraintServiceTimer()
     {
 		final String FUNC_TAG = "startConstraintServiceTimer";
@@ -1030,7 +878,7 @@ public class SafetyService extends Service {
 		constraintTimer = constraintTimeoutScheduler.schedule(constraintServiceTimeOut, TIMEOUT_CONSTRAINT_MS, TimeUnit.MILLISECONDS);  // 5 second timeout
     }
     
-    public Runnable constraintServiceTimeOut = new Runnable()
+    private Runnable constraintServiceTimeOut = new Runnable()
 	{
 		public void run() 
 		{	
@@ -1044,7 +892,6 @@ public class SafetyService extends Service {
     private void handleConstraints(boolean timedOut)
     {
     	final String FUNC_TAG = "handleConstraints";
-    	insulinUpperConstraintValid = false;
     	Cursor c = getContentResolver().query(Biometrics.CONSTRAINTS_URI, null, null, null, null);
     	if (c != null) {
     		if (c.moveToLast()) {
@@ -1073,7 +920,6 @@ public class SafetyService extends Service {
     				if(constraintTimer!= null)				//Cancel the Constraint Service timeout routine if running
     					constraintTimer.cancel(true);
 					SSMSERVICE_STATE = SSMSERVICE_STATE_PROCESSING;
-    				insulinUpperConstraintValid = true;
     				Debug.i(TAG, FUNC_TAG, "status==CONSTRAINT_WRITTEN, Constraint=="+insulinUpperConstraint);
     				if (!timedOut) {
         				ContentValues writeValues = new ContentValues();
@@ -1097,7 +943,6 @@ public class SafetyService extends Service {
                     		Bundle b = new Bundle();
                     		b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
                     		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-        					log_action(TAG, "Error writing values to constraints table:"+e.toString(), LOG_ACTION_WARNING);
         				}
         				// Call SSM_processing with IOB constraint
         				SSMprocess(insulinUpperConstraint);
@@ -1134,7 +979,6 @@ public class SafetyService extends Service {
                 		Bundle b = new Bundle();
                 		b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-    					log_action(TAG, "Error writing values to constraints table:"+e.toString(), LOG_ACTION_WARNING);
     				}
     				// Call SSM_processing with IOB constraint
     				insulinUpperConstraint = DEFAULT_IOB_CONSTRAINT_UNITS;				// Set to pump maximum since there was no response from Constraint Service
@@ -1151,98 +995,12 @@ public class SafetyService extends Service {
     //***************************************************************************************
     // IOB, State Estimate and traffic light calculation
     //***************************************************************************************
-/*    
-	class InsulinObserver extends ContentObserver {	
-    	private int count;
-    	public InsulinObserver(Handler handler) {
-    		super(handler);
-    		final String FUNC_TAG = "Insulin Observer";
-    		Debug.i(TAG, FUNC_TAG, "Constructor");
-    		count = 0;
-    	}
-
-       @Override
-       public void onChange(boolean selfChange) {
-    	   this.onChange(selfChange, null);
-       }		
-
-       public void onChange(boolean selfChange, Uri uri) {
-  	   		final String FUNC_TAG = "onChange";
- 			if (ssm_state_estimate == null) {
- 				ssm_state_estimate = new SSM_processing(subject_data, getCurrentTimeSeconds(), getApplicationContext());
- 			}
- 			count++;
- 			Debug.i(TAG, FUNC_TAG, "Insulin Observer: "+count);
-        	   Cursor c = getContentResolver().query(Biometrics.INSULIN_URI, null, "status="+Pump.MANUAL, null, null);
-        	   if(c != null) {
-        		   if(c.moveToLast()) {
-    				   long req_time = c.getLong(c.getColumnIndex("req_time"));
-    				   if (req_time == 0) {
-    					   int _id = c.getInt(c.getColumnIndex("_id"));
-        				   long deliv_time = c.getLong(c.getColumnIndex("deliv_time"));
-        				   // Update IOB, state estimate and traffic lights
-        				   fetchNewBiometricData();
-        				   fetchStateEstimateData(getCurrentTimeSeconds());
-        				   calculateCurrentIOB();
-        				   ssm_state_estimate.start_SSM_processing(subject_data, Tvec_cgm_mins, Tvec_insulin_rate1_seconds, Tvec_bolus_hist_seconds, 
-        							Tvec_basal_bolus_hist_seconds, Tvec_meal_bolus_hist_seconds, 	Tvec_corr_bolus_hist_seconds, 
-        							Tvec_GPRED, Tvec_IOB, Tvec_Rate,
-        							0.0, 0.0, Tvec_credit,
-        							Tvec_spent, Tvec_net, ssm_param, getCurrentTimeSeconds(), cycle_duration_mins, ssm_state_estimate.state_data,
-        							calFlagTime, hypoFlagTime, 0.0, 0.0, exercise, true, DIAS_STATE);
-        				   if (ssm_state_estimate.state_data.Processing_State == SafetyService.SAFETY_SERVICE_STATE_NOT_ENOUGH_DATA) {
-        						ssm_state_estimate.complete_processing(subject_data, ssm_state_estimate.state_data, true, DIAS_STATE, getCurrentTimeSeconds(), Tvec_GPRED, Tvec_IOB, Tvec_Rate, calFlagTime);
-        				   }
-        				   writeStateEstimateData();
-        		    	   // Update the insulin table to indicate that this manual insulin input has been used to calculate IOB and traffic lights
-        		    	   // and the results have been saved in the stateestimate table
-        		    	   ContentValues values = new ContentValues();
-        		    	   values.put("req_time", deliv_time);				
-        		    	   try {
-        		    		   getContentResolver().update(Biometrics.INSULIN_URI, values, "_id="+_id, null);
-        		    	   }
-        		    	   catch (Exception e) {
-        		    		   Bundle b = new Bundle();
-        		    		   b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
-        		    		   Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-        		    	   }
-        		    	   Debug.i(TAG, FUNC_TAG, "IOB="+ssm_state_estimate.state_data.IOB_meal+", req_time="+req_time+", deliv_time="+deliv_time);
-    				   }
-        		   }
-        		   else {
-    		    	   Debug.i(TAG, FUNC_TAG, "c.moveToLast() failed");
-        		   }
-            	   c.close();
-           	   }
-           	   else {
-    		    	   Debug.i(TAG, FUNC_TAG, "No match for Status=Pump.MANUAL");
-           	   }
-       }		       
-    }
-*/	
-	
 	
     private double calculateCurrentIOB() {
 		final String FUNC_TAG = "calculateCurrentIOB";
     	double retValue = 0.0;
     	try {
-    		if (ssm_state_estimate != null) {
-/*    			
-    			// Calculate IOB_time
-    			long latest_basal_time = Tvec_basal_bolus_hist_seconds.get_last_time();
-    			if ( (latest_basal_time-getCurrentTimeSeconds()) >= 0 && (latest_basal_time-getCurrentTimeSeconds() <= 2*60)) {
-    				// Handle the case where pump clock skew puts the basal bolus up to 2 minutes ahead of DiAs time
-         			ssm_state_estimate.state_data.IOB_time = latest_basal_time;    				
-    			}
-    			else if ( (latest_basal_time-getCurrentTimeSeconds()) < 0 && (latest_basal_time-getCurrentTimeSeconds() >= -7*60)) {
-    				// Handle the case where pump clock skew puts the basal bolus up to 7 minutes behind DiAs time
-         			ssm_state_estimate.state_data.IOB_time = latest_basal_time;    				
-    			}
-    			else {
-    				// Handle the case of no very recent basal bolus
-         			ssm_state_estimate.state_data.IOB_time = getCurrentTimeSeconds()-4*60;
-    			}		
-*/    			
+    		if (ssm_state_estimate != null) {		
     			// Calculate and store the insulin history
      			insulin_history_builder(	cycle_duration_mins, 
      										Tvec_insulin_rate1_seconds, 
@@ -1250,8 +1008,7 @@ public class SafetyService extends Service {
      										Tvec_basal_bolus_hist_seconds, 
      										Tvec_meal_bolus_hist_seconds, 	
      										Tvec_corr_bolus_hist_seconds, 
-     										subject_data.subjectBasal, 
-     										Tvec_spent, 
+     										subject_data.subjectBasal,
      										ssm_param, 
      										getCurrentTimeSeconds(), 
      										ssm_state_estimate.state_data);
@@ -1288,7 +1045,6 @@ public class SafetyService extends Service {
 											Tvector Tvec_meal_bolus_hist_seconds,
 											Tvector Tvec_corr_bolus_hist_seconds,
 											Tvector Tvec_basal_pattern, 				// UTC profile times in minutes
-											Tvector Tvec_spent_hist_seconds, 
 											SSM_param ssm_param,
 											long time,
 											SSM_state_data state_data) {
@@ -1429,14 +1185,10 @@ public class SafetyService extends Service {
 					state_data.Tvec_ins_hist_IOB_with_meal_insulin_seconds.put_with_replace(state_data.discrete_time_seconds[ii], (double)dvalue1);
 				}
 			
-				// If there are no boluses within this discrete_time interval then fill with basal.
-				// Although this will overestimate basal delivery in the case of a missed basal bolus it also avoids the problem of treating time periods
-				// in which the system was turned off as missed basal periods (for example at startup), resulting in artificially low (even negative) IOB.
-				Double Dval;
-				if ((Dval = state_data.Tvec_ins_hist_IOB_with_meal_insulin_seconds.get_value_using_time_as_index(state_data.discrete_time_seconds[ii])) == null) {
+				if ((state_data.Tvec_ins_hist_IOB_with_meal_insulin_seconds.get_value_using_time_as_index(state_data.discrete_time_seconds[ii])) == null) {
 					state_data.Tvec_ins_hist_IOB_with_meal_insulin_seconds.put(state_data.discrete_time_seconds[ii], Tvec_basal_hist_seconds.get_value_using_time_as_index(state_data.discrete_time_seconds[ii])/(60/cycle_duration_mins));
 				}
-				if ((Dval = state_data.Tvec_ins_hist_IOB_no_meal_insulin_seconds.get_value_using_time_as_index(state_data.discrete_time_seconds[ii])) == null) {
+				if ((state_data.Tvec_ins_hist_IOB_no_meal_insulin_seconds.get_value_using_time_as_index(state_data.discrete_time_seconds[ii])) == null) {
 					state_data.Tvec_ins_hist_IOB_no_meal_insulin_seconds.put(state_data.discrete_time_seconds[ii], Tvec_basal_hist_seconds.get_value_using_time_as_index(state_data.discrete_time_seconds[ii])/(60/cycle_duration_mins));
 				}
 			}
@@ -1484,213 +1236,7 @@ public class SafetyService extends Service {
 		Debug.i(TAG, FUNC_TAG, "                                  ");
 	}	  // end - insulin_history_builder
 	
-/*    
-	private void insulin_history_builder(
-				int cycle_duration_mins,
-				Tvector Tvec_rate_hist_seconds,
-				Tvector Tvec_bolus_hist_seconds, 
-				Tvector Tvec_basal_bolus_hist_seconds,	
-				Tvector Tvec_meal_bolus_hist_seconds,
-				Tvector Tvec_corr_bolus_hist_seconds,
-				Tvector Tvec_basal_pattern, 
-				Tvector Tvec_spent_hist_seconds, 
-				SSM_param cbam_param,
-				long IOB_time,
-				SSM_state_data state_data,
-				boolean asynchronous) {
-		final String FUNC_TAG = "insulin_history_builder";
-		try {
-			long ToD_minutes;
-			double dvalue, dvalue1;
-			int ii, kk;
-			// Get the offset in minutes into the current day in the current time zone (based on cell phone time zone setting)
-			TimeZone tz = TimeZone.getDefault();
-			int UTC_offset_secs = tz.getOffset(IOB_time*1000)/1000;
-			Debug.i(TAG, FUNC_TAG, "UTC_offset_secs="+UTC_offset_secs);
-			// Create a vector of long discrete times in UTC minutes
-			int hist_length = cbam_param.iob_param.hist_length;
-			int ndiscrete = hist_length/cycle_duration_mins;
-			state_data.discrete_time = new long[ndiscrete];
-			for (ii=ndiscrete-1; ii>=0; ii--) {
-				state_data.discrete_time[ndiscrete-1-ii] = (long)((IOB_time)-ii*cycle_duration_mins*60);
-			}		
-			
-			// Dump insulin Tvectors
-			Debug.i(TAG, FUNC_TAG, "                                  ");
-			Debug.i(TAG, FUNC_TAG, "**********************************");
-			Tvec_basal_bolus_hist_seconds.dump(TAG, FUNC_TAG+" > Tvec_basal_bolus_hist_seconds", 8);	
-			Tvec_corr_bolus_hist_seconds.dump(TAG, FUNC_TAG+" > Tvec_corr_bolus_hist_seconds", 8);	
-			Tvec_meal_bolus_hist_seconds.dump(TAG, FUNC_TAG+" > Tvec_meal_bolus_hist_seconds", 8);	
-			Debug.i(TAG, FUNC_TAG, "time="+getCurrentTimeSeconds());
-			Debug.i(TAG, FUNC_TAG, "IOB_time="+IOB_time+", asynchronous="+asynchronous);
-			Debug.i(TAG, FUNC_TAG, "**********************************");
-			Debug.i(TAG, FUNC_TAG, "                                  ");
-			
-			// *******************************************************
-			// Construct Tvec_basal_hist - the programmed basal history over discrete_time[] based on the Tvec_basal_pattern daily profile.
-			// *******************************************************
-			Tvector Tvec_basal_hist = new Tvector(ndiscrete);
-			List<Integer> indices;	
-			double basal_bolus;			
-			for (ii=0; ii<ndiscrete; ii++) {											
-				ToD_minutes = (state_data.discrete_time[ii]/60+UTC_offset_secs/60)%1440;			// ToD_minutes is number of minutes into the current day in local time
-				if ((indices = Tvec_basal_pattern.find(">", -1, "<=", ToD_minutes)) != null) {
-					basal_bolus = Tvec_basal_pattern.get_value(indices.get(indices.size()-1));
-				}
-				else if ((indices = Tvec_basal_pattern.find(">", -1, "<", -1)) != null) {
-					basal_bolus = Tvec_basal_pattern.get_value(indices.get(indices.size()-1));					
-				}
-				else {
-					basal_bolus = 0;
-				}
-				Tvec_basal_hist.put(state_data.discrete_time[ii]/60, (double)basal_bolus);
-			}
-			
-			// *******************************************************
-			// Construct Tvec_ins_hist_KF for use in KF calculation
-			// *******************************************************
-			state_data.Tvec_ins_hist_KF_mins = new Tvector(ndiscrete);
-			for (ii=0; ii<ndiscrete; ii++) {
-				// Add in the basal bolus contribution
-				if ((indices = Tvec_basal_bolus_hist_seconds.find(">=", (state_data.discrete_time[ii]-cycle_duration_mins*60), "<", state_data.discrete_time[ii])) != null) { 
-					dvalue = 0;
-					Double Dval;
-					for (kk=0; kk<indices.size(); kk++) {
-						dvalue = dvalue + Tvec_basal_bolus_hist_seconds.get_value(indices.get(kk));
-					}
-					if ((Dval=state_data.Tvec_ins_hist_KF_mins.get_value_using_time_as_index(state_data.discrete_time[ii]/60)) != null) {
-						dvalue1 = Dval.doubleValue()+dvalue;
-					}
-					else {
-						dvalue1 = dvalue;
-					}  				
-					state_data.Tvec_ins_hist_KF_mins.put_with_replace(state_data.discrete_time[ii]/60, (double)dvalue1);
-				}
-				// Add in the correction bolus contribution
-				if ((indices = Tvec_corr_bolus_hist_seconds.find(">=", (state_data.discrete_time[ii]-cycle_duration_mins*60), "<", state_data.discrete_time[ii])) != null) {
-					dvalue = 0;
-					Double Dval;
-					for (kk=0; kk<indices.size(); kk++) {
-						dvalue = dvalue + Tvec_corr_bolus_hist_seconds.get_value(indices.get(kk));
-					}
-					if ((Dval=state_data.Tvec_ins_hist_KF_mins.get_value_using_time_as_index(state_data.discrete_time[ii]/60)) != null) {
-						dvalue1 = Dval.doubleValue()+dvalue;
-					}
-					else {
-						dvalue1 = dvalue;
-					}  				
-					state_data.Tvec_ins_hist_KF_mins.put_with_replace(state_data.discrete_time[ii]/60, (double)dvalue1);
-				}	
-				// Add in the meal bolus contribution
-				if ((indices = Tvec_meal_bolus_hist_seconds.find(">=", (state_data.discrete_time[ii]-cycle_duration_mins*60), "<", state_data.discrete_time[ii])) != null) {
-					dvalue = 0;
-					Double Dval;
-					for (kk=0; kk<indices.size(); kk++) {
-						dvalue = dvalue + Tvec_meal_bolus_hist_seconds.get_value(indices.get(kk));
-					}
-					if ((Dval=state_data.Tvec_ins_hist_KF_mins.get_value_using_time_as_index(state_data.discrete_time[ii]/60)) != null) {
-						dvalue1 = Dval.doubleValue()+dvalue;
-					}
-					else {
-						dvalue1 = dvalue;
-					}  				
-					state_data.Tvec_ins_hist_KF_mins.put_with_replace(state_data.discrete_time[ii]/60, (double)dvalue1);
-				}
-				
-				// If there are no boluses within this discrete_time interval then fill with basal
-				Double Dval;
-				if ((Dval = state_data.Tvec_ins_hist_KF_mins.get_value_using_time_as_index(state_data.discrete_time[ii]/60)) == null) {
-					state_data.Tvec_ins_hist_KF_mins.put(state_data.discrete_time[ii]/60, Tvec_basal_hist.get_value_using_time_as_index(state_data.discrete_time[ii]/60)/(60/cycle_duration_mins));
-				}
-			}
-//			state_data.Tvec_ins_hist_KF_mins.dump(TAG, "insulin_history_builder > Tvec_ins_hist_KF 1", 4);
-			
-			// Update Tvec_ins_hist_KF to include any bolus which has a time after state_data.discrete_time[ndiscrete-1]
-			// This can happen because of clock skew between the cell phone and the pump.
-			double insulin_additional = 0;
-			long insulin_last_time = state_data.Tvec_ins_hist_KF_mins.get_last_time();
-			if ((indices = Tvec_basal_bolus_hist_seconds.find(">", state_data.discrete_time[ndiscrete-1], "<", -1)) != null) {
-				for (kk=0; kk<indices.size(); kk++) {
-					insulin_additional = insulin_additional + Tvec_basal_bolus_hist_seconds.get_value(indices.get(kk));
-				}
-			}
-			double insulin_last_value = state_data.Tvec_ins_hist_KF_mins.get_last_value();
-			state_data.Tvec_ins_hist_KF_mins.put_with_replace(insulin_last_time, insulin_last_value+insulin_additional);
-			
-			// If this is an asynchronous call then initialize Tvec_ins_hist_IOB with all basal insulin but not latest meal and correction
-			if (asynchronous) {
-//				state_data.Tvec_ins_hist_IOB_mins = new Tvector();
-//				int hh = 0;
-//				for (hh=0; hh<state_data.Tvec_ins_hist_KF_mins.count(); hh++) {
-//					state_data.Tvec_ins_hist_IOB_mins.put( state_data.Tvec_ins_hist_KF_mins.get(hh).time(), state_data.Tvec_ins_hist_KF_mins.get(hh).value() );
-//				}
-				state_data.Tvec_ins_hist_IOB_mins = new Tvector(state_data.Tvec_ins_hist_KF_mins);
-//				state_data.Tvec_ins_hist_IOB_mins.dump(TAG, "insulin_history_builder > Tvec_ins_hist_IOB 1", 4);		
-			}
-			
-			insulin_additional = 0;
-			if ((indices = Tvec_corr_bolus_hist_seconds.find(">", state_data.discrete_time[ndiscrete-1], "<", -1)) != null) {
-				for (kk=0; kk<indices.size(); kk++) {
-					insulin_additional = insulin_additional + Tvec_corr_bolus_hist_seconds.get_value(indices.get(kk));
-				}
-			}
-			if ((indices = Tvec_meal_bolus_hist_seconds.find(">", state_data.discrete_time[ndiscrete-1], "<", -1)) != null) {
-				for (kk=0; kk<indices.size(); kk++) {
-					insulin_additional = insulin_additional + Tvec_meal_bolus_hist_seconds.get_value(indices.get(kk));
-				}
-			}			
-			insulin_last_value = state_data.Tvec_ins_hist_KF_mins.get_last_value();
-			state_data.Tvec_ins_hist_KF_mins.put_with_replace(insulin_last_time, insulin_last_value+insulin_additional);
-			Debug.i(TAG, FUNC_TAG, "insulin_additional="+insulin_additional);
-//			state_data.Tvec_ins_hist_KF_mins.dump(TAG, "insulin_history_builder > Tvec_ins_hist_KF 2", 4);
-		
-			// If this is an asynchronous call then Tvec_ins_hist_IOB has all recent insulin entered at current time and not corrected (for addition to IOB)
-			if (asynchronous) {
-				state_data.asynchronous_insulin_IOB = insulin_additional;
-			}
-			else {
-				state_data.asynchronous_insulin_IOB = 0;
-			}
-			
-			// *******************************************************
-			// If this is a synchronous call then Tvec_ins_hist_IOB includes all basal, meal and correction insulin
-			// *******************************************************
-			if (!asynchronous) {
-//				state_data.Tvec_ins_hist_IOB_mins = new Tvector();
-//				int hh = 0;
-//				for (hh=0; hh<state_data.Tvec_ins_hist_KF_mins.count(); hh++) {
-//					state_data.Tvec_ins_hist_IOB_mins.put( state_data.Tvec_ins_hist_KF_mins.get(hh).time(), state_data.Tvec_ins_hist_KF_mins.get(hh).value() );
-//				}
- 				state_data.Tvec_ins_hist_IOB_mins = new Tvector(state_data.Tvec_ins_hist_KF_mins);
-//				state_data.Tvec_ins_hist_IOB_mins.dump(TAG, "insulin_history_builder > Tvec_ins_hist_IOB 2", 4);		
-			}
-//			state_data.Tvec_ins_hist_IOB_mins.dump(TAG, "insulin_history_builder > Tvec_ins_hist_IOB 3", 4);		
-			
-			// *******************************************************
-			// Correct Tvec_ins_hist_IOB by removing basal insulin
-			// *******************************************************
-			for (ii=0; ii<ndiscrete; ii++) {
-				Double Dval;
-				double basal_value;
-				if ((Dval = state_data.Tvec_ins_hist_IOB_mins.get_value_using_time_as_index(state_data.discrete_time[ii]/60)) != null) {
-					basal_value = 0.0;
-					basal_value = Tvec_basal_hist.get_value_using_time_as_index(state_data.discrete_time[ii]/60)/(60/cycle_duration_mins);
-					state_data.Tvec_ins_hist_IOB_mins.put_with_replace(state_data.discrete_time[ii]/60, (double)(Dval.doubleValue()-basal_value));
-//					Debug.i(TAG, FUNC_TAG, "Dval="+Dval.doubleValue()+", basal_value="+basal_value);
-				}
-			}
-//			state_data.Tvec_ins_hist_IOB_mins.dump(TAG, "insulin_history_builder > Tvec_ins_hist_IOB 4", 4);		
-		}
-		catch (Exception e) {
-			Bundle b = new Bundle();
-			b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
-			Event.addEvent(this, Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-		}
-	}	  // end - insulin_history_builder
-*/	
-
-	
-	public double calculate_IOB(Tvector Tvec_ins_hist_IOB, IOB_param iob_param, long time) {
+	private double calculate_IOB(Tvector Tvec_ins_hist_IOB, IOB_param iob_param, long time) {
 		final String FUNC_TAG = "IOB_meal";
 		int insulin_history_length = Tvec_ins_hist_IOB.count();
 		int ii;
@@ -1711,7 +1257,7 @@ public class SafetyService extends Service {
 			for (ii=0; ii<insulin_history_length; ii++) {
 				IOB8 = IOB8 + Tvec_ins_hist_IOB.get_value(ii)*iob_param.eightcurves_nonrecursive[96-insulin_history_length+ii];
 			}
-			debug_message(TAG, "IOB > time="+time+",IOB4="+IOB4+", IOB6="+IOB6+",IOB8="+IOB8+",  IOB="+IOB);
+//			debug_message(TAG, "IOB > time="+time+",IOB4="+IOB4+", IOB6="+IOB6+",IOB8="+IOB8+",  IOB="+IOB);
 		}
  		catch (Exception e) {
  			Bundle b = new Bundle();
@@ -1720,42 +1266,11 @@ public class SafetyService extends Service {
 		}	
 		return IOB;
 	}
-	
-/*	
-	public double IOB_asynch(Tvector Tvec_corr_bolus_hist_seconds, double IOB, long time) {
-		final String FUNC_TAG = "IOB_asynch";
-		double retValue = IOB;
-		double insulin_additional = 0;
-		try {
-	  		int kk;
-		  	//
-		  	// Handle the case of an asynchronous  bolus (meal or correction) which has a time after IOB_time, the last IOB calculation time
-		  	//
-		 	List<Integer> indices;	
-	  		if ((indices = Tvec_corr_bolus_hist_seconds.find(">=", time, "<", -1)) != null) {
-	  			debug_message(TAG, "IOB_asynch > indices.size()="+indices.size()+", indices="+indices);
-	  			for (kk=0; kk<indices.size(); kk++) {
-	  				insulin_additional = insulin_additional + Tvec_corr_bolus_hist_seconds.get_value(indices.get(kk));
-	  	  			debug_message(TAG, "IOB_asynch > Tvec_corr_bolus_hist_seconds.get_value(indices.get("+kk+")="+Tvec_corr_bolus_hist_seconds.get_value(indices.get(kk)));
-	  			}
-	  		}
-		}
- 		catch (Exception e) {
- 			Bundle b = new Bundle();
- 			b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
- 			Event.addEvent(this, Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-		}	
-		retValue = retValue + insulin_additional;
-		debug_message(TAG, "IOB_asynch > IOB="+retValue+", time="+time+", IOB="+IOB);
-		return retValue;
-	}
-*/
-
     
     //***************************************************************************************
     // ConfirmationActivity interface methods
     //***************************************************************************************
-    public void bolusInterceptor(int processingState) {
+    private void bolusInterceptor(int processingState) {
     	final String FUNC_TAG = "bolusInterceptor";
 		Message confirm;
 		Bundle confirmationBundle;
@@ -1776,17 +1291,6 @@ public class SafetyService extends Service {
 				confirmationBundle.putDouble("bolusMax", ssm_state_estimate.state_data.Umax);
 				confirmationBundle.putBoolean("userChangeable", false);
 				eventCode = Event.EVENT_SSM_BOLUS_INTERCEPT;
-				break;
-			case Safety.SAFETY_SERVICE_STATE_CREDIT_REQUEST:
-				insulinAmountToConfirm = ssm_state_estimate.state_data.credit_request;
-				confirmationBundle.putDouble("insulinAmountToConfirm", insulinAmountToConfirm);
-				confirmationBundle.putString("confirmationMsg1", "The system is about to inject "+String.format("%.1f", insulinAmountToConfirm)+"U of insulin.");
-				confirmationBundle.putString("confirmationMsg2", " ");
-				confirmationBundle.putString("confirmationMsg3", "");
-				confirmationBundle.putString("confirmationMsg2", "You may Increase, Decrease, Confirm or Cancel this request.");
-				confirmationBundle.putDouble("bolusMax", ssm_state_estimate.state_data.Umax);
-				confirmationBundle.putBoolean("userChangeable", true);
-				eventCode = Event.EVENT_SSM_CREDIT_INTERCEPT;
 				break;
 			case Safety.SAFETY_SERVICE_STATE_NOT_ENOUGH_DATA:
 				insulinAmountToConfirm = ssm_state_estimate.state_data.advised_bolus;
@@ -1824,7 +1328,7 @@ public class SafetyService extends Service {
     }
 	
     
-    public void handleInterceptorResult(int status, double bolus) {
+    private void handleInterceptorResult(int status, double bolus) {
     	final String FUNC_TAG = "handleInterceptorResult";
 		Bundle b = new Bundle();
 		int eventCode = Event.EVENT_SSM_INTERCEPT_TIMEOUT;
@@ -1840,7 +1344,7 @@ public class SafetyService extends Service {
 	    		Event.addEvent(getApplicationContext(), eventCode, Event.makeJsonString(b), Event.SET_LOG);
 	    		
         		Debug.i(TAG, FUNC_TAG, "CONFIRMATION_TIMED_OUT");
-				log_action(TAG, "Intercept Timed Out > deliver basal", LOG_ACTION_INFORMATION);
+//				log_action(TAG, "Intercept Timed Out > deliver basal", LOG_ACTION_INFORMATION);
 				ssm_state_estimate.state_data.SSM_amount = 0;
 				ssm_state_estimate.state_data.Abrakes = ssm_state_estimate.state_data.SSM_amount;
 				ssm_state_estimate.state_data.risky = 0;
@@ -1873,7 +1377,7 @@ public class SafetyService extends Service {
 	    		Event.addEvent(getApplicationContext(), eventCode, Event.makeJsonString(b), Event.SET_LOG);
 	    		
         		Debug.i(TAG, FUNC_TAG, "CONFIRMATION_CANCEL");
-				log_action(TAG, "Bolus Canceled > deliver basal", LOG_ACTION_INFORMATION);
+//				log_action(TAG, "Bolus Canceled > deliver basal", LOG_ACTION_INFORMATION);
 				ssm_state_estimate.state_data.SSM_amount = 0;
 				ssm_state_estimate.state_data.Abrakes = ssm_state_estimate.state_data.SSM_amount;
 				ssm_state_estimate.state_data.risky = 0;
@@ -1907,117 +1411,25 @@ public class SafetyService extends Service {
 	    		Event.addEvent(getApplicationContext(), eventCode, Event.makeJsonString(b), Event.SET_LOG);
 	        	
         		Debug.i(TAG, FUNC_TAG, "CONFIRMATION_ACCEPT");
-        		if (credit_request > POSITIVE_EPSILON) {			// Credit request approved
-					log_action(TAG, "Credit approved: "+credit_request+" U", LOG_ACTION_INFORMATION);
-					
-					// The only credit/spend command permitted is when credit==spend and corr_bolus==meal_bolus==differential_basal_rate==0
-					credit_request = bolus;
-					ssm_state_estimate.state_data.credit_request = bolus;
-					spend_request = bolus;
-					ssm_state_estimate.state_data.spend_request = bolus;
-					ssm_state_estimate.state_data.SSM_amount = credit_request;
-					
-					ssm_state_estimate.state_data.Abrakes = ssm_state_estimate.state_data.SSM_amount;
-					ssm_state_estimate.state_data.risky = 0;
-					fetchStateEstimateData(getCurrentTimeSeconds());
-					ssm_state_estimate.complete_processing(subject_data, ssm_state_estimate.state_data, true, DIAS_STATE, getCurrentTimeSeconds(), Tvec_GPRED, Tvec_IOB, Tvec_Rate, calFlagTime);
-					writeStateEstimateData();
-					
-					//Checking extreme values on variables...
-					if(!(checkExtremes(bolus_meal, "bolus_meal") && checkExtremes(bolus_correction, "bolus_correction") 
-							&& checkExtremes(ssm_state_estimate.state_data.basal_added, "basal_added") && checkExtremes(ssm_state_estimate.state_data.pre_authorized, "pre_authorized")
-							&& checkExtremes(ssm_state_estimate.state_data.SSM_amount, "SSM_amount")))
-					{
-						Debug.e(TAG, FUNC_TAG, "There is an error in one of the variables in the SSM...returning to Sensor/Stopped Mode");
-						
-						Bundle b1 = new Bundle();
-			    		b1.putString("description", "SSMservice > Check limits reports a component of bolus has an invalid value. System switches to Sensor/Stop Mode");
-			    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b1), Event.SET_POPUP_AUDIBLE_ALARM);
-			    		
-			    		Intent intent = new Intent();
-			    		intent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
-			    		intent.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK);
-			    		startService(intent);
-			    		
-			    		return;
-					}
-					
-/*
-					Debug.i("creditpool", FUNC_TAG, "Credit request approved > credit_request="+ssm_state_estimate.state_data.credit_request+
-							", spend_request="+ssm_state_estimate.state_data.spend_request+
-							", advised_bolus="+ssm_state_estimate.state_data.advised_bolus+
-							", bolus="+bolus);
-					// If the subject requests more insulin than was advised put the extra insulin into credit
-					if (bolus >= ssm_state_estimate.state_data.advised_bolus) {
-						ssm_state_estimate.state_data.credit_request = 	ssm_state_estimate.state_data.credit_request + bolus - ssm_state_estimate.state_data.advised_bolus;
-					}
-					else {
-						// If the subject requested less insulin than was advised reduce the credit_request first
-						double bolusReduction = ssm_state_estimate.state_data.advised_bolus - bolus;
-						if (bolusReduction < ssm_state_estimate.state_data.credit_request) {
-							ssm_state_estimate.state_data.credit_request = ssm_state_estimate.state_data.credit_request - bolusReduction;
-						}
-						// If necessary set the credit_request to zero and also reduce the spend_request
-						else {
-							bolusReduction = bolusReduction - ssm_state_estimate.state_data.credit_request;
-							ssm_state_estimate.state_data.credit_request = 0.0;
-							ssm_state_estimate.state_data.spend_request = ssm_state_estimate.state_data.spend_request - bolusReduction;
-						}
-					}					
-					// Store the approved credit
-					storeCreditRequest(ssm_state_estimate.state_data.credit_request);
-					// If the credit_request was approved then the spend_request was approved as well.
-					// Store the spent insulin and update the spent and net fields
-					storeSpentInsulin(ssm_state_estimate.state_data.spend_request, getCurrentTimeSeconds());
-					// Append the remaining spend_request to pre_authorized insulin
-					ssm_state_estimate.state_data.pre_authorized = ssm_state_estimate.state_data.pre_authorized + ssm_state_estimate.state_data.spend_request;
-
-					// Send insulin
-					if ((!asynchronous && ssm_state_estimate.state_data.SSM_amount>NEGATIVE_EPSILON) || (ssm_state_estimate.state_data.pre_authorized>NEGATIVE_EPSILON))
-						sendBolusToPumpService(ssm_state_estimate.state_data.basal_added, 0.0, ssm_state_estimate.state_data.SSM_amount-ssm_state_estimate.state_data.basal_added);
-					else
-	           			returnStatusToDiAsService(SAFETY_SERVICE_STATE_NORMAL);
-*/
-					// Store the approved credit/spend
-					storeCreditRequest(credit_request);
-					storeSpentInsulin(spend_request, getCurrentTimeSeconds());
-					
-					Debug.w(TAG, FUNC_TAG, "Delivering credit (not bolus)!  Async: "+asynchronous);
-					
-					//TODO: SENDING BOLUS HERE
-					//TODO: SENDING BOLUS HERE
-					//TODO: SENDING BOLUS HERE
-					
-					if (asynchronous && bolus>NEGATIVE_EPSILON)		//This is a meal message, so no basal
-						sendBolusToPumpService(0.0, bolus, 0.0);
-					else if (bolus>NEGATIVE_EPSILON)				//Synchronous, system generated
-						sendBolusToPumpService(ssm_state_estimate.state_data.basal_added, bolus, 0.0);
-					else
-	           			returnStatusToDiAsService(Safety.SAFETY_SERVICE_STATE_NORMAL);
-        		}
-        		else {												// Bolus request approved
-					log_action(TAG, "Bolus approved", LOG_ACTION_INFORMATION);
-					ssm_state_estimate.state_data.SSM_amount = bolus;
-					ssm_state_estimate.state_data.Abrakes = ssm_state_estimate.state_data.SSM_amount;
-					ssm_state_estimate.state_data.risky = 0;
-					fetchStateEstimateData(getCurrentTimeSeconds());
-					ssm_state_estimate.complete_processing(subject_data, ssm_state_estimate.state_data, true, DIAS_STATE, getCurrentTimeSeconds(), Tvec_GPRED, Tvec_IOB, Tvec_Rate, calFlagTime);
-					writeStateEstimateData();   
-					
-					Debug.w(TAG, FUNC_TAG, "Delivering bolus (not credit)! Async: "+asynchronous);
-					Debug.w(TAG, FUNC_TAG, "Meal: "+bolus_meal);
-					Debug.w(TAG, FUNC_TAG, "Corr: "+bolus_correction);
-					
-					//TODO: SENDING BOLUS HERE
-					//TODO: SENDING BOLUS HERE
-					//TODO: SENDING BOLUS HERE
-					
-					if(asynchronous)		//Meal, so don't add basal
-						sendBolusToPumpService(0.0, bolus_meal, bolus_correction);
-					else					//Synchronous, or system generated (basal added)
-						sendBolusToPumpService(ssm_state_estimate.state_data.basal_added, bolus_meal, bolus_correction);
-        		}
         		
+        		// Bolus request approved
+				ssm_state_estimate.state_data.SSM_amount = bolus;
+				ssm_state_estimate.state_data.Abrakes = ssm_state_estimate.state_data.SSM_amount;
+				ssm_state_estimate.state_data.risky = 0;
+				fetchStateEstimateData(getCurrentTimeSeconds());
+				ssm_state_estimate.complete_processing(subject_data, ssm_state_estimate.state_data, true, DIAS_STATE, getCurrentTimeSeconds(), Tvec_GPRED, Tvec_IOB, Tvec_Rate, calFlagTime);
+				writeStateEstimateData();   
+				
+				Debug.w(TAG, FUNC_TAG, "Delivering bolus (not credit)! Async: "+asynchronous);
+				Debug.w(TAG, FUNC_TAG, "Meal: "+bolus_meal);
+				Debug.w(TAG, FUNC_TAG, "Corr: "+bolus_correction);
+				
+				//TODO: SENDING BOLUS HERE
+				
+				if(asynchronous)		//Meal, so don't add basal
+					sendBolusToPumpService(0.0, bolus_meal, bolus_correction);
+				else					//Synchronous, or system generated (basal added)
+					sendBolusToPumpService(ssm_state_estimate.state_data.basal_added, bolus_meal, bolus_correction);
         		
         		if(c!=null)
 				{
@@ -2045,12 +1457,12 @@ public class SafetyService extends Service {
 	//***************************************************************************************
 	// DiAsService interface method
 	//***************************************************************************************
-    public void returnStatusToDiAsService(int status)
+    private void returnStatusToDiAsService(int status)
     {
     	returnStatusToDiAsService(status, true);
     }
     
-    public void returnStatusToDiAsService(int status, boolean bundle) {
+    private void returnStatusToDiAsService(int status, boolean bundle) {
 		// Report error state back to the DiAsService
     	final String FUNC_TAG = "returnStatusToDiAsService";
     	
@@ -2105,9 +1517,6 @@ public class SafetyService extends Service {
 	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
 			}
 		}
-		
-		debug_message("BOLUS_TRACE", "SafetyService > PUMP_STATE_COMMAND_COMPLETE");
-		
 		try {
 			mMessengerToDiAsService.send(response);
 		} 
@@ -2195,9 +1604,8 @@ public class SafetyService extends Service {
     private void sendBolusToPumpService(double bolus_basal, double bolus_meal, double bolus_correction) {
     	final String FUNC_TAG = "sendBolusToPumpService";
     	Bundle paramBundle;
-    	Message response, msg;
-    	Bundle responseBundle;
-		try {
+    	Message msg;
+    	try {
 			// Send a command to the Pump Service to deliver the bolus.
 			msg = Message.obtain(null, PUMP_SERVICE_CMD_DELIVER_BOLUS, 0, 0);
 			paramBundle = new Bundle();
@@ -2205,43 +1613,11 @@ public class SafetyService extends Service {
 			paramBundle.putInt("DIAS_STATE", DIAS_STATE);
 			paramBundle.putDouble("SSM_amount", ssm_state_estimate.state_data.SSM_amount);
 			
-//			// (Parameters use have been prevented by using twice the hard-coded constraint value in the comparison)
-//			double param_basal_max_constraint, param_correction_max_constraint, param_meal_max_constraint;
-//			
-//			try {
-//				param_basal_max_constraint = Params.getDouble(getContentResolver(), "basal_max_constraint", BASAL_MAX_CONSTRAINT);
-//			}
-//			catch (Exception e) {
-//				param_basal_max_constraint = BASAL_MAX_CONSTRAINT;
-//			}
-//			
-//			try {
-//				param_correction_max_constraint = Params.getDouble(getContentResolver(), "correction_max_constraint", CORRECTION_MAX_CONSTRAINT);
-//			}
-//			catch (Exception e) {
-//				param_correction_max_constraint = CORRECTION_MAX_CONSTRAINT;
-//			}
-//			
-//			try {
-//				param_meal_max_constraint = Params.getDouble(getContentResolver(), "meal_max_constraint", MEAL_MAX_CONSTRAINT);
-//			}
-//			catch (Exception e) {
-//				param_meal_max_constraint = MEAL_MAX_CONSTRAINT;
-//			}
-//
-//			//TODO: Reactivate/Uncomment the use of parameters once we are comfortable with hard-coded limits
-//			
-//			bolus_basal = checkLimits(bolus_basal, param_basal_max_constraint, BASAL_MAX_CONSTRAINT, BASAL_TOO_HIGH_LIMIT, "basal");
-//			bolus_correction = checkLimits(bolus_correction, param_correction_max_constraint, CORRECTION_MAX_CONSTRAINT, CORRECTION_TOO_HIGH_LIMIT, "correction");
-//			bolus_meal = checkLimits(bolus_meal, param_meal_max_constraint, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "meal");
-//			ssm_state_estimate.state_data.pre_authorized = checkLimits(ssm_state_estimate.state_data.pre_authorized, param_meal_max_constraint, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "pre_authorized");
-			
 			//Check limits...
 			bolus_basal = checkLimits(bolus_basal, BASAL_MAX_CONSTRAINT, BASAL_MAX_CONSTRAINT, BASAL_TOO_HIGH_LIMIT, "basal");
 			bolus_correction = checkLimits(bolus_correction, CORRECTION_MAX_CONSTRAINT, CORRECTION_MAX_CONSTRAINT, CORRECTION_TOO_HIGH_LIMIT, "correction");
 			bolus_meal = checkLimits(bolus_meal, MEAL_MAX_CONSTRAINT, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "meal");
 			ssm_state_estimate.state_data.pre_authorized = checkLimits(ssm_state_estimate.state_data.pre_authorized, MEAL_MAX_CONSTRAINT, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "pre_authorized");
-			
 			
 			if(bolus_basal < 0.0 || bolus_correction < 0.0 || bolus_meal < 0.0 || ssm_state_estimate.state_data.pre_authorized < 0.0)
 			{
@@ -2296,7 +1672,7 @@ public class SafetyService extends Service {
 		       	}
 			}   	
     		
-			if (temporaryBasalRateActive()&&temp_basal_owner==TempBasal.TEMP_BASAL_OWNER_SSMSERVICE){		
+			if (temporaryBasalRateActive() && temp_basal_owner==TempBasal.TEMP_BASAL_OWNER_SSMSERVICE){		
 			    double basal = getCurrentBasalProfile();
 		       	paramBundle.putDouble(INSULIN_BASAL_BOLUS, basal/12*temp_basal_percent_of_profile_basal_rate/100);
 			}
@@ -2307,13 +1683,11 @@ public class SafetyService extends Service {
     		paramBundle.putDouble(INSULIN_MEAL_BOLUS, bolus_meal); 
     		paramBundle.putDouble(INSULIN_CORR_BOLUS, bolus_correction); 
 			paramBundle.putDouble("pre_authorized", ssm_state_estimate.state_data.pre_authorized);
-			double pre = ssm_state_estimate.state_data.pre_authorized;
 			ssm_state_estimate.state_data.pre_authorized = 0.0;
-			paramBundle.putDouble("bolus_max", ssm_param.filter.bolus_max);
+//			paramBundle.putDouble("bolus_max", ssm_param.filter.bolus_max);
      		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
 			putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", "Basalvalues");
-     		double correction = ssm_state_estimate.state_data.SSM_amount-ssm_state_estimate.state_data.basal_added;
-			msg.setData(paramBundle);
+     		msg.setData(paramBundle);
 			// Log the parameters for IO testing
 			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
 				Tvector tvec_temp = getTvector(paramBundle, "Basaltimes", "Basalvalues");
@@ -2332,9 +1706,9 @@ public class SafetyService extends Service {
 	    						);
 	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 			}
-			mMessengerToPumpService.send(msg);
+			pumpTx.send(msg);
 			ssm_state_estimate.state_data.Processing_State = Safety.SAFETY_SERVICE_STATE_AWAITING_PUMP_RESPONSE;
-			debug_message("BOLUS_TRACE", "SafetyService > send bolus to pump > bolus="+ssm_state_estimate.state_data.SSM_amount);
+//			debug_message("BOLUS_TRACE", "SafetyService > send bolus to pump > bolus="+ssm_state_estimate.state_data.SSM_amount);
 		}
 		catch (RemoteException e) {
     		Bundle b = new Bundle();
@@ -2355,7 +1729,6 @@ public class SafetyService extends Service {
     	   final String FUNC_TAG = "handleMessage";
            switch (msg.what) {
            		case Pump.PUMP_STATE_IDLE:
-           			debug_message(TAG, "PUMP_STATE_COMMAND_IDLE");
            			// Log the parameters for IO testing
            			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
         	    		Bundle b = new Bundle();
@@ -2364,11 +1737,10 @@ public class SafetyService extends Service {
         	    						);
         	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
            			}
-    				Bundle responseBundle = msg.getData();
+			msg.getData();
     				SSMSERVICE_STATE = SSMSERVICE_STATE_IDLE;
            			break;
            		case Pump.PUMP_STATE_COMPLETE:
-           			debug_message(TAG, "PUMP_STATE_COMMAND_COMPLETE");
            			// Log the parameters for IO testing
            			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
         	    		Bundle b = new Bundle();
@@ -2380,7 +1752,6 @@ public class SafetyService extends Service {
            			returnStatusToDiAsService(Safety.SAFETY_SERVICE_STATE_NORMAL);
                		break;
            		case Pump.PUMP_STATE_PUMP_ERROR:
-           			debug_message(TAG, "PUMP_STATE_PUMP_ERROR");
            			ssm_state_estimate.state_data.Processing_State = Safety.SAFETY_SERVICE_STATE_PUMP_ERROR;
            			// Log the parameters for IO testing
            			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -2393,7 +1764,6 @@ public class SafetyService extends Service {
            			returnStatusToDiAsService(ssm_state_estimate.state_data.Processing_State);
            			break;
            		case Pump.PUMP_STATE_COMMAND_ERROR:
-           			debug_message(TAG, "PUMP_STATE_COMMAND_ERROR");
            			ssm_state_estimate.state_data.Processing_State = Safety.SAFETY_SERVICE_STATE_PUMP_ERROR;
            			// Log the parameters for IO testing
            			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -2406,7 +1776,6 @@ public class SafetyService extends Service {
            			returnStatusToDiAsService(ssm_state_estimate.state_data.Processing_State);
            			break;
            		case Pump.PUMP_STATE_NO_RESPONSE:
-           			debug_message(TAG, "PUMP_STATE_NO_RESPONSE");
            			ssm_state_estimate.state_data.Processing_State = Safety.SAFETY_SERVICE_STATE_PUMP_ERROR;
            			// Log the parameters for IO testing
            			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
@@ -2425,7 +1794,7 @@ public class SafetyService extends Service {
        }
    }
     
-	public void fetchNewBiometricData() {
+	private void fetchNewBiometricData() {
     	final String FUNC_TAG = "fetchNewBiometricData";
 		try {
 			// Fetch cgm
@@ -2468,7 +1837,6 @@ public class SafetyService extends Service {
 						Tvec_meal_bolus_hist_seconds.put(c.getLong(c.getColumnIndex("deliv_time")), (double)c.getDouble(c.getColumnIndex("deliv_meal")));
 						Tvec_corr_bolus_hist_seconds.put(c.getLong(c.getColumnIndex("deliv_time")), (double)c.getDouble(c.getColumnIndex("deliv_corr")));
 					} while (c.moveToNext());
-					last_Tvec_insulin_bolus1_time_secs = last_time_temp_secs;
 				}
 				c.close();
 			}
@@ -2476,30 +1844,6 @@ public class SafetyService extends Service {
 			Tvec_basal_bolus_hist_seconds.dump(TAG, "Tvec_basal_bolus_hist_seconds", 8);
 			Tvec_meal_bolus_hist_seconds.dump(TAG, "Tvec_meal_bolus_hist_seconds", 8);
 			Tvec_corr_bolus_hist_seconds.dump(TAG, "Tvec_corr_bolus_hist_seconds", 8);
-
-			if (!DEBUG_CREDIT_POOL) {
-				// Fetch insulin credit data
-				Long time_one_hour_ago_seconds = new Long(0);
-				c=getContentResolver().query(Biometrics.INSULIN_CREDIT_URI, null, time_one_hour_ago_seconds.toString(), null, null);
-				if (c != null) {
-					if (c.moveToFirst()) {
-						do{
-							// Insulin time in seconds
-							Tvec_credit.put_with_replace(c.getLong(c.getColumnIndex("time")), (double)c.getDouble(c.getColumnIndex("credit")));
-							Tvec_spent.put_with_replace(c.getLong(c.getColumnIndex("time")), (double)c.getDouble(c.getColumnIndex("spent")));
-							Tvec_net.put_with_replace(c.getLong(c.getColumnIndex("time")), (double)c.getDouble(c.getColumnIndex("net")));
-						} while (c.moveToNext());
-					}
-					c.close();
-				}
-			}
-			else {
-				Tvec_credit = new Tvector(TVEC_SIZE);
-				Tvec_credit.put(getCurrentTimeSeconds(), 1.0);
-				Tvec_spent = new Tvector(TVEC_SIZE);
-				Tvec_net = new Tvector(TVEC_SIZE);
-			}
-			
 		}
         catch (Exception e) {
     		Bundle b = new Bundle();
@@ -2509,11 +1853,9 @@ public class SafetyService extends Service {
         }
 	}
 	
-	public boolean fetchStateEstimateData(long time) {
-		final String FUNC_TAG = "fetchStateEstimateData";
+	private boolean fetchStateEstimateData(long time) {
 		boolean return_value = false;
 		long last_time_temp_secs = 0;
-		Long Time = new Long(time);
 		Cursor c=getContentResolver().query(Biometrics.STATE_ESTIMATE_URI, null, "time > "+last_state_estimate_time_secs.toString(), null, null);
 		long state_estimate_time;
 		if (c != null) {
@@ -2537,9 +1879,8 @@ public class SafetyService extends Service {
 		return return_value;
 	}
 	
-	public void writeStateEstimateData() {
+	private void writeStateEstimateData() {
     	final String FUNC_TAG = "writeStateEstimateData";
-		debug_message(TAG, "writeStateEstimateData > state_data.CGM = "+ssm_state_estimate.state_data.CGM);
 	    ContentValues values = new ContentValues();
 	    values.put(TIME, getCurrentTimeSeconds());
 	    values.put(ENOUGH_DATA, ssm_state_estimate.state_data.enough_data);
@@ -2547,7 +1888,7 @@ public class SafetyService extends Service {
 	    	values.put(ASYNCHRONOUS, 1);
 	    else
 	    	values.put(ASYNCHRONOUS, 0);
-	    if (DIAS_STATE == DIAS_STATE_CLOSED_LOOP || DIAS_STATE == DIAS_STATE_SAFETY_ONLY || (DIAS_STATE == DIAS_STATE_OPEN_LOOP && ssm_state_estimate.state_data.enough_data)) {
+	    if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY || (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP && ssm_state_estimate.state_data.enough_data)) {
 		    values.put(CGM, ssm_state_estimate.state_data.CGM);
 		    values.put(GPRED, ssm_state_estimate.state_data.Gpred);
 		    values.put(GBRAKES, ssm_state_estimate.state_data.Gbrakes);
@@ -2595,11 +1936,11 @@ public class SafetyService extends Service {
 	    }
 	}
 	
-	public long getCurrentTimeSeconds() {
+	private long getCurrentTimeSeconds() {
 		return (long)(System.currentTimeMillis()/1000);			// Seconds since 1/1/1970		
 	}
 	
-    public void putTvector(Bundle bundle, Tvector tvector, String timeKey, String valueKey) {
+    private void putTvector(Bundle bundle, Tvector tvector, String timeKey, String valueKey) {
 		long[] times = new long[tvector.count()];
 		double[] values = new double[tvector.count()];
 		int ii;
@@ -2611,7 +1952,7 @@ public class SafetyService extends Service {
 		bundle.putDoubleArray(valueKey, values);
     }
 	
-    public Tvector getTvector(Bundle bundle, String timeKey, String valueKey) {
+    private Tvector getTvector(Bundle bundle, String timeKey, String valueKey) {
 		int ii;
 		long[] times = bundle.getLongArray(timeKey);
 		double[] values = bundle.getDoubleArray(valueKey);
@@ -2621,155 +1962,4 @@ public class SafetyService extends Service {
 		}
 		return tvector;
     }
-
-	
-	private void storeCreditRequest(double credit) {
-		//
-		//  Store the pre_authorized insulin in the database
-		//
-    	final String FUNC_TAG = "storeCreditRequest";
-	    ContentValues values = new ContentValues();
-	    values.put(TIME, getCurrentTimeSeconds());
-	    values.put("credit", credit);
-	    values.put("spent", 0.0);
-	    values.put("net", credit);
-	    debug_message(TAG_CREDITPOOL, "storeCreditRequest > credit="+values.getAsDouble("credit")+", spent="+values.getAsDouble("spent")+", net="+values.getAsDouble("net"));
-	    try {
-	    		Uri uri = getContentResolver().insert(Biometrics.INSULIN_CREDIT_URI, values);
-	    }
-	    catch (Exception e) {
-    		Bundle b = new Bundle();
-    		b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
-    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-	    	Log.e("creditpool",(e.toString() == null) ? "null" : "Error > "+e.toString());
-	    }
-	}
-	
-	// This method causes the spend_request to be stored in the insulincredit table
-	// by associating it with a credit entry which is the same size or larger.
-	public void storeSpentInsulin(double spent_value, long current_time_seconds) {
-    	final String FUNC_TAG = "storeSpentInsulin";
-		// Fetch credit pool data for the last hour from the database
-		Tvector Tvec_credit = new Tvector(TVEC_SIZE);
-		Tvector Tvec_spent = new Tvector(TVEC_SIZE);
-		Tvector Tvec_net = new Tvector(TVEC_SIZE);
-		Tvector Tvec_row_id = new Tvector(TVEC_SIZE);
-		Long time_one_hour_ago_seconds = new Long(current_time_seconds - 3600*3);
-		Cursor c=getContentResolver().query(Biometrics.INSULIN_CREDIT_URI, null, time_one_hour_ago_seconds.toString(), null, null);
-		if (c != null) {
-			debug_message(TAG_CREDITPOOL, "SafetyService > storeSpentInsulin > INSULIN_CREDIT_URI rows in last hour="+c.getCount());
-			if (c.moveToFirst()) {
-				do{
-					try {
-						Tvec_row_id.put(c.getLong(c.getColumnIndex("time")), (double)c.getInt(c.getColumnIndex("_id")));
-						Tvec_credit.put(c.getLong(c.getColumnIndex("time")), (double)c.getDouble(c.getColumnIndex("credit")));
-						Tvec_spent.put(c.getLong(c.getColumnIndex("time")), (double)c.getDouble(c.getColumnIndex("spent")));
-						Tvec_net.put(c.getLong(c.getColumnIndex("time")), (double)c.getDouble(c.getColumnIndex("net")));
-					}
-					catch (Exception e) {
-	            		Bundle b = new Bundle();
-	            		b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
-	            		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-						debug_message(TAG_CREDITPOOL, "SafetyService > storeSpentInsulin > Error reading INSULIN_CREDIT_URI");
-					}
-				} while (c.moveToNext());
-			}
-			c.close();
-		}
-		
-		// Update Tvec_spent and Tvec_net
-		int ii = 0;
-		int ii_count = Tvec_row_id.count();
-		double spent_value_accum = spent_value;
-		double net_value_ii, spent_value_ii;
-		debug_message(TAG_CREDITPOOL,"SafetyService > storeSpentInsulin > ii_count="+ii_count+", spent_value_accum="+spent_value_accum);
-		while (ii < ii_count && spent_value_accum > POSITIVE_EPSILON) {
-			net_value_ii = Tvec_net.get_value(ii);
-			spent_value_ii = Tvec_spent.get_value(ii);
-			if (net_value_ii >= spent_value_accum) {
-				// There is enough net credit in this element to satisfy the remaining spent_value_accum
-				Tvec_spent.replace_value(spent_value_ii+spent_value_accum, ii);
-				Tvec_net.replace_value(net_value_ii-spent_value_accum, ii);
-				spent_value_accum = 0.0;
-			}
-			else if (net_value_ii > 0) {
-				// There is some net credit left in this element which can be used to reduce spent_value_accum
-				Tvec_spent.replace_value(spent_value_ii+net_value_ii, ii);
-				Tvec_net.replace_value(0.0, ii);
-				spent_value_accum = spent_value_accum - net_value_ii;
-			}
-			ii++;
-		}
-		// Verify that all of spent_value has been assigned to Tvec_spent
-		if (spent_value_accum > POSITIVE_EPSILON) {
-			// Error condition!
-			Log.e(TAG, "storeSpentInsulin > Error: Not enough credit to store spent insulin > spent_value_accum="+spent_value_accum+", ii="+ii);
-		}
-				
-		// Write the credit pool information for the last hour back to the database
-		int row_id;
-		long row_time;
-		ContentValues values = new ContentValues();
-		ii_count = Tvec_row_id.count();
-		for (ii=0; ii<ii_count; ii++) {
-			row_id = (int)Math.round(Tvec_row_id.get_value(ii));
-			values.put("_id", row_id);
-			values.put("time", Tvec_row_id.get_time(ii));
-			values.put("credit", Tvec_credit.get_value(ii));
-			values.put("spent", Tvec_spent.get_value(ii));				
-			values.put("net", Tvec_net.get_value(ii));
-			debug_message(TAG_CREDITPOOL, "SafetyService > storeSpentInsulin > row_id="+row_id+", time="+values.getAsString("time")+
-					", credit="+values.getAsString("credit")+
-					", spent="+values.getAsString("spent")+
-					", net="+values.getAsString("net"));
-		    try {
-				getContentResolver().update(Biometrics.INSULIN_CREDIT_URI, values, "_id="+row_id, null);
-		    }
-		    catch (Exception e) {
-//		    		log_action(TAG, "storeSpentInsulin > Error writing INSULIN_CREDIT_URI with _id="+row_id, current_time_seconds);
-        		Bundle b = new Bundle();
-        		b.putString("description", "Error in "+FUNC_TAG+" > "+e.toString());
-        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-				Log.e(TAG, e.toString());
-		    }
-		}
-	}
-
-	public void log_action(String service, String action, int priority) {
-		Log.i(TAG, service+" > "+action);
-		
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", service);
-        i.putExtra("Status", action);
-        i.putExtra("priority", priority);
-        i.putExtra("time", (long)getCurrentTimeSeconds());
-        sendBroadcast(i);
-	}
-	
-	public void log_IO(String tag, String message) {
-		debug_message(tag, message);
-		/*
-		Intent i = new Intent("edu.virginia.dtc.intent.action.LOG_ACTION");
-        i.putExtra("Service", tag);
-        i.putExtra("Status", message);
-        i.putExtra("time", (long)getCurrentTimeSeconds());
-        sendBroadcast(i);
-        */
-	}
-
-	private static void debug_message(String tag, String message) {
-		if (DEBUG_MODE) {
-			Log.i(tag, message);
-		}
-	}
-	
-	private double clamp(double dvalue) {
-		if (dvalue > 0.0) {
-			return dvalue;
-		}
-		else {
-			return 0.0;
-		}
-	}
-	
 }

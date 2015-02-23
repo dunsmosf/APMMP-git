@@ -8,21 +8,18 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.SSMservice;
 
-import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.Tvector.Tvector;
-import android.os.Bundle;
-import android.util.Log;
 
 public class SSM_param {
+	private static final String TAG = "SSM_param";
+	
 	public IOB_param iob_param;
-	public Filter filter;
 	public SSM_model model;
 	public double target;
-	public Tvector basal;
 	public SSM_brakes brakes;
 	public SSM_brakes_param brakes_param;
 	public SSM_flag_param flag_param;
-	public SSM_hyper_alarm hyper_alarm;
 	public SSM_hypo_alarm hypo_alarm;
 	public final double k_1 = 0.0173;
 	public final double k_2 = 0.0116;
@@ -30,34 +27,29 @@ public class SSM_param {
 	
 	public boolean isValid = true;
 
-	public SSM_param(int AIT, Tvector subject_basal, Tvector CR, Tvector CF, double TDI, double BW) {
-		// TODO Auto-generated constructor stub
+	public SSM_param(int AIT, Tvector CF, double TDI) {
 		iob_param = new IOB_param(AIT*12, 96);
-		filter = new Filter();
 		model = new SSM_model();
-		basal = subject_basal;				// Use the basal profile passed to us
 		brakes = new SSM_brakes();
 		brakes_param = new SSM_brakes_param();
 		flag_param = new SSM_flag_param();
-		hyper_alarm = new SSM_hyper_alarm();
 		hypo_alarm = new SSM_hypo_alarm();
-		initSSM_param(basal, CR, CF, TDI, BW);
+		
+		initSSM_param(CF, TDI);
 	}
 
-    public void initSSM_param(Tvector basal, Tvector CR, Tvector CF, double TDI, double BW) {
-	//public void initSSM_param(int AIT, Tvector basal, Tvector CR, Tvector CF, double TDI, double BW) {
+    private void initSSM_param(Tvector CF, double TDI) {
     	double insulin_curve_mins[];
-		
-    	// Removed switch statement on AIT value since its value is now fixed to 4
-    	
     	int ii;
+    	
 		insulin_curve_mins = new double[240];
 		for (ii=0; ii<240; ii++) {
 			insulin_curve_mins[ii] = 1-.5*((-k_3/(k_2*(k_1-k_2))*(Math.exp(-k_2*(ii+1)/.5)-1)+k_3/(k_1*(k_1-k_2))*(Math.exp(-k_1*(ii+1)/.5)-1))/(1.6631e4));
-				}
+		}
 		for (ii=0; ii<48; ii++) {
 			iob_param.curves[ii] =insulin_curve_mins[(ii+1)*5-1];
 		}
+		
 		iob_param.alpha=1.7394;
 		iob_param.beta=-0.7566;
 		for (ii=0; ii<48; ii++) {
@@ -73,11 +65,12 @@ public class SSM_param {
     	iob_param.fourcurves_nonrecursive = new double[96];
     	iob_param.sixcurves_nonrecursive = new double[96];
     	iob_param.eightcurves_nonrecursive = new double[96];
+    	
     	double insulin_4curve_mins[];
     	insulin_4curve_mins = new double[240];
 		for (ii=0; ii<240; ii++) {
 			insulin_4curve_mins[ii] = 1-.5*((-k_3/(k_2*(k_1-k_2))*(Math.exp(-k_2*(ii+1)/.5)-1)+k_3/(k_1*(k_1-k_2))*(Math.exp(-k_1*(ii+1)/.5)-1))/(1.6631e4));
-				}
+		}
 		for (ii=0; ii<48; ii++) {
 			iob_param.fourcurves[ii]=insulin_4curve_mins[(ii+1)*5-1];
 		}
@@ -97,7 +90,6 @@ public class SSM_param {
 		for (ii=0; ii<72; ii++) {
 			iob_param.sixcurves[ii] =insulin_6curve_mins[(ii+1)*5-1];
 		}
-		
 		for (ii=0; ii<72; ii++) {
 			iob_param.sixcurves_nonrecursive[95-ii] = iob_param.sixcurves[ii];
 		}
@@ -119,16 +111,14 @@ public class SSM_param {
 		}
     
 
-    	// target glucose level
+    	// Target glucose level
     	target = 112.5;
+    	
     	// Additional iob_param elements
     	iob_param.target=112.5;
     	iob_param.hist_length=8*60;
-    	// filter
-    	filter.alpha = 0.5;
-    	filter.width=45;
-    	filter.bolus_max=6;
-    	// model
+    	
+    	// Model
     	model.KBW =  79.675011695299970;
     	model.KGEZI = 0.022952300000000;
     	model.KGb = 112.50000;
@@ -146,6 +136,7 @@ public class SSM_param {
     	model.Kktau = 0.096139935268239;
     	model.Kp2 = 0.175545038809223;
     	model.Ktaumeal = 0.0050000000;
+    	
     	// Set up some working variables
     	double opG = target;
     	double opGsc = opG;
@@ -241,7 +232,8 @@ public class SSM_param {
     	else {
     		brakes_param.k = Math.max(9.0/4.0, Math.exp(-0.7672-0.0091*TDI+0.0449*1/mean_cf));
     	}
-    	Log.i("SSM", "brakes_param.k="+brakes_param.k+", mean_value(CF)="+mean_cf+", TDI="+TDI);
+    	
+    	Debug.i(TAG, "init_SSMparam", "brakes_param.k="+brakes_param.k+", mean_value(CF)="+mean_cf+", TDI="+TDI);
     	
     	brakes_param.risk.thres = 112.5;
     	brakes_param.risk.a = 1.5088;
@@ -249,19 +241,15 @@ public class SSM_param {
     	brakes_param.risk.c = 5.381;
     	brakes_param.risk.thres_ex = 140;
     	brakes_param.risk.a_ex = 0.9283;
-//    	brakes_param.risk.a_ex = 0.2936;					// PKH, CHK - 1/18/12
     	brakes_param.risk.b_ex = 1.8115;
     	brakes_param.risk.c_ex = 18.0696;
+    	
     	// SSM_flag_param
     	flag_param.g_thres = 112.5;
     	flag_param.cho_thres = 16;
     	flag_param.target = 112.5;
     	flag_param.low_target = 80;
-    	// SSM_hyper_alarm
-    	hyper_alarm.thresG = 200;
-    	hyper_alarm.thresDG = 0.5;
-    	hyper_alarm.thresI = 2;
-    	hyper_alarm.width = 60;
+    	
     	// SSM_hypo_alarm
     	hypo_alarm.width = 20;
         hypo_alarm.calibration_window_width = 60; 

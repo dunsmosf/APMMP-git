@@ -17,5 +17,4 @@ public class SSM_flag_param {
 	public SSM_flag_param() {
 		// TODO Auto-generated constructor stub
 	}
-
 }
