@@ -8,18 +8,14 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.BRMservice;
 
-import java.util.List;
 import java.util.TimeZone;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.os.Bundle;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Log;
-import edu.virginia.dtc.Tvector.Tvector;
 
 public class InsulinTherapy {
 	private final String TAG = "BRMservice";
@@ -52,7 +48,7 @@ public class InsulinTherapy {
 	private static final double Gspred=40;
 	
 	private double Iob, Gest, Gbrakes;
-	private long GestTime, GbrakesTime;
+	private long EstTime;
 	
 	public InsulinTherapy(Context calling_context) {
 		context = calling_context;
@@ -64,7 +60,7 @@ public class InsulinTherapy {
 		
 		double diff_rate = 0.0;
 		Iob = Gest = Gbrakes = 0.0;
-		GestTime = GbrakesTime = 0;
+		EstTime = 0;
 		
 		// 1. Update the subject data by reading latest profile values from the database
 		// ==================================================================================
@@ -112,10 +108,10 @@ public class InsulinTherapy {
 	   	
     	if(c.getCount() >= 8) {
     		Debug.i(TAG, FUNC_TAG, "There are 8 or more CGM points...");
-    		INS_target=(Gbrakes-glucoseTarget(GbrakesTime))/CF;
+    		INS_target=(Gbrakes-glucoseTarget(EstTime))/CF;
     	} else {
     		Debug.i(TAG, FUNC_TAG, "There are less than 8 CGM points...");
-    		INS_target=(Gest-glucoseTarget(GestTime))/CF;
+    		INS_target=(Gest-glucoseTarget(EstTime))/CF;
     	}
     	Debug.i(TAG, FUNC_TAG, "INS_target: "+INS_target);
 			
@@ -157,7 +153,7 @@ public class InsulinTherapy {
 		final String FUNC_TAG = "fetchStateEstimateData";
 		
 		Iob = Gest = Gbrakes = 0.0;
-		GestTime = GbrakesTime = 0;
+		EstTime = 0;
 		
 		// Fetch most recent synchronous row from State Estimate data records
 		Cursor c = context.getContentResolver().query(Biometrics.STATE_ESTIMATE_URI, new String[]{"asynchronous", "time", "IOB", "Gpred", "Gbrakes"}, "asynchronous = 0", null, "time DESC LIMIT 1");
@@ -166,7 +162,7 @@ public class InsulinTherapy {
 			Iob = c.getDouble(c.getColumnIndex("IOB"));
 			Gest = c.getDouble(c.getColumnIndex("Gpred"));			//AKA Gpred
 			Gbrakes = c.getDouble(c.getColumnIndex("Gbrakes"));		//AKA Gpred_30m
-			GestTime = GbrakesTime = c.getLong(c.getColumnIndex("time"));
+			EstTime = c.getLong(c.getColumnIndex("time"));
 			c.close();
 			
 			Debug.i(TAG, FUNC_TAG, "IOB: "+Iob+" Gest: "+Gest+" Gbrakes: "+Gbrakes);
@@ -247,7 +243,7 @@ public class InsulinTherapy {
 		
 		Settings st = IOMain.db.getLastBrmDB();
 		
-		Debug.i(TAG, FUNC_TAG, "time= "+getCurrentTimeSeconds());
+		Debug.i(TAG, FUNC_TAG, "Time= "+getCurrentTimeSeconds());
 		Debug.i(TAG, FUNC_TAG, "BrmDB:time= "+st.time);
 		Debug.i(TAG, FUNC_TAG, "BrmDB:starttime= "+st.starttime);
 		Debug.i(TAG, FUNC_TAG, "BrmDB:duration= "+st.duration);
