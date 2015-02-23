@@ -8,52 +8,6 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.SSMservice;
 
-import edu.virginia.dtc.SSMservice.SSM_param;
-import edu.virginia.dtc.SSMservice.Confirmations;
-import edu.virginia.dtc.SysMan.Biometrics;
-import edu.virginia.dtc.SysMan.Constraints;
-import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
-import edu.virginia.dtc.SysMan.Params;
-import edu.virginia.dtc.SysMan.Pump;
-import edu.virginia.dtc.SysMan.Safety;
-import edu.virginia.dtc.SysMan.State;
-import edu.virginia.dtc.SysMan.TempBasal;
-import edu.virginia.dtc.Tvector.Tvector;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.database.ContentObserver;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.IBinder;
-import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.Window;
-import android.widget.EditText;
-import android.widget.Toast;
-import android.os.Messenger;
-import android.os.Message;
-import android.os.PowerManager;
-import android.os.Handler;
-import android.os.Bundle;
-import android.os.PowerManager;
-import android.os.RemoteException;
-import android.app.Dialog;
-import android.app.Service;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-
-import java.lang.Long;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
@@ -61,7 +15,43 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.lang.ref.WeakReference;
+
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.database.ContentObserver;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.PowerManager;
+import android.os.RemoteException;
+import android.util.Log;
+import android.view.Gravity;
+import android.widget.Toast;
+import edu.virginia.dtc.SysMan.Biometrics;
+import edu.virginia.dtc.SysMan.Constraints;
+import edu.virginia.dtc.SysMan.Debug;
+import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.Params;
+import edu.virginia.dtc.SysMan.Pump;
+import edu.virginia.dtc.SysMan.Safety;
+import edu.virginia.dtc.SysMan.State;
+import edu.virginia.dtc.SysMan.TempBasal;
+import edu.virginia.dtc.Tvector.Tvector;
 
 
 public class SafetyService extends Service {
@@ -209,14 +199,6 @@ public class SafetyService extends Service {
 	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY = 6;
 	public static final int PUMP_SERVICE_CMD_STOP_SERVICE = 7;
 	public static final int PUMP_SERVICE_CMD_SET_HYPO_TIME = 8;
-	
-	private static final double BASAL_MAX_CONSTRAINT = 0.5;
-	private static final double CORRECTION_MAX_CONSTRAINT = 10.0;
-	private static final double MEAL_MAX_CONSTRAINT = 15.0;
-	
-	private static final double BASAL_TOO_HIGH_LIMIT = 1.0;
-	private static final double CORRECTION_TOO_HIGH_LIMIT = 30.0;
-	private static final double MEAL_TOO_HIGH_LIMIT = 30.0;
 	
 	public static final int DIAS_SERVICE_COMMAND_START_SENSOR_ONLY_CLICK = 25;	
 	
@@ -2133,7 +2115,7 @@ public class SafetyService extends Service {
     		
     		Bundle b = new Bundle();
     		b.putString("description", "SSMservice > Check extremes reports "+descrip+" value has an invalid value ("+value+"). System switching to Sensor/Stop Mode");
-    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
+    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_LOG);
     		return false;
     	}
     	
@@ -2151,7 +2133,7 @@ public class SafetyService extends Service {
     		
     		Bundle b = new Bundle();
     		b.putString("description", "SSMservice > Check limits reports "+type+" component of bolus has an invalid value ("+value+"). System switches to Sensor/Stop Mode");
-    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
+    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_LOG);
     		
     		return -1.0;
     	}
@@ -2162,7 +2144,7 @@ public class SafetyService extends Service {
     		{
     			Bundle b = new Bundle();
         		b.putString("description", "SSMservice > Check limits reports "+type+" component of bolus is negative: "+value+". Value constrained to 0.0");
-        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
+        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_LOG);
     		}
     		
     		return 0.0;
@@ -2183,7 +2165,7 @@ public class SafetyService extends Service {
     		
     		Bundle b = new Bundle();
     		b.putString("description", "SSMservice > Safety Service constraint was applied to the '"+type+"' component of bolus, "+value+"U requested, constrained to "+effective_limit+"U.");
-    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
+    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
     		
     		return effective_limit;
     	}
@@ -2205,42 +2187,11 @@ public class SafetyService extends Service {
 			paramBundle.putInt("DIAS_STATE", DIAS_STATE);
 			paramBundle.putDouble("SSM_amount", ssm_state_estimate.state_data.SSM_amount);
 			
-//			// (Parameters use have been prevented by using twice the hard-coded constraint value in the comparison)
-//			double param_basal_max_constraint, param_correction_max_constraint, param_meal_max_constraint;
-//			
-//			try {
-//				param_basal_max_constraint = Params.getDouble(getContentResolver(), "basal_max_constraint", BASAL_MAX_CONSTRAINT);
-//			}
-//			catch (Exception e) {
-//				param_basal_max_constraint = BASAL_MAX_CONSTRAINT;
-//			}
-//			
-//			try {
-//				param_correction_max_constraint = Params.getDouble(getContentResolver(), "correction_max_constraint", CORRECTION_MAX_CONSTRAINT);
-//			}
-//			catch (Exception e) {
-//				param_correction_max_constraint = CORRECTION_MAX_CONSTRAINT;
-//			}
-//			
-//			try {
-//				param_meal_max_constraint = Params.getDouble(getContentResolver(), "meal_max_constraint", MEAL_MAX_CONSTRAINT);
-//			}
-//			catch (Exception e) {
-//				param_meal_max_constraint = MEAL_MAX_CONSTRAINT;
-//			}
-//
-//			//TODO: Reactivate/Uncomment the use of parameters once we are comfortable with hard-coded limits
-//			
-//			bolus_basal = checkLimits(bolus_basal, param_basal_max_constraint, BASAL_MAX_CONSTRAINT, BASAL_TOO_HIGH_LIMIT, "basal");
-//			bolus_correction = checkLimits(bolus_correction, param_correction_max_constraint, CORRECTION_MAX_CONSTRAINT, CORRECTION_TOO_HIGH_LIMIT, "correction");
-//			bolus_meal = checkLimits(bolus_meal, param_meal_max_constraint, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "meal");
-//			ssm_state_estimate.state_data.pre_authorized = checkLimits(ssm_state_estimate.state_data.pre_authorized, param_meal_max_constraint, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "pre_authorized");
-			
 			//Check limits...
-			bolus_basal = checkLimits(bolus_basal, BASAL_MAX_CONSTRAINT, BASAL_MAX_CONSTRAINT, BASAL_TOO_HIGH_LIMIT, "basal");
-			bolus_correction = checkLimits(bolus_correction, CORRECTION_MAX_CONSTRAINT, CORRECTION_MAX_CONSTRAINT, CORRECTION_TOO_HIGH_LIMIT, "correction");
-			bolus_meal = checkLimits(bolus_meal, MEAL_MAX_CONSTRAINT, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "meal");
-			ssm_state_estimate.state_data.pre_authorized = checkLimits(ssm_state_estimate.state_data.pre_authorized, MEAL_MAX_CONSTRAINT, MEAL_MAX_CONSTRAINT, MEAL_TOO_HIGH_LIMIT, "pre_authorized");
+			bolus_basal = checkLimits(bolus_basal, Constraints.MAX_BASAL, Constraints.MAX_BASAL, Constraints.TOO_HIGH_BASAL, "basal");
+			bolus_correction = checkLimits(bolus_correction, Constraints.MAX_CORR, Constraints.MAX_CORR, Constraints.TOO_HIGH_CORR, "correction");
+			bolus_meal = checkLimits(bolus_meal, Constraints.MAX_MEAL, Constraints.MAX_MEAL, Constraints.TOO_HIGH_MEAL, "meal");
+			ssm_state_estimate.state_data.pre_authorized = checkLimits(ssm_state_estimate.state_data.pre_authorized, Constraints.MAX_MEAL, Constraints.MAX_MEAL, Constraints.TOO_HIGH_MEAL, "pre_authorized");
 			
 			
 			if(bolus_basal < 0.0 || bolus_correction < 0.0 || bolus_meal < 0.0 || ssm_state_estimate.state_data.pre_authorized < 0.0)
@@ -2252,7 +2203,7 @@ public class SafetyService extends Service {
 				
 				Bundle b = new Bundle();
 	    		b.putString("description", "SSMservice > Check limits reports a component of bolus has an invalid value. System switches to Sensor/Stop Mode");
-	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
+	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
 	    		
 	    		Intent intent = new Intent();
 	    		intent.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
@@ -2260,25 +2211,25 @@ public class SafetyService extends Service {
 	    		startService(intent);
 			}
 			
-			if((ssm_state_estimate.state_data.pre_authorized + bolus_meal) > MEAL_MAX_CONSTRAINT)
+			if((ssm_state_estimate.state_data.pre_authorized + bolus_meal) > Constraints.MAX_MEAL)
 			{
-				Debug.w(TAG, FUNC_TAG, "Limiting the pre-auth and meal bolus to: "+MEAL_MAX_CONSTRAINT);
+				Debug.w(TAG, FUNC_TAG, "Limiting the pre-auth and meal bolus to: "+Constraints.MAX_MEAL);
 				
 				//Pre-authorized has highest priority
-				if(ssm_state_estimate.state_data.pre_authorized >= MEAL_MAX_CONSTRAINT)
+				if(ssm_state_estimate.state_data.pre_authorized >= Constraints.MAX_MEAL)
 				{
-					ssm_state_estimate.state_data.pre_authorized = MEAL_MAX_CONSTRAINT;
+					ssm_state_estimate.state_data.pre_authorized = Constraints.MAX_MEAL;
 					bolus_meal = 0.0;
 				}
 				else	//Pre-authorized is less than Meal constraint so we just need to subtract the rest and put it in bolus_meal
 				{
-					bolus_meal = MEAL_MAX_CONSTRAINT - ssm_state_estimate.state_data.pre_authorized;
+					bolus_meal = Constraints.MAX_MEAL - ssm_state_estimate.state_data.pre_authorized;
 				}
 				
 				Bundle b = new Bundle();
 	    		b.putString("description", "SSMservice > Sum of Pre-Authorized and Meal boluses was greater than the meal constraint." +
 	    				" Values constrained to "+bolus_meal+"U (meal) and "+ssm_state_estimate.state_data.pre_authorized+"U (pre_auth)");
-	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
+	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
 				
 				Debug.w(TAG, FUNC_TAG, "Meal: "+bolus_meal+" Pre-Auth: "+ssm_state_estimate.state_data.pre_authorized);
 			}
