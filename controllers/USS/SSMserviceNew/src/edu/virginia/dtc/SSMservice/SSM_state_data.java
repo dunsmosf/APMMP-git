@@ -8,20 +8,13 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.SSMservice;
 
-import android.util.Log;
 import edu.virginia.dtc.SysMan.Safety;
 import edu.virginia.dtc.Tvector.Tvector;
 
 public class SSM_state_data {
 	public int Processing_State;
-	public Tvector Tvec_credit_hist_seconds;					// Credit pool
-	public Tvector Tvec_spent_hist_seconds;					//
-	public Tvector Tvec_net_hist_seconds;						//
 	public Tvector Tvec_state;
 	public double pre_authorized;
-//	public double pre_authorized_mem;
-	public double credit_request;
-	public double spend_request;
 	public double sp_req_mem;
 	public double RATE;							// Updated by BOLUS_assign
 	public double BOLUS;
@@ -35,7 +28,6 @@ public class SSM_state_data {
 	public double b;
 	public boolean enough_data;					// Whether there is enough CGM data to use
 	public boolean asynchronous;				// Whether a particular call to the Safety Service was asynchronous
-//	public boolean CGM_sensor_active;
 	public double CGM;							// Most recent CGM value or -1.0 if none 
 	public Tvector Tvec_ins_hist_IOB_with_meal_insulin_seconds;			// Insulin history for use in IOB calculation - meal insulin is included
 	public Tvector Tvec_ins_hist_IOB_no_meal_insulin_seconds;			// Insulin history for use by bolus interceptor - no meal insulin included
@@ -98,7 +90,6 @@ public class SSM_state_data {
 	
 
 	public SSM_state_data(long time) {
-		// TODO Auto-generated constructor stub
 		// Initialize needed values
 		stoplight = Safety.UNKNOWN_LIGHT;
 		stoplight2 = Safety.UNKNOWN_LIGHT;
@@ -117,7 +108,6 @@ public class SSM_state_data {
 		Risky = 0;
 		risky = 0;
 		tXi0 = 0;											// This will force the KF to run using the last 45 minutes of data
-		Log.i("SSM", "Initialize tXi0="+tXi0);
 		brakes_coeff = 1;
 		Processing_State = Safety.SAFETY_SERVICE_STATE_NORMAL;
 		state_out = 0;

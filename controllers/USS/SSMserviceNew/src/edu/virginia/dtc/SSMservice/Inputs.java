@@ -69,7 +69,6 @@ public class Inputs {
  	 Tvec_calibration = new Tvector();
  	 Tvec_hypo = new Tvector();
  	 Tvec_APC = new Tvector();
-
      
      CGM_array = new double[steps];
      CGMCal_array = new double[steps]; //added by Marc 07-17-2014
@@ -79,7 +78,6 @@ public class Inputs {
      CGM_clean = new double[steps];
      hypo_array = new double[steps];
      APC_array = new double[steps];
-     
      
      CGM = new double[steps];
      J = new double[steps];
@@ -291,7 +289,7 @@ public class Inputs {
       debug_message(TAG, "CGM_clean_string:"+c);
 
       //save to SSMDB
-	  SafetyService.db.addtoSSMDB(currentTimeseconds, 0, a, b, c);
+	  IOMain.db.addtoSSMDB(currentTimeseconds, 0, a, b, c);
 	  // Toast.makeText(callingContext, "KF inputs stored to DB", Toast.LENGTH_LONG).show();
 
       

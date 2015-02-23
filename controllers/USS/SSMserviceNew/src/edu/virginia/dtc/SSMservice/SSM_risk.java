@@ -19,7 +19,6 @@ public class SSM_risk {
 	public double c_ex;
 	
 	public SSM_risk() {
-		// TODO Auto-generated constructor stub
 	}
 
 }

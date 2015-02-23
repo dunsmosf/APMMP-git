@@ -15,6 +15,7 @@ public class KF_processing {
 	LinearDiscModel meal_model;
 	LinearDiscModel pred_model,pred_model_1h,pred_model_light;
 	KF kf;
+	
 	double Gpred,Risk=0.0, RiskEX=0.0, BrakeAction=1.0;
 	double BW;
 	double Gest;
@@ -25,7 +26,6 @@ public class KF_processing {
   	double delta_1h_window,delta_3h_window,Uma;
   	
   	boolean isValid = true;
-	
 
   public KF_processing(Inputs inputs, Subject subject_data,double Gop, SSM_param ssm_param, double exercise_level) {
     
@@ -46,11 +46,11 @@ public class KF_processing {
 	double[][] BUFFstate_meal_ini={{0.0}, {0.0}};
 
 	//insulin model
-	double[][] INS_A_init={	{0.9048, 6.256e-6, 2.996e-6/BW, 1.551e-6/BW}, 											// Now includes BW dependency
+	double[][] INS_A_init={	{0.9048, 6.256e-6, 2.996e-6/BW, 1.551e-6/BW}, 				// Now includes BW dependency
 			                {0.0, 0.4107, 0.5301/BW, 0.2800/BW}, 
 			                {0.0, 0.0, 0.9048, 0.0452}, 
 			                {0.0, 0.0, 0.0, 0.9048}};
-	double[][] INS_B_init={	{2.7923e-6/BW}, 																	// Now includes BW dependency
+	double[][] INS_B_init={	{2.7923e-6/BW}, 											// Now includes BW dependency
 							{0.8035/BW}, 
 							{0.1170},
 							{4.7581}};
