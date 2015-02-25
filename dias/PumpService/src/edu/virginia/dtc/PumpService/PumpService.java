@@ -298,24 +298,6 @@ public class PumpService extends Service {
     			String driverName = intent.getStringExtra("driver_name");
     			bindToNewDriver(intentName, driverName);
     			break;
-    		case Pump.PUMP_SERVICE_CMD_DISCONNECT:
-    			Debug.i(TAG, FUNC_TAG,"Pump service command disconnect");
-    			
-    			Message msg = Message.obtain(null, Pump.PUMP_SERVICE2DRIVER_DISCONNECT);
-    			if(PUMP.driverTransmitter != null)
-    			{
-					try {
-						PUMP.driverTransmitter.send(msg);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
-    			}
-    			else
-    				Debug.i(TAG, FUNC_TAG, "onStartCommand > Driver Transmitter is null, the Pump Service was most likely restarted and trying to disconnect a non-existant device");
-				
-				if(PUMP.driverConnection != null)
-					unbindService(PUMP.driverConnection);
-    			break;
     		case Pump.PUMP_SERVICE_CMD_SET_TBR:
     			Debug.i(TAG, FUNC_TAG, "Setting TBR if valid...");
     			
@@ -935,32 +917,6 @@ public class PumpService extends Service {
 					Debug.i(TAG, FUNC_TAG, "CMD_DELIVER_BOLUS > START OF BOLUS COMMAND --------------------------------------------------------------");
 					
 					deliverBolus(asynchronous, pre_authorized, bolus_max, basal_bolus, meal_bolus, corr_bolus);
-					break;
-				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS:
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS");
-					break;
-				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY:
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY");
-					break;
-				case Pump.PUMP_SERVICE_CMD_STOP_SERVICE:
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_STOP_SERVICE");
-					stopSelf();
-					break;
-				case Pump.PUMP_SERVICE_CMD_SET_HYPO_TIME:
-					// Get the hypoFlagTime passed down from DiAsService
-					paramBundle = msg.getData();
-					long hypoFlagTime = paramBundle.getLong("hypoFlagTime", 0);
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_SET_HYPO_TIME="+hypoFlagTime);
-					
-					Message hypoMsg = Message.obtain(null,Pump.PUMP_SERVICE2DRIVER_FLAGS);
-					Bundle data = new Bundle();
-					data.putLong("hypo_flag",hypoFlagTime);
-					hypoMsg.setData(data);
-					try {
-						PUMP.driverTransmitter.send(hypoMsg);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
 					break;
 				default:
 					super.handleMessage(msg);
