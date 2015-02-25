@@ -849,11 +849,6 @@ public class BTLE_Tandem_Driver extends Service{
 				case Pump.PUMP_SERVICE2DRIVER_DISCONNECT:
 					Debug.i(TAG, FUNC_TAG,"Disconnecting pump...");
 					break;	
-				case Pump.PUMP_SERVICE2DRIVER_FLAGS:
-					Debug.i(TAG, FUNC_TAG,"Receiving flags...");
-					Long hypoTime = msg.getData().getLong("hypo_flag");
-					Debug.i(TAG, FUNC_TAG,"Received hypo flag time: " + hypoTime);
-					break;
 				case Pump.PUMP_SERVICE2DRIVER_BOLUS:
 					Debug.i(TAG, FUNC_TAG,"Receiving bolus command!");
 

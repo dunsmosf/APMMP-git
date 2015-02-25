@@ -69,22 +69,13 @@ public class Pump {
 	public static final int PUMP_SERVICE_CMD_START_SERVICE = 1;
 	public static final int PUMP_SERVICE_CMD_REGISTER_CLIENT = 2;
 	public static final int PUMP_SERVICE_CMD_DELIVER_BOLUS = 3;
-	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS = 5;
-	public static final int PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY = 6;
-	public static final int PUMP_SERVICE_CMD_STOP_SERVICE = 7;
-	public static final int PUMP_SERVICE_CMD_SET_HYPO_TIME = 8;
 	public static final int PUMP_SERVICE_CMD_INIT = 9;
-	public static final int PUMP_SERVICE_CMD_DISCONNECT = 10;
 	public static final int PUMP_SERVICE_CMD_SET_TBR = 11;
     
     // Commands to Pump Service
  	public static final int DRIVER2PUMP_SERVICE_PARAMETERS = 0;
- 	public static final int DRIVER2PUMP_SERVICE_STATUS_UPDATE = 1;
- 	public static final int DRIVER2PUMP_SERVICE_RESERVOIR = 2;
  	public static final int DRIVER2PUMP_SERVICE_BOLUS_COMMAND_ACK = 3;
  	public static final int DRIVER2PUMP_SERVICE_BOLUS_DELIVERY_ACK = 4;
- 	public static final int DRIVER2PUMP_SERVICE_USB_CONNECT = 5;
- 	public static final int DRIVER2PUMP_SERVICE_USB_DISCONNECT = 6;
  	public static final int DRIVER2PUMP_SERVICE_QUERY_RESP = 7;
  	public static final int DRIVER2PUMP_SERVICE_TBR_RESP = 8;
  	public static final int DRIVER2PUMP_SERVICE_MANUAL_INSULIN = 10;
@@ -93,7 +84,6 @@ public class Pump {
  	public static final int PUMP_SERVICE2DRIVER_NULL = 0;
  	public static final int PUMP_SERVICE2DRIVER_REGISTER = 1;
  	public static final int PUMP_SERVICE2DRIVER_DISCONNECT = 2;
- 	public static final int PUMP_SERVICE2DRIVER_FLAGS = 3;
  	public static final int PUMP_SERVICE2DRIVER_BOLUS = 4;
  	public static final int PUMP_SERVICE2DRIVER_QUERY = 5;
  	public static final int PUMP_SERVICE2DRIVER_TBR = 6;
