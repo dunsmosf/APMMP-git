@@ -795,7 +795,7 @@ public class PumpService extends Service {
 					corr_bolus = checkLimits(corr_bolus, Constraints.MAX_CORR, Constraints.MAX_CORR, Constraints.TOO_HIGH_CORR, "correction");
 					meal_bolus = checkLimits(meal_bolus, Constraints.MAX_MEAL, Constraints.MAX_MEAL, Constraints.TOO_HIGH_MEAL, "meal");
 					
-					if(basal_bolus < Pump.EPSILON || corr_bolus < Pump.EPSILON || meal_bolus < Pump.EPSILON) {
+					if(basal_bolus < 0.0 || corr_bolus < 0.0 || meal_bolus < 0.0) {
 						Bundle b = new Bundle();
 			    		b.putString("description", "Pump Service > Check limits reports a component of bolus has an invalid value. Setting all bolus components to zero!");
 			    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
@@ -814,7 +814,7 @@ public class PumpService extends Service {
 					List<Integer> indices = new ArrayList<Integer>();
 					indices = tvectorBasal.find(">", -1, "<=", timeNowMins);					// Find the list of indices <= time in minutes since today at 00:00
 					if (indices == null) {
-						indices =tvectorBasal.find(">", -1, "<", -1);							// Use final value from the previous day's profile
+						indices = tvectorBasal.find(">", -1, "<", -1);							// Use final value from the previous day's profile
 					}
 					else if (indices.size() == 0) {
 						indices = tvectorBasal.find(">", -1, "<", -1);							// Use final value from the previous day's profile
@@ -853,9 +853,14 @@ public class PumpService extends Service {
 								pre_authorized = 0.0;
 							}
 							break;
+						case State.DIAS_STATE_SAFETY_ONLY:
+							if(basal_bolus > (basal/12.0)) {
+								Debug.w(TAG, FUNC_TAG, "Basal ("+basal_bolus+") is over profile basal ("+(basal/12.0)+") in Safety Only, limiting to profile!");
+								basal_bolus = (basal/12.0);
+							}
+							
 						case State.DIAS_STATE_OPEN_LOOP:
 						case State.DIAS_STATE_CLOSED_LOOP:
-						case State.DIAS_STATE_SAFETY_ONLY:
 							//Limits on total bolus allowed parameterized from Pump
 							if((basal_bolus + corr_bolus + meal_bolus) > (PUMP.max_bolus))
 							{
