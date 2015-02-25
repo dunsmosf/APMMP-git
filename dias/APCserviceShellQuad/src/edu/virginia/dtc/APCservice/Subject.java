@@ -33,9 +33,18 @@ public class Subject {
 	
 	private static final String TAG = "HMSservice";
 
+	/**
+	 * Blank constructor for Subject class
+	 */
 	public Subject() {
 	}
 	
+	/**
+	 * This function reads the subject information and gets the current profile information
+	 * based on the time of its calling
+	 * @param calling_context Context used to call the content resolver
+	 * @return Returns true if the subject data was successfully read, false if it fails or is incomplete (i.e. no CF etc.)
+	 */
 	public boolean read(Context calling_context) {
 		final String FUNC_TAG = "read";
 		
@@ -110,16 +119,5 @@ public class Subject {
 		}
 
 		return true;
-	}
-	
-	public int getTimeOfDayOffsetSecs(long time) {
-		// Get the offset in seconds into the current day in the current time zone (based on cell phone time zone setting)
-		TimeZone tz = TimeZone.getDefault();
-		int UTC_offset_secs = tz.getOffset(time*1000)/1000;
-		int timeNowSecs = (int)(time+UTC_offset_secs)%(1440*60);
-		
-		Debug.i(TAG, "getTimeOfDayOffsetSecs", "Time Now Seconds: "+timeNowSecs);
-		
-		return timeNowSecs;
 	}
 }

@@ -135,9 +135,6 @@ public class DiAsService extends Service
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;
 	
-	private final int control_algorithm_cycle_time_mins = 5;
-	private final int pump_cycle_time_seconds = 60*control_algorithm_cycle_time_mins;
-	
 	// CGM variables
 	private int cgm_value = -1;
 	private int cgm_state = CGM.CGM_NONE;
@@ -230,22 +227,14 @@ public class DiAsService extends Service
 	private Machine ASYNC, SYNC, TBR;
 	private int CONFIG = FSM.NONE;
 	
-	private static DiAsSubjectData subject_data;
-	
-	private Runnable wait = new Runnable()
-	{
+	private Runnable wait = new Runnable() {
 		final String FUNC_TAG = "wait";
 		
-		public void run()
-		{
-			if(ASYNC.state == FSM.WAIT)
-			{
-				if(SYNC.isBusy() || TBR.isBusy())
-				{
+		public void run() {
+			if(ASYNC.state == FSM.WAIT) {
+				if(SYNC.isBusy() || TBR.isBusy()) {
 					Debug.i(TAG, FUNC_TAG, "Still waiting for other FSMs to finish...");
-				}
-				else
-				{
+				} else {
 					Debug.i(TAG, FUNC_TAG, "Changing state to start...");
 					changeAsyncState(FSM.START);
 				}
@@ -490,14 +479,17 @@ public class DiAsService extends Service
         			// Log the parameters for IO testing
         			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
-                		b.putString(	"description", "APC >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_PROCESSING_STATE_NORMAL"+", "+
-        								"APC_IOB="+APC_IOB+", "+
-    									"doesBolus="+Apc.doesBolus+", "+
-    									"doesRate="+Apc.doesRate+", "+
-        								"bolusCorrection="+Apc.correction+", "+
-        								"new_differential_rate="+new_diff_rate+", "+
-        								"differential_basal_rate="+Apc.diff_rate
+                		b.putString(	"description",
+                						" SRC: APC"+
+                						" DEST: DIAS_SERVICE"+
+                						" -"+FUNC_TAG+"-"+
+        								" APC_PROCESSING_STATE_NORMAL"+
+        								" APC_IOB: "+APC_IOB+
+    									" doesBolus: "+Apc.doesBolus+
+    									" doesRate: "+Apc.doesRate+
+        								" bolusCorrection: "+Apc.correction+
+        								" new_differential_rate: "+new_diff_rate+
+        								" differential_basal_rate: "+Apc.diff_rate
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
         			}      			
@@ -521,11 +513,14 @@ public class DiAsService extends Service
                 	changeSyncState(FSM.APC_RESPONSE);
         			break;
 	        	default:
-					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
+					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE: "+msg.what);
         			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "APC >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"UNKNOWN_MESSAGE="+msg.what
+                		b1.putString(	"description",
+                						" SRC: APC"+
+                						" DEST: DIAS_SERVICE"+
+                						" -"+FUNC_TAG+"-"+
+        								" UNKNOWN_MESSAGE: "+msg.what
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
         			}
@@ -555,11 +550,11 @@ public class DiAsService extends Service
 	    		
 	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
 	        		Bundle b1 = new Bundle();
-	        		b1.putString(	"description", "(DiAsService) >> APC, IO_TEST"+", "+FUNC_TAG+", "+
-									"APC_SERVICE_CMD_START_SERVICE"+", "+
-									"IOB_curve_duration_hours="+subject_data.subjectAIT+", "+
-									"pump_cycle_time_seconds="+pump_cycle_time_seconds+", "+
-									"simulatedTime="+getCurrentTimeSeconds()
+	        		b1.putString(	"description",
+	        						" SRC: DIAS_SERVICE"+
+	        						" DEST: APC"+
+	        						" -"+FUNC_TAG+"-"+
+									" APC_SERVICE_CMD_START_SERVICE"
 	        					);
 	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
 	    		}
@@ -633,15 +628,17 @@ public class DiAsService extends Service
 					writeTrafficLights(Safety.TRAFFIC_LIGHT_CONTROL_BRMSERVICE, BRMBundle.getInt("stoplight", Safety.UNKNOWN_LIGHT), BRMBundle.getInt("stoplight2", Safety.UNKNOWN_LIGHT));
 					
         			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
-    	        		// Store BRM_RESPONSE Event
     	        		Bundle b = new Bundle();
-                		b.putString(	"description", "BRMservice >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"APC_PROCESSING_STATE_NORMAL"+", "+
-    									"doesBolus="+Brm.doesBolus+", "+
-    									"doesRate="+Brm.doesRate+", "+
-        								"bolusCorrection="+Brm.correction+", "+
-        								"new_differential_rate="+new_diff_rate+", "+
-        								"differential_basal_rate="+Brm.diff_rate
+                		b.putString(	"description", 
+                						" SRC: BRM"+
+                						" DEST: DIAS_SERVICE"+
+                						" -"+FUNC_TAG+"-"+
+        								" APC_PROCESSING_STATE_NORMAL"+
+    									" doesBolus: "+Brm.doesBolus+
+    									" doesRate: "+Brm.doesRate+
+        								" bolusCorrection: "+Brm.correction+
+        								" new_differential_rate: "+new_diff_rate+
+        								" differential_basal_rate: "+Brm.diff_rate
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_BRM_RESPONSE, Event.makeJsonString(b), Event.SET_LOG);
         			}
@@ -652,8 +649,11 @@ public class DiAsService extends Service
 					Debug.i(TAG, FUNC_TAG, "UNKNOWN_MESSAGE="+msg.what);
         			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b1 = new Bundle();
-                		b1.putString(	"description", "BRM >> (DiAsService), IO_TEST"+", "+FUNC_TAG+", "+
-        								"UNKNOWN_MESSAGE="+msg.what
+                		b1.putString(	"description", 
+                						" SRC: BRM"+
+                						" DEST: DIAS_SERVICE"+
+                						" -"+FUNC_TAG+"-"+
+        								" UNKNOWN_MESSAGE: "+msg.what
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
         			}
@@ -673,41 +673,33 @@ public class DiAsService extends Service
                 Brm.tx = new Messenger(service);
                 Brm.bound = true;
                 
-        		Message msg1 = Message.obtain(null, Controllers.APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
+                //TODO: Get rid of this as soon as possible since replyTo is set in all messages
+        		Message msg = Message.obtain(null, Controllers.APC_SERVICE_CMD_REGISTER_CLIENT, 0, 0);
         		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
             		Bundle b1 = new Bundle();
-            		b1.putString(	"description", "(DiAsService) >> BRMservice, IO_TEST"+", "+FUNC_TAG+", "+
-    								"APC_SERVICE_CMD_REGISTER_CLIENT"
+            		b1.putString(	"description", 
+            						" SRC: DIAS_SERVICE"+
+            						" DEST: BRM"+
+            						" -"+FUNC_TAG+"-"+
+    								" APC_SERVICE_CMD_REGISTER_CLIENT"
             					);
             		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
         		} 
-        		Brm.send(msg1);
+        		Brm.send(msg);
         		
         		// Send an initialize message to the service
-        		msg1 = Message.obtain(null, Controllers.APC_SERVICE_CMD_START_SERVICE, 0, 0);
-        		Bundle paramBundle = new Bundle();
-        		paramBundle.putInt("IOB_curve_duration_hours", subject_data.subjectAIT);
-        		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
-        		Tvector.putTvector(paramBundle, subject_data.subjectCR, "CRtimes", null, "CRvalues");
-        		Tvector.putTvector(paramBundle, subject_data.subjectCF, "CFtimes", null, "CFvalues");
-        		Tvector.putTvector(paramBundle, subject_data.subjectBasal, "Basaltimes", null, "Basalvalues");
-        		Tvector.putTvector(paramBundle, subject_data.subjectSafety, "SafetyStartimes", "SafetyEndtimes", null);
-        		paramBundle.putDouble("TDI", subject_data.subjectTDI);
-        		paramBundle.putLong("simulatedTime", getCurrentTimeSeconds());
-        		
+        		msg = Message.obtain(null, Controllers.APC_SERVICE_CMD_START_SERVICE, 0, 0);
         		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
             		Bundle b1 = new Bundle();
-            		b1.putString(	"description", "(DiAsService) >> BRMservice, IO_TEST"+", "+FUNC_TAG+", "+
-    								"APC_SERVICE_CMD_START_SERVICE"+", "+
-    								"IOB_curve_duration_hours="+subject_data.subjectAIT+", "+
-    								"pump_cycle_time_seconds="+pump_cycle_time_seconds+", "+
-    								"simulatedTime="+getCurrentTimeSeconds()
+            		b1.putString(	"description", 
+            						" SRC: DIAS_SERVICE"+
+            						" DEST: BRM"+
+            						" -"+FUNC_TAG+"-"+
+    								" APC_SERVICE_CMD_START_SERVICE"
             					);
             		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
         		}
-        		
-        		msg1.setData(paramBundle);
-        		Brm.send(msg1);
+        		Brm.send(msg);
            }
             
            public void onServiceDisconnected(ComponentName className) {
@@ -729,7 +721,6 @@ public class DiAsService extends Service
       				else
       					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
       			}
-
         	   
         	   Debug.e(TAG, FUNC_TAG, "The BRM service connection was killed attempting to restart...");
         	   startBRM();
@@ -775,10 +766,25 @@ public class DiAsService extends Service
 	            	
 	            	if((Mcm.meal + Mcm.correction) > (Constraints.MAX_MEAL + Constraints.MAX_CORR))
 	            	{
+	            		Mcm.meal = Mcm.correction = 0;
 	            		Debug.e(TAG, FUNC_TAG, "Trying to exceed maximum constraints!");
 	            		changeAsyncState(FSM.MCM_CANCEL);
 	            		break;
 	            	}
+	            	
+	            	if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
+	        		{
+	            		Bundle b1 = new Bundle();
+	            		b1.putString(	"description", 
+	            						" SRC: MCM"+
+	            						" DEST: DIAS_SERVICE"+
+	            						" -"+FUNC_TAG+"-"+
+	    								" MCM_BOLUS"+
+	            						" Meal: "+Mcm.meal+
+	            						" Corr: "+Mcm.correction
+	            					);
+	            		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
+	        		}
 	            	
 	            	changeAsyncState(FSM.MCM_REQUEST);
 	            	break;
@@ -797,23 +803,20 @@ public class DiAsService extends Service
                 Mcm.bound = true;
                 Debug.i(TAG, FUNC_TAG, "MCM Start");
                 
-        		Message msg1 = Message.obtain(null, Meal.REGISTER, 0, 0);
-        		
-        		Bundle paramBundle = new Bundle();
-        		paramBundle.putInt("pump_cycle_time_seconds", pump_cycle_time_seconds);
+        		Message msg = Message.obtain(null, Meal.REGISTER, 0, 0);
         		
         		if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
         		{
             		Bundle b1 = new Bundle();
-            		b1.putString(	"description", "(DiAsService) >> MCMservice, IO_TEST"+", "+FUNC_TAG+", "+
-    								"MCM_SERVICE_CMD_REGISTER_CLIENT"+", "+
-    								"pump_cycle_time_seconds="+pump_cycle_time_seconds
+            		b1.putString(	"description", 
+            						" SRC: DIAS_SERVICE"+
+            						" DEST: MCM"+
+            						" -"+FUNC_TAG+"-"+
+    								" MCM_SERVICE_CMD_REGISTER_CLIENT"
             					);
             		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
         		}
-        		
-        		msg1.setData(paramBundle);
-        		Mcm.send(msg1);
+        		Mcm.send(msg);
            }
             
            public void onServiceDisconnected(ComponentName className) {
@@ -855,8 +858,6 @@ public class DiAsService extends Service
 		final String FUNC_TAG = "onCreate";
 		
 		super.onCreate();
-		
-		subject_data = DiAsSubjectData.readDiAsSubjectData(this);
 		
 		initialized = false;
 		
@@ -921,9 +922,6 @@ public class DiAsService extends Service
  	   	{
  	   		if(c.moveToLast())
  	   		{
-// 	   			prev_pump_state = pump_state;
-// 			   	pump_state = c.getInt(c.getColumnIndex("state"));
-// 			   	pump_service_state = c.getInt(c.getColumnIndex("service_state"));
 	       		int tb = c.getInt(c.getColumnIndex("temp_basal"));
 	       		if(tb > 0)
 	       			TEMP_BASAL_ENABLED = true;
@@ -1294,7 +1292,6 @@ public class DiAsService extends Service
 		
         switch(command) {
     		case DIAS_SERVICE_COMMAND_NULL:
-    			Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_COMMAND_NULL");
     			updateBarIcon();
                 updateStatusNotifications();
                 updateSystem(null);
@@ -1408,8 +1405,7 @@ public class DiAsService extends Service
     		case DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE:
     			Debug.i(TAG, FUNC_TAG, "DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE");
     			
-    			if(Params.getInt(getContentResolver(), "exercise_detection_mode", 0) == 0)
-    			{
+    			if(Params.getInt(getContentResolver(), "exercise_detection_mode", 0) == 0) {
 	    			currentlyExercising = intent.getBooleanExtra("currentlyExercising", false);
 	    			if (currentlyExercising) {
 	        			exerciseFlagTimeStart = getCurrentTimeSeconds();
@@ -1421,8 +1417,7 @@ public class DiAsService extends Service
 		    	    		Event.addEvent(getApplicationContext(), Event.EVENT_BEGIN_EXERCISE, Event.makeJsonString(b), Event.SET_LOG);
 	        			}
 	        			previouslyExercising = true;
-	    			}
-	    			else {
+	    			} else {
 	        			exerciseFlagTimeStop = getCurrentTimeSeconds();
 	        			date = new Date(getCurrentTimeSeconds()*1000);
 	        			
@@ -1436,8 +1431,7 @@ public class DiAsService extends Service
 	    			updateBarIcon();
 	                updateStatusNotifications();
 	                updateSystem(null);
-    			}
-    			else
+    			} else
     				Debug.e(TAG, FUNC_TAG, "Exercise detection is turned on, so we aren't accepting user input!");
     			break;
         }
@@ -1452,8 +1446,7 @@ public class DiAsService extends Service
         
         unregisterReceiver(AlgTickReceiver);
         unregisterReceiver(TimerTickReceiver);
-        if(ConnectivityReceiver != null)
-        	unregisterReceiver(ConnectivityReceiver);
+        unregisterReceiver(ConnectivityReceiver);
         
         if(cgmObserver != null)
 			getContentResolver().unregisterContentObserver(cgmObserver);
@@ -1479,8 +1472,7 @@ public class DiAsService extends Service
 	}
     
     @Override
-	public IBinder onBind(Intent intent) 
-    {
+	public IBinder onBind(Intent intent) {
 		return null;
 	}
     
@@ -1488,16 +1480,10 @@ public class DiAsService extends Service
   	// STARTUP SERVICE CONNECTIONS
   	// ******************************************************************************************************************************
     
-    private void checkInitialization()
-    {
+    private void checkInitialization() {
     	final String FUNC_TAG = "checkInitialization";
     	
-    	Debug.i(TAG, FUNC_TAG, "Reading subject data...");
-		subject_data = DiAsSubjectData.readDiAsSubjectData(this);
-		DiAsSubjectData.print(TAG, subject_data);
-		
-		if(!initialized)
-		{
+		if(!initialized) {
 			initialized = true;
 			
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is initializing service connections...");
@@ -1511,8 +1497,7 @@ public class DiAsService extends Service
 			Debug.i(TAG, FUNC_TAG, "DiAs Service is already initialized!");
     }
     
-    private void initializeServiceConnections() 
-    {
+    private void initializeServiceConnections() {
     	final String FUNC_TAG = "initializeServiceConnections";
 
     	boolean apc = Params.getInt(getContentResolver(), "apc_enabled", 0) > 0;
@@ -1533,8 +1518,8 @@ public class DiAsService extends Service
 
     	//Keep track of the default configuration for later comparison
     	Debug.i(TAG, FUNC_TAG, "Configuration: "+FSM.configToString(CONFIG));
-    	switch(CONFIG)
-    	{
+    	
+    	switch(CONFIG) {
 	    	case FSM.APC_BRM:
 	    		startAPC();
 	    		startBRM();
@@ -1571,12 +1556,10 @@ public class DiAsService extends Service
 	// CONTENT OBSERVER CLASSES
 	// ******************************************************************************************************************************
 		
-    class FsmObserver extends ContentObserver
-    {
+    class FsmObserver extends ContentObserver {
     	private int count;
     	
-		public FsmObserver(Handler handler) 
-		{
+		public FsmObserver(Handler handler) {
 			super(handler);
 			
 			final String FUNC_TAG = "FSM Observer";
@@ -1586,23 +1569,19 @@ public class DiAsService extends Service
 		}
 		
 		@Override
-		public void onChange(boolean selfChange) 
-		{
+		public void onChange(boolean selfChange) {
 			this.onChange(selfChange, null);
 		}		
 
-		public void onChange(boolean selfChange, Uri uri) 
-		{
+		public void onChange(boolean selfChange, Uri uri) {
 			final String FUNC_TAG = "FSM onChange";
     	   
     	   	count++;
     	   	Debug.i(TAG, FUNC_TAG, "FSM Observer: "+count);
     	   
     	   	Cursor c = getContentResolver().query(Biometrics.STATE_URI, null, null, null, null);
-    	   	if(c != null)
-    	   	{
-    	   		if(c.moveToLast())
-    	   		{
+    	   	if(c != null) {
+    	   		if(c.moveToLast()) {
     	   			//Store previous states
     	   			SYNC.prev_state = SYNC.state;
     	   			ASYNC.prev_state = ASYNC.state;
@@ -1637,8 +1616,7 @@ public class DiAsService extends Service
     {
     	private int count;
     	
-    	public StateObserver(Handler handler) 
-    	{
+    	public StateObserver(Handler handler) {
     		super(handler);
     		
     		final String FUNC_TAG = "State Observer";
@@ -1648,25 +1626,21 @@ public class DiAsService extends Service
     	}
 
        @Override
-       public void onChange(boolean selfChange) 
-       {
+       public void onChange(boolean selfChange) {
     	   this.onChange(selfChange, null);
        }		
 
-       public void onChange(boolean selfChange, Uri uri) 
-       {
+       public void onChange(boolean selfChange, Uri uri) {
     	   	final String FUNC_TAG = "onChange";
     	   
     	   	count++;
     	   	Debug.i(TAG, FUNC_TAG, "State Observer: "+count);
     	   
-       		int traffic_light = Params.getInt(getContentResolver(), "traffic_lights", Safety.TRAFFIC_LIGHT_CONTROL_DISABLED);
+    	   	int traffic_light = Params.getInt(getContentResolver(), "traffic_lights", Safety.TRAFFIC_LIGHT_CONTROL_DISABLED);
        		
-     	   Cursor c = getContentResolver().query(Biometrics.STATE_ESTIMATE_URI, new String[]{"IOB", "stoplight", "stoplight2"}, null, null, null);
-    	   if(c != null)
-    	   {
-    		   if(c.moveToLast())
-    		   {
+    	   	Cursor c = getContentResolver().query(Biometrics.STATE_ESTIMATE_URI, new String[]{"IOB", "stoplight", "stoplight2"}, null, null, null);
+    	   	if(c != null) {
+    	   		if(c.moveToLast()) {
     			   double iob = c.getDouble(c.getColumnIndex("IOB"));
     			   int hypo = c.getInt(c.getColumnIndex("stoplight"));
     			   int hyper = c.getInt(c.getColumnIndex("stoplight2"));
@@ -1678,8 +1652,7 @@ public class DiAsService extends Service
     			   if (traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_APCSERVICE 
     	       				&& traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_BRMSERVICE
     	       				&& traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_DISABLED
-    	       				&& DIAS_STATE == State.DIAS_STATE_STOPPED) 
-    			   {
+    	       				&& DIAS_STATE == State.DIAS_STATE_STOPPED) {
 	    			   hypoLight = hypo;
 	    			   hyperLight = hyper;
 	    			   
@@ -1694,12 +1667,10 @@ public class DiAsService extends Service
        	}
     }
     
-    class EventObserver extends ContentObserver 
-    {	
+    class EventObserver extends ContentObserver {	
 		private int count;
     	
-    	public EventObserver(Handler handler) 
-    	{
+    	public EventObserver(Handler handler) {
     		super(handler);
     		
     		final String FUNC_TAG = "Event Observer";
@@ -1709,23 +1680,19 @@ public class DiAsService extends Service
     	}
 
        @Override
-       public void onChange(boolean selfChange) 
-       {
+       public void onChange(boolean selfChange) {
     	   this.onChange(selfChange, null);
        }		
 
-       public void onChange(boolean selfChange, Uri uri) 
-       {
+       public void onChange(boolean selfChange, Uri uri) {
     	   final String FUNC_TAG = "onChange";
     	   
     	   count++;
     	   Debug.i(TAG, FUNC_TAG, "Event Observer: "+count);
     	   
     	   Cursor c = getContentResolver().query(Biometrics.EVENT_URI, null, null, null, null);
-    	   if(c != null)
-    	   {
-    		   if(c.moveToLast())
-    		   {
+    	   if(c != null) {
+    		   if(c.moveToLast()) {
     			   analyzeEvent(c);
     			   Debug.i(TAG, FUNC_TAG, "Description: "+c.getString(c.getColumnIndex("json")));      
     		   }
@@ -1734,12 +1701,10 @@ public class DiAsService extends Service
        	}		
     }
     
-	class CgmObserver extends ContentObserver 
-    {	
+	class CgmObserver extends ContentObserver {	
     	private int count;
     	
-    	public CgmObserver(Handler handler) 
-    	{
+    	public CgmObserver(Handler handler) {
     		super(handler);
     		
     		final String FUNC_TAG = "CGM Observer";
@@ -1749,8 +1714,7 @@ public class DiAsService extends Service
     	}
 
        @Override
-       public void onChange(boolean selfChange) 
-       {
+       public void onChange(boolean selfChange) {
     	   this.onChange(selfChange, null);
        }		
 
@@ -1762,10 +1726,8 @@ public class DiAsService extends Service
     	   Debug.i(TAG, FUNC_TAG, "CGM Observer: "+count);
     	   
     	   Cursor c = getContentResolver().query(Biometrics.CGM_URI, null, null, null, null);
-    	   if(c != null)
-    	   {
-    		   if(c.moveToLast())
-    		   {
+    	   if(c != null) {
+    		   if(c.moveToLast()) {
     			   cgm_value = (int)c.getDouble(c.getColumnIndex("cgm"));
     			   cgm_state = c.getInt(c.getColumnIndex("state"));
     			   cgm_trend = c.getInt(c.getColumnIndex("trend"));
@@ -1777,11 +1739,9 @@ public class DiAsService extends Service
     			   
     		    	int traffic_light = Params.getInt(getContentResolver(), "traffic_lights", 0);
     			   	// Handle State.DIAS_STATE_SENSOR_ONLY
-	       	        if (DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY && traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_APCSERVICE && traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_BRMSERVICE) 
-	       	        {
+	       	        if (DIAS_STATE == State.DIAS_STATE_SENSOR_ONLY && traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_APCSERVICE && traffic_light != Safety.TRAFFIC_LIGHT_CONTROL_BRMSERVICE) {
 	       	        	// Simple threshold code for updating Traffic Lights - replace with call to SafetyService
-	       	        	if(cgm_state == CGM.CGM_NORMAL)
-	       	        	{
+	       	        	if(cgm_state == CGM.CGM_NORMAL) {
 		       	        	hypoLight = Safety.GREEN_LIGHT;
 		       	        	hyperLight = Safety.GREEN_LIGHT;
 		       	        	
@@ -2834,23 +2794,20 @@ public class DiAsService extends Service
     	String message = null;
     	boolean fire = false;
     	
-    	if(!alert10 && battCharge <= 10 && battIsCharging<=0)
-    	{
+    	if(!alert10 && battCharge <= 10 && battIsCharging<=0) {
     		alert20 = alert15 = alert10 = true;		//If this event is on, then we don't need to fire the others
     		type = Event.SET_POPUP_AUDIBLE_ALARM;
     		message = "Battery charge critical! Please plug in the device!";
     		fire = true;
     	}
     	
-    	if(!alert15 && battCharge <= 15 && battIsCharging<=0)
-    	{
+    	if(!alert15 && battCharge <= 15 && battIsCharging<=0) {
     		alert20 = alert15 = true;
     		message = "Battery charge low! Please plug in the device!";
     		fire = true;
     	}
     	
-    	if(!alert20 && battCharge <= 20 && battIsCharging<=0)
-    	{
+    	if(!alert20 && battCharge <= 20 && battIsCharging<=0) {
     		alert20 = true;
     		message = "Battery charge low!";
     		fire = true;
@@ -3142,7 +3099,6 @@ public class DiAsService extends Service
     			Mcm.send(Message.obtain(null, Meal.SSM_CALC_DONE, 0, 0));
     			break;
     		case FSM.MCM_REQUEST:
-    			//Send the request to the SSM
 	    		sendInsulinRequestToSafetySystem(Mcm.meal, Mcm.correction, 0.0, true);
     			break;
     		case FSM.SSM_RESPONSE:
