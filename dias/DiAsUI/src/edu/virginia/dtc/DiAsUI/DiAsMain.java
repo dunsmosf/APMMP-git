@@ -1925,7 +1925,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		Debug.i(TAG, FUNC_TAG, "screen="+screen);		
 		
 		Intent i = new Intent();
-		i.setComponent(new ComponentName("edu.virginia.dtc.DiAsSetup", "edu.virginia.dtc.DiAsSetup.DiAsSetup1"));
+		i.setComponent(new ComponentName("edu.virginia.dtc.DiAsSetup", "edu.virginia.dtc.DiAsSetup.DiAsSetup"));
 		i.putExtra("setupScreenIDNumber", screen);
 		startActivity(i);
 		
@@ -2086,11 +2086,18 @@ public class DiAsMain extends Activity implements OnGestureListener {
   		ContentValues values = new ContentValues();
 	    long time = getTimeSeconds();
 	    values.put("actual_end_time", time);
-	    values.put("status_code", TempBasal.TEMP_BASAL_MANUAL_CANCEL);	    
+	    values.put("status_code", TempBasal.TEMP_BASAL_MANUAL_CANCEL);
+	    
+	    int id_to_update = -1;
+	    Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, new String[] {"_id"}, null, null, "start_time DESC LIMIT 1");
+	    if (c.moveToLast()) {
+	    	id_to_update = c.getInt(c.getColumnIndex("_id"));
+	    }
+	    
 		Bundle b = new Bundle();
 		try 
 	    {
-	    	getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, null, null);
+	    	getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, "_id = "+id_to_update, null);
  	    	b.putString("description", "DiAsMain > cancelTempBasalDelivery, time= "+time);
  	    	Event.addEvent(getApplicationContext(), Event.EVENT_TEMP_BASAL_CANCELED, Event.makeJsonString(b), Event.SET_LOG);
 	    }
@@ -2106,7 +2113,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	private boolean temporaryBasalRateActive() {
 		final String FUNC_TAG = "temporaryBasalRateActive";
 		boolean retValue = false;
-		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
+		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, "start_time DESC LIMIT 1");
        	if(c.moveToLast()) {
    			long time = getTimeSeconds();
    			long start_time = c.getLong(c.getColumnIndex("start_time"));
@@ -2120,7 +2127,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
    				ContentValues values = new ContentValues();
    				values.put("status_code", TempBasal.TEMP_BASAL_DURATION_EXPIRED);
    				values.put("actual_end_time", time);
-   				getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, null, null);
+   				int id = c.getInt(c.getColumnIndex("_id"));
+   				getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, "_id = "+id, null);
    				Debug.i(TAG, FUNC_TAG, "Temporary Basal Rate expired, updating status.");
    			}
        	}

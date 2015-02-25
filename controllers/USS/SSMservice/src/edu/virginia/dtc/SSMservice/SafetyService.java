@@ -445,7 +445,7 @@ public class SafetyService extends Service {
     private boolean temporaryBasalRateActive() {
 		final String FUNC_TAG = "temporaryBasalRateActive";
 		boolean retValue = false;
-		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
+		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, "start_time DESC LIMIT 1");
        	if(c!=null)
        	{
        		if(c.moveToLast()) {
@@ -2237,7 +2237,7 @@ public class SafetyService extends Service {
 			//paramBundle.putDouble(INSULIN_BASAL_BOLUS, bolus_basal);
 			if (temporaryBasalRateActive()){
 				
-				Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
+				Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, "start_time DESC LIMIT 1");
 		       	if(c!=null)
 		       	{
 		       		if(c.moveToLast()) {

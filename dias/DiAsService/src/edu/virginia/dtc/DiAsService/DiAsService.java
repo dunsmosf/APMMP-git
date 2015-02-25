@@ -1999,7 +1999,7 @@ public class DiAsService extends Service
     	   count++;
     	   Debug.i(TAG, FUNC_TAG, "count: "+count);
     	   
-    	   Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
+    	   Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, "start_time DESC LIMIT 1");
     	   if(c!=null) {
           		if(c.moveToLast()) {
           			temp_basal_start_time = c.getLong(c.getColumnIndex("start_time"));
@@ -3327,17 +3327,15 @@ public class DiAsService extends Service
 	    	case State.DIAS_STATE_OPEN_LOOP:
 	    		if (temporaryBasalRateActive()) {
 	    			if (temp_basal_owner == TempBasal.TEMP_BASAL_OWNER_DIASSERVICE) {
-		    			Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
-		    			if(c!=null) {
-		    	          	if(c.moveToLast()) {
-		    	          		temp_basal_start_time = c.getLong(c.getColumnIndex("start_time"));
-		    	          		temp_basal_scheduled_end_time = c.getLong(c.getColumnIndex("scheduled_end_time"));
-		    	          		temp_basal_status_code = c.getInt(c.getColumnIndex("status_code"));
-		    	          		temp_basal_owner = c.getInt(c.getColumnIndex("owner"));
-		    	          		temp_basal_percent_of_profile_basal_rate = c.getInt(c.getColumnIndex("percent_of_profile_basal_rate"));
-		    	          	}
-		    	      		c.close();
-		    			}
+		    			Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, "start_time DESC LIMIT 1");
+	    	          	if(c.moveToLast()) {
+	    	          		temp_basal_start_time = c.getLong(c.getColumnIndex("start_time"));
+	    	          		temp_basal_scheduled_end_time = c.getLong(c.getColumnIndex("scheduled_end_time"));
+	    	          		temp_basal_status_code = c.getInt(c.getColumnIndex("status_code"));
+	    	          		temp_basal_owner = c.getInt(c.getColumnIndex("owner"));
+	    	          		temp_basal_percent_of_profile_basal_rate = c.getInt(c.getColumnIndex("percent_of_profile_basal_rate"));
+	    	          	}
+	    	      		c.close();
 		    			double basal = getCurrentBasalProfile();
 		    			double temporary_differential_basal_rate = basal*((float)(temp_basal_percent_of_profile_basal_rate-100)/100.0);
 		    			temporary_differential_basal_rate = Math.max(temporary_differential_basal_rate, -basal);	// >= -basal
@@ -3876,13 +3874,19 @@ public class DiAsService extends Service
 		if (temporaryBasalRateActive()) {
 			ContentValues values = new ContentValues();
 		    
+			int index = -1;
+			Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, new String[] {"_id"}, null, null, "start_time DESC LIMIT 1");
+			if (c.moveToLast()) {
+				index = c.getInt(c.getColumnIndex("_id"));
+			}
+			
 		    long time = getCurrentTimeSeconds();
 		    values.put("actual_end_time", time);
 		    values.put("status_code", TempBasal.TEMP_BASAL_MANUAL_CANCEL);	    
 			Bundle b = new Bundle();
 			try 
 		    {
-		    	getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, null, null);
+		    	getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, "_id = " + index, null);
 	 	    	b.putString("description", "Temporary Basal Rate Canceled, time= "+time);
 	 	    	Event.addEvent(getApplicationContext(), Event.EVENT_TEMP_BASAL_CANCELED, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
 		    }
@@ -3899,13 +3903,13 @@ public class DiAsService extends Service
 	private boolean temporaryBasalRateActive() {
 		final String FUNC_TAG = "temporaryBasalRateActive";
 		boolean retValue = false;
-		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, null);
+		Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, null, null, null, "start_time DESC LIMIT 1");
 		if(c.moveToLast()) {
-   			long time = getCurrentTimeSeconds();
+			long time = getCurrentTimeSeconds();
    			long start_time = c.getLong(c.getColumnIndex("start_time"));
    			long scheduled_end_time = c.getLong(c.getColumnIndex("scheduled_end_time"));
    			int status_code = c.getInt(c.getColumnIndex("status_code"));
-   			if(time >= start_time && time <= scheduled_end_time && status_code == TempBasal.TEMP_BASAL_RUNNING)   {     				
+   			if(time >= start_time && time <= scheduled_end_time && status_code == TempBasal.TEMP_BASAL_RUNNING) {     				
    				retValue = true;
        			Debug.i(TAG, FUNC_TAG, "Temporary Basal Rate is active.");
        		}
@@ -3913,7 +3917,8 @@ public class DiAsService extends Service
    				ContentValues values = new ContentValues();
    				values.put("status_code", TempBasal.TEMP_BASAL_DURATION_EXPIRED);
    				values.put("actual_end_time", time);
-   				getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, null, null);
+   				int id = c.getInt(c.getColumnIndex("_id"));
+   				getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, "_id = "+id, null);
    				Debug.i(TAG, FUNC_TAG, "Temporary Basal Rate expired, updating status.");
    			}
        	}

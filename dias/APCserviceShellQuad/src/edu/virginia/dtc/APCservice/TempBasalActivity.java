@@ -4,11 +4,11 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.TempBasal;
-
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -148,11 +148,18 @@ public class TempBasalActivity extends Activity{
 	    values.put("start_time", time);
 	    values.put("scheduled_end_time", time);
 	    values.put("actual_end_time", time);
-	    values.put("status_code", TempBasal.TEMP_BASAL_MANUAL_CANCEL);	    
+	    values.put("status_code", TempBasal.TEMP_BASAL_MANUAL_CANCEL);
+	    
+	    int id_to_update = -1;
+	    Cursor c = getContentResolver().query(Biometrics.TEMP_BASAL_URI, new String[] {"_id"}, null, null, "start_time DESC LIMIT 1");
+	    if (c.moveToLast()) {
+	    	id_to_update = c.getInt(c.getColumnIndex("_id"));
+	    }
+	    
 		Bundle b = new Bundle();
 		try 
 	    {
-	    	getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, null, null);
+	    	getContentResolver().update(Biometrics.TEMP_BASAL_URI, values, "_id = "+id_to_update, null);
  	    	b.putString("description", "DiAsMain > cancelTempBasalDelivery, time= "+time);
  	    	Event.addEvent(getApplicationContext(), Event.EVENT_TEMP_BASAL_CANCELED, Event.makeJsonString(b), Event.SET_LOG);
 	    }
