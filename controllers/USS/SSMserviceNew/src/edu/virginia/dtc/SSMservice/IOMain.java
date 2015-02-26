@@ -14,7 +14,6 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Constraints;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.FSM;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.Safety;
@@ -32,25 +31,18 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.Window;
-import android.widget.EditText;
 import android.widget.Toast;
 import android.os.Messenger;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.Handler;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.os.RemoteException;
-import android.app.Dialog;
 import android.app.Service;
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 
 import java.lang.Long;
@@ -61,17 +53,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.lang.ref.WeakReference;
-
 
 public class IOMain extends Service {
 	private static final String TAG = "SSMservice";
 	
 	private PowerManager pm;
 	private PowerManager.WakeLock wl;	
-	
-	private static final double NEGATIVE_EPSILON = -0.000001;			// A bolus cannot be negative but it *can* be zero
-	private static final double POSITIVE_EPSILON = 0.000001;
 	
 	private int cycle_duration_seconds = 300;
 	private int cycle_duration_mins = cycle_duration_seconds/60;
@@ -83,7 +70,6 @@ public class IOMain extends Service {
 	private static final int SSMSERVICE_STATE_WAIT_CONSTRAINT = 2;
 	private static final int SSMSERVICE_STATE_WAIT_CONFIRMATION = 3;
 	
-	// DiAs State Variable and Definitions - state for the system as a whole
 	private int DIAS_STATE;
 	
 	private static final String INSULIN_BASAL_BOLUS = "basal_bolus";
@@ -133,10 +119,12 @@ public class IOMain extends Service {
 	private Tvector Tvec_cgm_mins, Tvec_insulin_rate1_seconds, Tvec_bolus_hist_seconds;
 	private Tvector Tvec_basal_bolus_hist_seconds, Tvec_meal_bolus_hist_seconds, Tvec_corr_bolus_hist_seconds;
 	private Tvector Tvec_IOB, Tvec_Rate, Tvec_GPRED;
+	
 	private double bolus_meal;
 	private double bolus_correction;
 	private double bolusRequested;
 	private double differential_basal_rate;
+	
 	private boolean asynchronous;
 	private boolean exercise;
 	private static final int TVEC_SIZE = 288;				// 24 hours of samples at 12 samples per hour (5 minute samples)
@@ -320,7 +308,7 @@ public class IOMain extends Service {
         db = new SSMDB(this.getApplicationContext());
      	Toast.makeText(getApplicationContext(), "SSMDB created", Toast.LENGTH_LONG).show();
 
-     	
+     	DataAccessor d = new DataAccessor();
 	}
 
 	
@@ -681,9 +669,9 @@ public class IOMain extends Service {
 		
 		if (ssm_state_estimate.state_data.Processing_State == Safety.SAFETY_SERVICE_STATE_NORMAL) {
 			// No bolus intercept
-			if (ssm_state_estimate.state_data.SSM_amount + ssm_state_estimate.state_data.pre_authorized > NEGATIVE_EPSILON) {
+			if (ssm_state_estimate.state_data.SSM_amount + ssm_state_estimate.state_data.pre_authorized > -Pump.EPSILON) {
 				// If no bolus intercept then apply Constraint
-				if (ssm_state_estimate.state_data.InsulinConstraintInUnits > NEGATIVE_EPSILON) {
+				if (ssm_state_estimate.state_data.InsulinConstraintInUnits > -Pump.EPSILON) {
 					if (applyInsulinConstraint()) {
 			    		Bundle b = new Bundle();
 			    		b.putString("description", "Insulin bolus constrained to "+ssm_state_estimate.state_data.InsulinConstraintInUnits+" U in "+FUNC_TAG);
@@ -780,7 +768,7 @@ public class IOMain extends Service {
 	    	return false;
 	    }
 	    		
-    	if (constraint >= NEGATIVE_EPSILON) {	// Negative constraint is invalid
+    	if (constraint >= -Pump.EPSILON) {	// Negative constraint is invalid
         	if (constraint-b >=0) {
         		constraint = constraint - b;
         		if (constraint - m >= 0) {
@@ -1565,9 +1553,9 @@ public class IOMain extends Service {
     		return -1.0;
     	}
     	
-    	if (value < POSITIVE_EPSILON)
+    	if (value < Pump.EPSILON)
     	{
-    		if (value < NEGATIVE_EPSILON)
+    		if (value < -Pump.EPSILON)
     		{
     			Bundle b = new Bundle();
         		b.putString("description", "SSMservice > Check limits reports "+type+" component of bolus is negative: "+value+". Value constrained to 0.0");

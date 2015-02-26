@@ -48,6 +48,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import edu.virginia.dtc.SysMan.Biometrics;
+import edu.virginia.dtc.SysMan.Constraints;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Params;
@@ -297,24 +298,6 @@ public class PumpService extends Service {
     			String intentName = intent.getStringExtra("driver_intent");
     			String driverName = intent.getStringExtra("driver_name");
     			bindToNewDriver(intentName, driverName);
-    			break;
-    		case Pump.PUMP_SERVICE_CMD_DISCONNECT:
-    			Debug.i(TAG, FUNC_TAG,"Pump service command disconnect");
-    			
-    			Message msg = Message.obtain(null, Pump.PUMP_SERVICE2DRIVER_DISCONNECT);
-    			if(PUMP.driverTransmitter != null)
-    			{
-					try {
-						PUMP.driverTransmitter.send(msg);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
-    			}
-    			else
-    				Debug.i(TAG, FUNC_TAG, "onStartCommand > Driver Transmitter is null, the Pump Service was most likely restarted and trying to disconnect a non-existant device");
-				
-				if(PUMP.driverConnection != null)
-					unbindService(PUMP.driverConnection);
     			break;
     		case Pump.PUMP_SERVICE_CMD_SET_TBR:
     			Debug.i(TAG, FUNC_TAG, "Setting TBR if valid...");
@@ -799,7 +782,6 @@ public class PumpService extends Service {
 					reportCommandStatusToSafetyService(Pump.PUMP_STATE_COMPLETE);
 					
 					asynchronous = paramBundle.getBoolean("asynchronous", false);
-					//DIAS_STATE = paramBundle.getInt("DIAS_STATE", DIAS_STATE_STOPPED);
 					double pre_authorized = paramBundle.getDouble("pre_authorized", 0.0);
 					bolus_max = paramBundle.getDouble("bolus_max", -1.0);
 
@@ -809,23 +791,15 @@ public class PumpService extends Service {
 					meal_bolus = meal_bolus + pre_authorized;
 					double corr_bolus = paramBundle.getDouble(INSULIN_CORR_BOLUS, 0.0);
 					
-					//Error check values for all insulin delivery
-					if(Double.isNaN(basal_bolus) || Double.isInfinite(basal_bolus))
-					{
-						log("Value exception in basal insulin: "+basal_bolus);
-						basal_bolus = 0.0;
-					}
+					basal_bolus = checkLimits(basal_bolus, Constraints.MAX_BASAL, Constraints.MAX_BASAL, Constraints.TOO_HIGH_BASAL, "basal");
+					corr_bolus = checkLimits(corr_bolus, Constraints.MAX_CORR, Constraints.MAX_CORR, Constraints.TOO_HIGH_CORR, "correction");
+					meal_bolus = checkLimits(meal_bolus, Constraints.MAX_MEAL, Constraints.MAX_MEAL, Constraints.TOO_HIGH_MEAL, "meal");
 					
-					if(Double.isNaN(meal_bolus) || Double.isInfinite(meal_bolus))
-					{
-						log("Value exception in meal insulin: "+meal_bolus);
-						meal_bolus = 0.0;
-					}
-					
-					if(Double.isNaN(corr_bolus) || Double.isInfinite(corr_bolus))
-					{
-						log("Value exception in correction insulin: "+corr_bolus);
-						corr_bolus = 0.0;
+					if(basal_bolus < 0.0 || corr_bolus < 0.0 || meal_bolus < 0.0) {
+						Bundle b = new Bundle();
+			    		b.putString("description", "Pump Service > Check limits reports a component of bolus has an invalid value. Setting all bolus components to zero!");
+			    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
+						basal_bolus = corr_bolus = meal_bolus = 0.0;
 					}
 					
 					// Perform safety checks on the output of the Safety System (input to Pump Service) based upon the system mode, basal profile and time of day
@@ -840,7 +814,7 @@ public class PumpService extends Service {
 					List<Integer> indices = new ArrayList<Integer>();
 					indices = tvectorBasal.find(">", -1, "<=", timeNowMins);					// Find the list of indices <= time in minutes since today at 00:00
 					if (indices == null) {
-						indices =tvectorBasal.find(">", -1, "<", -1);							// Use final value from the previous day's profile
+						indices = tvectorBasal.find(">", -1, "<", -1);							// Use final value from the previous day's profile
 					}
 					else if (indices.size() == 0) {
 						indices = tvectorBasal.find(">", -1, "<", -1);							// Use final value from the previous day's profile
@@ -879,9 +853,14 @@ public class PumpService extends Service {
 								pre_authorized = 0.0;
 							}
 							break;
+						case State.DIAS_STATE_SAFETY_ONLY:
+							if(basal_bolus > (basal/12.0)) {
+								Debug.w(TAG, FUNC_TAG, "Basal ("+basal_bolus+") is over profile basal ("+(basal/12.0)+") in Safety Only, limiting to profile!");
+								basal_bolus = (basal/12.0);
+							}
+							
 						case State.DIAS_STATE_OPEN_LOOP:
 						case State.DIAS_STATE_CLOSED_LOOP:
-						case State.DIAS_STATE_SAFETY_ONLY:
 							//Limits on total bolus allowed parameterized from Pump
 							if((basal_bolus + corr_bolus + meal_bolus) > (PUMP.max_bolus))
 							{
@@ -936,37 +915,62 @@ public class PumpService extends Service {
 					
 					deliverBolus(asynchronous, pre_authorized, bolus_max, basal_bolus, meal_bolus, corr_bolus);
 					break;
-				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS:
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_STATUS");
-					break;
-				case Pump.PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY:
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_REQUEST_PUMP_HISTORY");
-					break;
-				case Pump.PUMP_SERVICE_CMD_STOP_SERVICE:
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_STOP_SERVICE");
-					stopSelf();
-					break;
-				case Pump.PUMP_SERVICE_CMD_SET_HYPO_TIME:
-					// Get the hypoFlagTime passed down from DiAsService
-					paramBundle = msg.getData();
-					long hypoFlagTime = paramBundle.getLong("hypoFlagTime", 0);
-					Debug.i(TAG, FUNC_TAG, "Pump Handler > PUMP_SERVICE_CMD_SET_HYPO_TIME="+hypoFlagTime);
-					
-					Message hypoMsg = Message.obtain(null,Pump.PUMP_SERVICE2DRIVER_FLAGS);
-					Bundle data = new Bundle();
-					data.putLong("hypo_flag",hypoFlagTime);
-					hypoMsg.setData(data);
-					try {
-						PUMP.driverTransmitter.send(hypoMsg);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
-					break;
 				default:
 					super.handleMessage(msg);
   			}
       	}
   	}
+  	
+  	private double checkLimits(double value, double params_limit, double absolute_limit, double too_high, String type)
+    {
+    	final String FUNC_TAG = "checkLimits";
+
+    	if(Double.isInfinite(value) || Double.isNaN(value) || value >= too_high)
+    	{
+    		Debug.e(TAG, FUNC_TAG, "Value is NaN, infinite or too high!  Setting to zero!");
+    		
+    		Bundle b = new Bundle();
+    		b.putString("description", "PumpService > Check limits reports "+type+" component of bolus has an invalid value ("+value+"). System switches to Sensor/Stop Mode");
+    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_LOG);
+    		
+    		return -1.0;
+    	}
+    	
+    	if (value < Pump.EPSILON)
+    	{
+    		if (value < -Pump.EPSILON)
+    		{
+    			Bundle b = new Bundle();
+        		b.putString("description", "PumpService > Check limits reports "+type+" component of bolus is negative: "+value+". Value constrained to 0.0");
+        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_LOG);
+    		}
+    		
+    		return 0.0;
+    	}
+    	
+    	double effective_limit;
+    	
+    	if (params_limit > 0.0) {
+    		effective_limit = Math.min(params_limit, absolute_limit);
+    	}
+    	else {
+    		effective_limit = absolute_limit;
+    	}
+    	
+    	if(value > effective_limit)
+    	{
+    		Debug.e(TAG, FUNC_TAG, "Value being constrained to Limit: "+effective_limit);
+    		
+    		Bundle b = new Bundle();
+    		b.putString("description", "PumpService > Constraint was applied to the '"+type+"' component of bolus, "+value+"U requested, constrained to "+effective_limit+"U.");
+    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_INVALID_BOLUS, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_VIBE);
+    		
+    		return effective_limit;
+    	}
+    	
+    	Debug.i(TAG, FUNC_TAG, "Value is valid and within limits - Value: "+value+" Limit: "+effective_limit);
+		return value;
+    }
     
     private void bindToNewDriver(String intentName, String driverName)
     {	

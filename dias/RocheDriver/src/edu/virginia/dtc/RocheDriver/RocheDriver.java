@@ -60,8 +60,6 @@ public class RocheDriver extends Service {
 	private static final String TAG = "RocheDriver";
 	
 	// Commands for Pump Service
-	private static final int PUMP_SERVICE_CMD_DISCONNECT = 10;
-	
 	public static final double LOW_RES_THRESH = 50.0;
 	public static final int WARNING_THRESH = 30;
 	
@@ -488,14 +486,6 @@ public class RocheDriver extends Service {
 		    		}
 					
 					drv.updatePumpState(Pump.REGISTERED);
-					break;
-				case Pump.PUMP_SERVICE2DRIVER_DISCONNECT:	
-					Debug.i("incomingPumpHandler", FUNC_TAG, "Disconnecting pump...");
-					break;	
-				case Pump.PUMP_SERVICE2DRIVER_FLAGS:
-					Debug.i("incomingPumpHandler", FUNC_TAG, "Receiving flags...");
-					Long hypoTime = msg.getData().getLong("hypo_flag");
-					Debug.i("incomingPumpHandler", FUNC_TAG, "Received hypo flag time: " + hypoTime);
 					break;
 				case Pump.PUMP_SERVICE2DRIVER_BOLUS:
 					Debug.i("incomingPumpHandler", FUNC_TAG, "Receiving bolus command!");

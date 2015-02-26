@@ -72,18 +72,19 @@ public class SSM_state_data {
 	public double Rate;
 	public double rem_error;
 	public double CGM_corr;
+	
 	// These values are SSM recommendations that are passed to the application when a bolus is intercepted
 	public double Umax;
 	public int CHOmin;
-//	public int CHOgrams;
 	public double advised_bolus;
+	
 	// These values are stored copies of parameters to SSM_processing.  They are needed when SSM_processing is interrupted
 	// by a user confirmation and needs to resume later with consistent parameters.
 	public int cycle_duration_mins;
 	public long time;
-	public long calFlagTime;
 	public boolean correction_bolus;
 	public Tvector Tvec_cgm_mins;
+	public long calFlagTime;
 	public SSM_param ssm_param;
 	
 	// State data associated with meal informed state estimation

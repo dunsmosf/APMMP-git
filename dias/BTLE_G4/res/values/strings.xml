@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Dexcom BTLE Relay Driver</string>
+    <string name="app_name">Dexcom</string>
     
     <string name="service_preferences">Receiver Service Preferences</string>
     <string name="service_status">Service Status</string>

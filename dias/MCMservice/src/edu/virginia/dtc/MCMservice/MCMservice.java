@@ -453,7 +453,11 @@ public class MCMservice extends Service
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
 					{
                 		Bundle b = new Bundle();
-                		b.putString(	"description", "MealActivity >> (MCMservice), IO_TEST"+", "+FUNC_TAG+" REGISTER");
+                		b.putString(	"description", 
+                						" SRC: DIAS_SERVICE"+
+                						" DEST: MCM"+
+                						" -"+FUNC_TAG+"-"+
+                						" REGISTER");
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 					}
 					
@@ -480,6 +484,21 @@ public class MCMservice extends Service
 	        		Debug.i(TAG, FUNC_TAG, "Carbs: "+MealActivity.carbs+" SMBG: "+MealActivity.bg);
 	        		Debug.i(TAG, FUNC_TAG, "Meal: "+meal+" Correction: "+correction);
 	        		Debug.i(TAG, FUNC_TAG, "Total: "+(meal+correction));
+	        		
+	        		if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
+					{
+                		Bundle b = new Bundle();
+                		b.putString(	"description", 
+                						" SRC: MEAL_ACTIVITY"+
+                						" DEST: MCM"+
+                						" -"+FUNC_TAG+"-"+
+                						" INJECT"+
+                						" Carbs: "+MealActivity.carbs+
+                						" SMBG: "+MealActivity.bg+
+                						" Meal: "+meal+
+                						" Corr: "+correction);
+                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+					}
 	        		
 	           		ContentValues mealValues = new ContentValues();
 	           		mealValues.put("carbs", MealActivity.carbs);

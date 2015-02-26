@@ -8,21 +8,16 @@
 //*********************************************************************************************************************
 package edu.virginia.dtc.APCservice;
 
-import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Controllers;
 import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
 import edu.virginia.dtc.SysMan.Log;
 import edu.virginia.dtc.SysMan.Params;
-import edu.virginia.dtc.SysMan.Pump;
 import edu.virginia.dtc.SysMan.State;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.app.Service;
 import android.content.Intent;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
@@ -87,15 +82,17 @@ public class IOMain extends Service {
         public void handleMessage(Message msg) {
             switch (msg.what) {
 				case Controllers.APC_SERVICE_CMD_START_SERVICE:	
-					// Create Param object with subject parameters received from Application
 					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_START_SERVICE");
 					mMessengerToClient = msg.replyTo;
 					
 					// Log the parameters for IO testing
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
-                		b.putString(	"description", "DIAsService >> (APC), IO_TEST"+", "+FUNC_TAG+", "+
-                						"APC_SERVICE_CMD_START_SERVICE"
+                		b.putString(	"description", 
+                						" SRC: DIAS_SERVICE"+
+                						" DEST: APC"+
+                						" -"+FUNC_TAG+"-"+
+                						" APC_SERVICE_CMD_START_SERVICE"
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 					}
@@ -103,16 +100,19 @@ public class IOMain extends Service {
 				case Controllers.APC_SERVICE_CMD_CALCULATE_STATE:
 					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_CALCULATE_STATE");
 					Bundle paramBundle = msg.getData();
-					boolean asynchronous = paramBundle.getBoolean("asynchronous");
-					int DIAS_STATE = paramBundle.getInt("DIAS_STATE", 0);
+					boolean asynchronous = paramBundle.getBoolean("asynchronous");		//Flag to indicate synchronous (every 5 minutes) or asynchronous (meal entry)
+					int DIAS_STATE = paramBundle.getInt("DIAS_STATE", 0);				//Current DiAs State at time of call
 
 					// Log the parameters for IO testing
 					if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
-                		b.putString(	"description", "DIAsService >> (APC), IO_TEST"+", "+FUNC_TAG+", "+
-                						"APC_SERVICE_CMD_CALCULATE_STATE"+", "+
-                						"asynchronous="+asynchronous+", "+
-                						"DIAS_STATE="+DIAS_STATE
+                		b.putString(	"description", 
+                						" SRC: DIAS_SERVICE"+
+                						" DEST: APC"+
+                						" -"+FUNC_TAG+"-"+
+                						" APC_SERVICE_CMD_CALCULATE_STATE"+
+                						" Async: "+asynchronous+
+                						" DIAS_STATE: "+DIAS_STATE
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
 					}
@@ -127,22 +127,22 @@ public class IOMain extends Service {
 						if (!asynchronous) {
 							Debug.i(TAG, FUNC_TAG, "Synchronous call...");
 							
-							//**********************************************************
-							//**********************************************************
-							// RUN CALCULATION HERE
-							//**********************************************************
-							//**********************************************************
-							
-							Debug.w(TAG, FUNC_TAG, "THIS IS ALL JUST TEST CODE AND DOESN'T ACTUALLY IMPLEMENT AN APC!");
-							
 							//This is an example call that will read all the subject data from the DB
 							//You don't have to call this here, this is just how to call it and fill the fields
-							//The read function returns true if successful and false if it fails to read
 							Subject subject = new Subject();
-							subject.read(getApplicationContext());
 							
-							//For corrections use the "correction" value (in Units)
-							//For rate changes set "new_rate" to true and use "diff_rate" for the value (+/- subject's basal)
+							if(subject.read(getApplicationContext())) {
+								//Outputting in this loop ensures that you have all the insulin profile data you need
+								
+								//The values CF, CR, and Basal are the current values from the time you call "read()" (as shown above)
+								
+								//**********************************************************
+								//Probably best to insert your calculation routine here...
+								//**********************************************************
+								
+								//For corrections use the "correction" value (in Units)
+								//For rate changes set "new_rate" to true and use "diff_rate" for the value (+/- subject's basal)
+							}
 						}
 					}
 					
@@ -156,7 +156,7 @@ public class IOMain extends Service {
 						new_rate = false;
 					}
 					
-					// Message includes everything but recommended_bolus
+					// Build the message to respond to DIAS_SERVICE
 					Message response = Message.obtain(null, Controllers.APC_PROCESSING_STATE_NORMAL, 0, 0);
 					Bundle responseBundle = new Bundle();
 					responseBundle.putBoolean("doesBolus", true);
@@ -170,14 +170,17 @@ public class IOMain extends Service {
         			// Log the parameters for IO testing
         			if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
                 		Bundle b = new Bundle();
-                		b.putString(	"description", "(APC) >> DiAsService, IO_TEST"+", "+FUNC_TAG+", "+
-                						"APC_PROCESSING_STATE_NORMAL"+", "+
-                						"doesBolus="+responseBundle.getBoolean("doesBolus")+", "+
-                						"doesRate="+responseBundle.getBoolean("doesRate")+", "+
-                						"recommended_bolus="+responseBundle.getDouble("recommended_bolus")+", "+
-                						"new_differential_rate="+responseBundle.getBoolean("new_differential_rate")+", "+
-                						"differential_basal_rate="+responseBundle.getDouble("differential_basal_rate")+", "+
-                						"IOB="+responseBundle.getDouble("IOB")
+                		b.putString(	"description", 
+                						" SRC:  APC"+
+                						" DEST: DIAS_SERVICE"+
+                						" -"+FUNC_TAG+"-"+
+                						" APC_PROCESSING_STATE_NORMAL"+
+                						" doesBolus="+responseBundle.getBoolean("doesBolus")+
+                						" doesRate="+responseBundle.getBoolean("doesRate")+
+                						" recommended_bolus="+responseBundle.getDouble("recommended_bolus")+
+                						" new_differential_rate="+responseBundle.getBoolean("new_differential_rate")+
+                						" differential_basal_rate="+responseBundle.getDouble("differential_basal_rate")+
+                						" IOB="+responseBundle.getDouble("IOB")
                 					);
                 		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
         			}        			
@@ -205,9 +208,5 @@ public class IOMain extends Service {
 			}
 		} else
 			Debug.e(TAG, FUNC_TAG, "The messenger is null!");
-	}
-	
-	private long getCurrentTimeSeconds() {
-		return (long)(System.currentTimeMillis()/1000);	// Seconds since 1/1/1970		
 	}
 }

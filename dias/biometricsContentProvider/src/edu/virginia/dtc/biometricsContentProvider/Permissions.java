@@ -1,7 +1,10 @@
-package edu.virginia.dtc.SysMan;
+package edu.virginia.dtc.biometricsContentProvider;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import edu.virginia.dtc.SysMan.Biometrics;
+import edu.virginia.dtc.SysMan.Debug;
 
 
 public class Permissions 

@@ -41,9 +41,8 @@ import android.os.Environment;
 import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.Permissions;
-import edu.virginia.dtc.SysMan.Permissions.appPerm;
-import edu.virginia.dtc.SysMan.Permissions.perm;
+import edu.virginia.dtc.biometricsContentProvider.Permissions.appPerm;
+import edu.virginia.dtc.biometricsContentProvider.Permissions.perm;
 
 //TODO: fix the saveDatabase function to test whether SD Card exists (b/c it doesn't on the Galaxy Nexus)
 
