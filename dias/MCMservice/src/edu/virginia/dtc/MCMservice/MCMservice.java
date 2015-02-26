@@ -146,6 +146,12 @@ public class MCMservice extends Service
 	* Input and Calculations for Insulin
 	************************************************************************************/
 	
+	/**
+	 * All input from the form in MealActivity
+	 * @param bg Double for SMBG
+	 * @param carbs Double for Carbohydrates
+	 * @param corr Double for correction insulin
+	 */
 	private void analyzeInput(double bg, double carbs, double corr)
 	{
 		final String FUNC_TAG = "analyzeInput";
@@ -191,9 +197,23 @@ public class MCMservice extends Service
 	{
 		final String FUNC_TAG = "closedLoopCalculation";
 		
-		//TODO:  Closed-Loop Control Meal Calculation
+		// ***************************************************
+		// INSERT MEAL CALCULATION CODE HERE
+		// ***************************************************
+		
+		// A suggestion would be to analyze the input for validity first
+		// You effectively control what is and isn't valid by using the booleans
+		// Use MealActivity.info to show user's issues in input
+		
+		// Look to the openLoop calculation as an example
 	}
 	
+	/**
+	 * Runs the open loop mode calculation like a typical Bolus Calculator
+	 * @param bg Double value that is entered by the user for SMBG
+	 * @param carbs Double for carbs entered by user
+	 * @param corr Double for correction insulin entered by user
+	 */
 	private void openLoopCalculation(double bg, double carbs, double corr)
 	{
 		final String FUNC_TAG = "openLoopCalculation";
@@ -295,6 +315,9 @@ public class MCMservice extends Service
 	* Auxiliary Functions
 	************************************************************************************/
 	
+	/**
+	 * Reads all the initial values from the database
+	 */
 	public void readStartupValues()
 	{
 		stateObserver.onChange(false, null);
@@ -304,6 +327,9 @@ public class MCMservice extends Service
 		checkSystem();
 	}
 	
+	/**
+	 * Get the currenct CF and CR
+	 */
 	private void subject_parameters() 
 	{
 		final String FUNC_TAG = "subject_parameters";
@@ -380,6 +406,9 @@ public class MCMservice extends Service
 		Debug.i(TAG, FUNC_TAG, "latestCR="+latestCR+", latestCF="+latestCF);
 	}
 	
+	/**
+	 * Check if the system is in a busy state, this is used to show/hide the inject button
+	 */
 	private void checkSystem()
 	{
 		final String FUNC_TAG = "checkInjectButton";
@@ -408,6 +437,10 @@ public class MCMservice extends Service
 		updateActivity();
 	}
 	
+	/**
+	 * Helper call to tell the MealActivity we've updated the calculation and it 
+	 * should refresh its display
+	 */
 	private void updateActivity()
 	{
 		final String FUNC_TAG = "updateActivity";
@@ -467,6 +500,18 @@ public class MCMservice extends Service
 	            	Debug.i(TAG, FUNC_TAG, "SSM_CALC_DONE");
 	            	MealActivity.inProgress = false;
 	            	readStartupValues();
+	            	
+	            	if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
+					{
+                		Bundle b = new Bundle();
+                		b.putString(	"description", 
+                						" SRC: DIAS_SERVICE"+
+                						" DEST: MCM"+
+                						" -"+FUNC_TAG+"-"+
+                						" SSM_CALC_DONE"
+                						);
+                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+					}
 	            	break;
 	            case Meal.INJECT:
 	            	Debug.i(TAG, FUNC_TAG, "INJECT");
@@ -540,11 +585,26 @@ public class MCMservice extends Service
 	            case Meal.UI_CHANGE:
 	            	Debug.i(TAG, FUNC_TAG, "UI_CHANGE");
 	            	
+	            	// This message comes from the MealActivity to tell the MCM that the user has changed
+	            	// some data in the form, and thus it should recalculate its output
+	            	
 	            	Debug.i(TAG, FUNC_TAG, "BG: "+MealActivity.bg+" Carbs: "+MealActivity.carbs+" Corr: "+MealActivity.corrInsulin);
 	            	analyzeInput(MealActivity.bg, MealActivity.carbs, MealActivity.corrInsulin);
 	            	break;
 	            case Meal.UI_REGISTER:
 	            	Debug.i(TAG, FUNC_TAG, "UI_REGISTER");
+	            	
+	            	if (Params.getBoolean(getContentResolver(), "enableIO", false)) 
+					{
+                		Bundle b1 = new Bundle();
+                		b1.putString(	"description", 
+                						" SRC: MEAL_ACTIVITY"+
+                						" DEST: MCM"+
+                						" -"+FUNC_TAG+"-"+
+                						" UI_REGISTER"
+                						);
+                		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b1), Event.SET_LOG);
+					}
 	            	
 	            	mMessengerToActivity = msg.replyTo;
 	            	

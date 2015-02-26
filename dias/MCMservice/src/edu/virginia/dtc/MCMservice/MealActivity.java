@@ -183,6 +183,10 @@ public class MealActivity extends Activity{
         }
     }
 	
+	/**
+	 * Resets the inactivity timer, for instance, if you change the BG value,
+	 * we would reset the timer
+	 */
 	private void resetInactivityTimer()
 	{
 		if(inactivityTimer != null)
@@ -193,6 +197,9 @@ public class MealActivity extends Activity{
 		inactivityTimer = scheduler.schedule(inactivity, INACTIVITY_TIMEOUT, TimeUnit.SECONDS);
 	}
 	
+	/**
+	 * Update the user interface, buttons, and calculated values
+	 */
     private void updateUi()
     {
     	final String FUNC_TAG = "updateUi";
@@ -447,6 +454,9 @@ public class MealActivity extends Activity{
 	* Auxiliary Functions
 	************************************************************************************/
 	
+	/**
+	 * Gets the current DIAS_STATE for the system
+	 */
 	private void getSystemStatus()
 	{
 		final String FUNC_TAG = "getSystemStatus";
@@ -463,6 +473,9 @@ public class MealActivity extends Activity{
 		}
 	}
 	
+	/**
+	 * Send a message to the MCM so it knows we have changed the interface
+	 */
 	private void reportChangeToMcm()
 	{
 		try {
