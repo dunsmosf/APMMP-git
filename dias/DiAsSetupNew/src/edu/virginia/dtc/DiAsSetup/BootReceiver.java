@@ -26,13 +26,13 @@ public class BootReceiver extends BroadcastReceiver {
 		con = context;
 		
         // Do whatever you want on boot
-		SharedPreferences prefs = context.getSharedPreferences(DiAsSetup1.PREFS_NAME, 0);
+		SharedPreferences prefs = context.getSharedPreferences(DiAsSetup.PREFS_NAME, 0);
 		// Clear certain saved data on reboot 
 		prefs.edit().remove("connectedNames").apply();
 		
 		if(!subjectDataExists())
 		{
-			Debug.i("DiAsSetup1", "BootReceiver", "The subject database is empty after reboot, clearing local DB!");
+			Debug.i("DiAsSetup", "BootReceiver", "The subject database is empty after reboot, clearing local DB!");
 			prefs.edit().putBoolean("clear", true).commit();
 		}
 	}

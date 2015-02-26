@@ -290,7 +290,7 @@ public class Supervisor extends FragmentActivity {
 
 			// DiAs Setup
     		startApp = new Intent();
-    		startApp.setComponent(new ComponentName("edu.virginia.dtc.DiAsSetup", "edu.virginia.dtc.DiAsSetup.DiAsSetup1"));
+    		startApp.setComponent(new ComponentName("edu.virginia.dtc.DiAsSetup", "edu.virginia.dtc.DiAsSetup.DiAsSetup"));
     		startActivity(startApp);
     		
     		return;

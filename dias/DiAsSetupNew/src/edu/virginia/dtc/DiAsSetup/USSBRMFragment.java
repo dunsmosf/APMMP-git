@@ -42,7 +42,7 @@ public class USSBRMFragment extends ProfileFragment {
     public int subjectSafetyEndHour;
     public int subjectSafetyEndMinute;
     
-    public USSBRMFragment(DiAsSetup1 main){
+    public USSBRMFragment(DiAsSetup main){
     	this.main = main;
     }
 
@@ -244,23 +244,23 @@ public class USSBRMFragment extends ProfileFragment {
 	public void buildProfile() {
 		int ii, t, t2;
 		profileList.clear();
-		if (DiAsSetup1.local_sd.subjectTimeRangeValid) {
-			for (ii = 0; ii < DiAsSetup1.local_sd.subjectSafety.count(); ii++) {
-				t = DiAsSetup1.local_sd.subjectSafety.get_time(ii).intValue();
-				t2 = DiAsSetup1.local_sd.subjectSafety.get_end_time(ii).intValue();
+		if (DiAsSetup.local_sd.subjectTimeRangeValid) {
+			for (ii = 0; ii < DiAsSetup.local_sd.subjectSafety.count(); ii++) {
+				t = DiAsSetup.local_sd.subjectSafety.get_time(ii).intValue();
+				t2 = DiAsSetup.local_sd.subjectSafety.get_end_time(ii).intValue();
 				String s = new String(pad(t / 60) + ":" + pad(t % 60) + "  to  " + pad(t2 / 60) + ":" + pad(t2 % 60));
 				profileList.add(new SelectBox(main, this, ii, s));
 			}
 		}
 		
-		DiAsSetup1.db.writeDb(DiAsSetup1.local_sd);
+		DiAsSetup.db.writeDb(DiAsSetup.local_sd);
 	}
 
 	@Override
 	public void addItemToProfile(View view) {
 		final String FUNC_TAG = "addItemToProfile";
 		
-		if (DiAsSetup1.local_sd.subjectSafety.count() < DiAsSetup1.local_sd.subjectSafety.capacity() && subjectSafetyStartHourValid && subjectSafetyStartMinuteValid && subjectSafetyEndHourValid && subjectSafetyEndMinuteValid) {
+		if (DiAsSetup.local_sd.subjectSafety.count() < DiAsSetup.local_sd.subjectSafety.capacity() && subjectSafetyStartHourValid && subjectSafetyStartMinuteValid && subjectSafetyEndHourValid && subjectSafetyEndMinuteValid) {
 			int startMinutes = subjectSafetyStartHour * 60 + subjectSafetyStartMinute;
 			int endMinutes = subjectSafetyEndHour * 60 + subjectSafetyEndMinute;
 			int start = startMinutes, end = endMinutes;
@@ -272,9 +272,9 @@ public class USSBRMFragment extends ProfileFragment {
 			if (subjectSafetyStartHour > subjectSafetyEndHour){ // handle case of range over midnight
 				end += 24*60;
 			}
-			for (int i = 0; i < DiAsSetup1.local_sd.subjectSafety.count(); i++){
-				int t = DiAsSetup1.local_sd.subjectSafety.get_time(i).intValue();
-				int t2 = DiAsSetup1.local_sd.subjectSafety.get_end_time(i).intValue();
+			for (int i = 0; i < DiAsSetup.local_sd.subjectSafety.count(); i++){
+				int t = DiAsSetup.local_sd.subjectSafety.get_time(i).intValue();
+				int t2 = DiAsSetup.local_sd.subjectSafety.get_end_time(i).intValue();
 				if (subjectSafetyStartHour > subjectSafetyEndHour){ // handle case of range over midnight
 					t2 += 24*60;
 				}
@@ -287,8 +287,8 @@ public class USSBRMFragment extends ProfileFragment {
 					return;
 				}
 			}
-			DiAsSetup1.local_sd.subjectSafety.put_time_range_with_replace(startMinutes, endMinutes);
-			DiAsSetup1.local_sd.subjectTimeRangeValid = true;
+			DiAsSetup.local_sd.subjectSafety.put_time_range_with_replace(startMinutes, endMinutes);
+			DiAsSetup.local_sd.subjectTimeRangeValid = true;
 			Debug.i(TAG, FUNC_TAG,"addItemToProfile, startMinutes=" + startMinutes + ", endMinutes=" + endMinutes);
 			buildProfile();
 			displayProfile();
@@ -324,10 +324,10 @@ public class USSBRMFragment extends ProfileFragment {
 	public void removeItemFromProfile(View view) {
 		final String FUNC_TAG = "removeItemFromProfile";
 		
-		if (DiAsSetup1.local_sd.subjectSafety.count() > 0 && profileLineSelected < DiAsSetup1.local_sd.subjectSafety.count()) {
-			DiAsSetup1.local_sd.subjectSafety.remove(profileLineSelected);
-			if (DiAsSetup1.local_sd.subjectSafety.count() == 0) {
-				DiAsSetup1.local_sd.subjectTimeRangeValid = false;
+		if (DiAsSetup.local_sd.subjectSafety.count() > 0 && profileLineSelected < DiAsSetup.local_sd.subjectSafety.count()) {
+			DiAsSetup.local_sd.subjectSafety.remove(profileLineSelected);
+			if (DiAsSetup.local_sd.subjectSafety.count() == 0) {
+				DiAsSetup.local_sd.subjectTimeRangeValid = false;
 			}
 			buildProfile();
 			displayProfile();
@@ -339,9 +339,9 @@ public class USSBRMFragment extends ProfileFragment {
 
 	@Override
 	public void clearConfirm() {
-		DiAsSetup1.local_sd.subjectSafety.init();
+		DiAsSetup.local_sd.subjectSafety.init();
 		profileLineSelected = 0;
-		DiAsSetup1.local_sd.subjectTimeRangeValid = false;
+		DiAsSetup.local_sd.subjectTimeRangeValid = false;
 		buildProfile();
 		displayProfile();
 		main.updateDisplay();

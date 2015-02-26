@@ -16,7 +16,7 @@ import android.os.Bundle;
 
 public class SetupDB extends SQLiteOpenHelper 
 {
-	private static final String TAG = "DiAsSetup1";
+	private static final String TAG = "DiAsSetup";
 	
 	private static final int DATABASE_VERSION = 2;
 	private static final String DATABASE_NAME = "SETUP";
@@ -137,7 +137,7 @@ public class SetupDB extends SQLiteOpenHelper
 	{
 		final String FUNC_TAG = "writeDb";		
 		
-		Debug.i("DiAsSetup1", FUNC_TAG, "Saving database...");
+		Debug.i("DiAsSetup", FUNC_TAG, "Saving database...");
 		
 		SQLiteDatabase db = this.getWritableDatabase();
 		

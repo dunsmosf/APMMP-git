@@ -24,7 +24,7 @@ public class BasalRateFragment extends ProfileFragment {
 	public boolean subjectBasalMinuteValid = false;
 	public boolean subjectBasalValueValid = false;
 
-	public BasalRateFragment(DiAsSetup1 main) {
+	public BasalRateFragment(DiAsSetup main) {
 		this.main = main;
 	}
 
@@ -175,25 +175,25 @@ public class BasalRateFragment extends ProfileFragment {
 	public void buildProfile() {
 		int ii, jj, t;
 		profileList.clear();
-		if (DiAsSetup1.local_sd.subjectBasalValid) {
-			for (ii = 0; ii < DiAsSetup1.local_sd.subjectBasal.count(); ii++) {
-				t = DiAsSetup1.local_sd.subjectBasal.get_time(ii).intValue();
-				String s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup1.local_sd.subjectBasal.get_value(ii) + " " + strings[UNIT]);
+		if (DiAsSetup.local_sd.subjectBasalValid) {
+			for (ii = 0; ii < DiAsSetup.local_sd.subjectBasal.count(); ii++) {
+				t = DiAsSetup.local_sd.subjectBasal.get_time(ii).intValue();
+				String s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup.local_sd.subjectBasal.get_value(ii) + " " + strings[UNIT]);
 				profileList.add(new SelectBox(main, this, ii, s));
 			}
 		}
 		
-		DiAsSetup1.db.writeDb(DiAsSetup1.local_sd);
+		DiAsSetup.db.writeDb(DiAsSetup.local_sd);
 	}
 
 	// Add item to profile
 	public void addItemToProfile(View view) {
 		final String FUNC_TAG = "addItemToProfile";
 		
-		if (DiAsSetup1.local_sd.subjectBasal.count() < DiAsSetup1.local_sd.subjectBasal.capacity() && subjectBasalHourValid && subjectBasalMinuteValid && subjectBasalValueValid) {
+		if (DiAsSetup.local_sd.subjectBasal.count() < DiAsSetup.local_sd.subjectBasal.capacity() && subjectBasalHourValid && subjectBasalMinuteValid && subjectBasalValueValid) {
 			int minutes = subjectBasalHour * 60 + subjectBasalMinute;
-			DiAsSetup1.local_sd.subjectBasal.put_with_replace(minutes, subjectBasalValue);
-			DiAsSetup1.local_sd.subjectBasalValid = true;
+			DiAsSetup.local_sd.subjectBasal.put_with_replace(minutes, subjectBasalValue);
+			DiAsSetup.local_sd.subjectBasalValid = true;
 			Debug.i(TAG, FUNC_TAG,"addItemToProfile, minutes=" + minutes + ", Basal=" + subjectBasalValue);
 			buildProfile();
 			displayProfile();
@@ -207,10 +207,10 @@ public class BasalRateFragment extends ProfileFragment {
 	public void removeItemFromProfile(View view) {
 		final String FUNC_TAG = "removeItemFromProfile";
 		
-		if (DiAsSetup1.local_sd.subjectBasal.count() > 0 && profileLineSelected < DiAsSetup1.local_sd.subjectBasal.count()) {
-			DiAsSetup1.local_sd.subjectBasal.remove(profileLineSelected);
-			if (DiAsSetup1.local_sd.subjectBasal.count() == 0) {
-				DiAsSetup1.local_sd.subjectBasalValid = false;
+		if (DiAsSetup.local_sd.subjectBasal.count() > 0 && profileLineSelected < DiAsSetup.local_sd.subjectBasal.count()) {
+			DiAsSetup.local_sd.subjectBasal.remove(profileLineSelected);
+			if (DiAsSetup.local_sd.subjectBasal.count() == 0) {
+				DiAsSetup.local_sd.subjectBasalValid = false;
 			}
 			buildProfile();
 			displayProfile();
@@ -221,9 +221,9 @@ public class BasalRateFragment extends ProfileFragment {
 	}
 
 	public void clearConfirm() {
-		DiAsSetup1.local_sd.subjectBasal.init();
+		DiAsSetup.local_sd.subjectBasal.init();
 		profileLineSelected = 0;
-		DiAsSetup1.local_sd.subjectBasalValid = false;
+		DiAsSetup.local_sd.subjectBasalValid = false;
 		buildProfile();
 		displayProfile();
 		main.updateDisplay();

@@ -26,8 +26,6 @@ import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
-import android.os.RemoteException;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
@@ -38,7 +36,6 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -56,12 +53,11 @@ import edu.virginia.dtc.SysMan.Biometrics;
 import edu.virginia.dtc.SysMan.Debug;
 import edu.virginia.dtc.SysMan.DiAsSubjectData;
 import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.Meal;
 import edu.virginia.dtc.SysMan.Params;
 import edu.virginia.dtc.SysMan.State;
 import edu.virginia.dtc.Tvector.Tvector;
 
-public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListener {
+public class DiAsSetup extends FragmentActivity implements ActionBar.TabListener {
 
 	/**
 	 * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -77,7 +73,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 	 * The {@link ViewPager} that will host the section contents.
 	 */
 	ViewPager mViewPager;
-	public final String TAG = "DiAsSetup1";
+	public final String TAG = "DiAsSetup";
 	public final Handler handler = new Handler();
 
 	// Fragments
@@ -132,17 +128,6 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 	//  DiAs Subject Databases for comparison
 	public static DiAsSubjectData local_sd = new DiAsSubjectData();
 	
-    private boolean doesPackageExist(String targetPackage){
-    	List<ApplicationInfo> packages;
-        PackageManager pm;
-        pm = getPackageManager();        
-        packages = pm.getInstalledApplications(0);
-        for (ApplicationInfo packageInfo : packages) {
-            if(packageInfo.packageName.equals(targetPackage)) return true;
-        }        
-        return false;
-    }
-    
     @Override
 	public void onCreate(Bundle savedInstanceState) 
 	{
@@ -294,7 +279,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		mViewPager.setCurrentItem(screen);
 		
 		hardware = DriverData.getInstance();
-		SharedPreferences prefs = getSharedPreferences(DiAsSetup1.PREFS_NAME, 0);
+		SharedPreferences prefs = getSharedPreferences(DiAsSetup.PREFS_NAME, 0);
 		hardware.realTime = prefs.getBoolean("realtime", true);
 		hardware.speedupMultiplier = prefs.getInt("speedupMultiplier", 1);
 		
@@ -453,7 +438,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 		
 		DiAsSubjectData subject_data = local_sd;
 		
-		DiAsSetup1.db.writeDb(DiAsSetup1.local_sd);
+		DiAsSetup.db.writeDb(DiAsSetup.local_sd);
 		
 		Debug.i(TAG, FUNC_TAG, "Printing subject_data...");
 		
@@ -617,34 +602,10 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 			Debug.e(TAG, FUNC_TAG, "Error: " + e.getMessage());
 		}
 
-		saveTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, true);
-		saveTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, true);
-		saveTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, true);
-		saveTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, false);
-	}
-
-	private void saveTvector(Tvector tvector, Uri uri, boolean value) 
-	{
-		final String FUNC_TAG = "saveTvector";
-		
-		int ii;
-		ContentValues content_values = new ContentValues();
-		for (ii = 0; ii < tvector.count(); ii++) 
-		{
-			content_values.put("time", tvector.get_time(ii).longValue());
-			
-			if (tvector.get_end_time(ii) != 0)
-				content_values.put("endtime", tvector.get_end_time(ii).longValue());
-			
-			if (tvector.get_value(ii) >= 0 && value)
-				content_values.put("value", (tvector.get_value(ii).doubleValue()));
-			
-			try {
-				getContentResolver().insert(uri, content_values);
-			} catch (Exception e) {
-				Debug.e(TAG, FUNC_TAG,"Error: " + e.getMessage());
-			}
-		}
+		Tvector.saveTvector(subject_data.subjectCF, Biometrics.CF_PROFILE_URI, true, getContentResolver());
+		Tvector.saveTvector(subject_data.subjectCR, Biometrics.CR_PROFILE_URI, true, getContentResolver());
+		Tvector.saveTvector(subject_data.subjectBasal, Biometrics.BASAL_PROFILE_URI, true, getContentResolver());
+		Tvector.saveTvector(subject_data.subjectSafety, Biometrics.USS_BRM_PROFILE_URI, false, getContentResolver());
 	}
 
 	public DiAsSubjectData readDiAsSubjectData() 
@@ -1130,7 +1091,7 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		final String FUNC_TAG = "onPrepareOptionsMenu";
 		
-		if (menu.size() > 5) {
+		if (menu.size() > 6) {
 			int ii;
 			int size = menu.size();
 			for (ii=3; ii<size; ii++) {
@@ -1160,6 +1121,12 @@ public class DiAsSetup1 extends FragmentActivity implements ActionBar.TabListene
 				return true;
 			case R.id.menuUrl:
 				showDialogUrl();
+				return true;
+			case R.id.menuParamsSetup:
+				Intent paramsIntent = new Intent();
+				paramsIntent.setClassName(this, "edu.virginia.dtc.DiAsSetup.ParametersActivity");
+				paramsIntent.setAction(Intent.ACTION_MAIN);
+				startActivity(paramsIntent);
 				return true;
 		}
 		return super.onOptionsItemSelected(item);

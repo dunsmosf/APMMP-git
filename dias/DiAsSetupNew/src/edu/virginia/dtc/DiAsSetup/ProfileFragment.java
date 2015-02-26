@@ -22,7 +22,7 @@ import android.widget.TextView;
 public abstract class ProfileFragment extends Fragment {
 	public static String TAG;
 	public static View view;
-	public DiAsSetup1 main;
+	public DiAsSetup main;
 
 	// Display-specific constants
 	public static final int PROFILE_TEXT_DISPLAY_WIDTH = 30;

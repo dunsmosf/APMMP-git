@@ -33,7 +33,7 @@ public class CorrectionFactorFragment extends ProfileFragment {
 	public double mmollUpperLimit = 11.0;
 	public double mmollLowerLimit = 0.5;
 
-	public CorrectionFactorFragment(DiAsSetup1 main) {
+	public CorrectionFactorFragment(DiAsSetup main) {
 		this.main = main;
 	}
 
@@ -216,31 +216,31 @@ public class CorrectionFactorFragment extends ProfileFragment {
 	public void buildProfile() {
 		int ii, jj, t;
 		profileList.clear();
-		if (DiAsSetup1.local_sd.subjectCFValid) {
-			for (ii = 0; ii < DiAsSetup1.local_sd.subjectCF.count(); ii++) {
-				t = DiAsSetup1.local_sd.subjectCF.get_time(ii).intValue();
+		if (DiAsSetup.local_sd.subjectCFValid) {
+			for (ii = 0; ii < DiAsSetup.local_sd.subjectCF.count(); ii++) {
+				t = DiAsSetup.local_sd.subjectCF.get_time(ii).intValue();
 				String s;
                 if (mmolL) {
-					s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup1.local_sd.subjectCF.get_value(ii)/CGM.MGDL_PER_MMOLL + " mmol/L/U");
+					s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup.local_sd.subjectCF.get_value(ii)/CGM.MGDL_PER_MMOLL + " mmol/L/U");
 				}
 				else {
-					s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup1.local_sd.subjectCF.get_value(ii) + " " + strings[UNIT]);
+					s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup.local_sd.subjectCF.get_value(ii) + " " + strings[UNIT]);
 				}
 				profileList.add(new SelectBox(main, this, ii, s));
 			}
 		}
 		
-		DiAsSetup1.db.writeDb(DiAsSetup1.local_sd);
+		DiAsSetup.db.writeDb(DiAsSetup.local_sd);
 	}
 
 	// Add item to profile
 	public void addItemToProfile(View view) {
 		final String FUNC_TAG = "addItemToProfile";
 		
-		if (DiAsSetup1.local_sd.subjectCF.count() < DiAsSetup1.local_sd.subjectCF.capacity() && subjectCFHourValid && subjectCFMinuteValid && subjectCFValueValid) {
+		if (DiAsSetup.local_sd.subjectCF.count() < DiAsSetup.local_sd.subjectCF.capacity() && subjectCFHourValid && subjectCFMinuteValid && subjectCFValueValid) {
 			int minutes = subjectCFHour * 60 + subjectCFMinute;
-			DiAsSetup1.local_sd.subjectCF.put_with_replace(minutes, subjectCFValue);
-			DiAsSetup1.local_sd.subjectCFValid = true;
+			DiAsSetup.local_sd.subjectCF.put_with_replace(minutes, subjectCFValue);
+			DiAsSetup.local_sd.subjectCFValid = true;
 			Debug.i(TAG, FUNC_TAG,"addItemToProfile, minutes=" + minutes + ", CF=" + subjectCFValue);
 			buildProfile();
 			displayProfile();
@@ -254,10 +254,10 @@ public class CorrectionFactorFragment extends ProfileFragment {
 	public void removeItemFromProfile(View view) {
 		final String FUNC_TAG = "removeItemFromProfile";
 		
-		if (DiAsSetup1.local_sd.subjectCF.count() > 0 && profileLineSelected < DiAsSetup1.local_sd.subjectCF.count()) {
-			DiAsSetup1.local_sd.subjectCF.remove(profileLineSelected);
-			if (DiAsSetup1.local_sd.subjectCF.count() == 0) {
-				DiAsSetup1.local_sd.subjectCFValid = false;
+		if (DiAsSetup.local_sd.subjectCF.count() > 0 && profileLineSelected < DiAsSetup.local_sd.subjectCF.count()) {
+			DiAsSetup.local_sd.subjectCF.remove(profileLineSelected);
+			if (DiAsSetup.local_sd.subjectCF.count() == 0) {
+				DiAsSetup.local_sd.subjectCFValid = false;
 			}
 			Debug.i(TAG, FUNC_TAG, "Remove CF item...");
 			buildProfile();
@@ -269,9 +269,9 @@ public class CorrectionFactorFragment extends ProfileFragment {
 	}
 
 	public void clearConfirm() {
-		DiAsSetup1.local_sd.subjectCF.init();
+		DiAsSetup.local_sd.subjectCF.init();
 		profileLineSelected = 0;
-		DiAsSetup1.local_sd.subjectCFValid = false;
+		DiAsSetup.local_sd.subjectCFValid = false;
 		buildProfile();
 		displayProfile();
 		main.updateDisplay();

@@ -32,7 +32,7 @@ public class DriverData {
 		availableDrivers = new ArrayList<DriverInfo>();
 	}
 
-	public void addDriver(DiAsSetup1 main, ArrayAdapter<String> a, List<DriverInfo> l, DriverInfo d) {
+	public void addDriver(DiAsSetup main, ArrayAdapter<String> a, List<DriverInfo> l, DriverInfo d) {
 		l.add(d);
 
 		if (d.type == DriverInfo.CGM)
@@ -45,8 +45,8 @@ public class DriverData {
 			a.add(d.displayname + "\nMisc");
 	}
 
-	public void updateDrivers(DiAsSetup1 main){
-		prefs = main.getSharedPreferences(DiAsSetup1.PREFS_NAME, 0);
+	public void updateDrivers(DiAsSetup main){
+		prefs = main.getSharedPreferences(DiAsSetup.PREFS_NAME, 0);
 		connectedDriverNames = prefs.getStringSet("connectedNames", new HashSet<String>());
 	}
 	

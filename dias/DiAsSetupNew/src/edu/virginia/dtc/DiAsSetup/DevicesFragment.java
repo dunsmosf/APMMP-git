@@ -40,7 +40,7 @@ import android.widget.Toast;
 public class DevicesFragment extends Fragment {
 	public static String TAG = "DevicesFragment";
 	public static View view;
-	public DiAsSetup1 main;
+	public DiAsSetup main;
 
 	private static SwitchAdapter driverAdapter;
 
@@ -56,14 +56,14 @@ public class DevicesFragment extends Fragment {
 	
 	public BroadcastReceiver resultReceiver;
 
-	public DevicesFragment(final DiAsSetup1 main) {
+	public DevicesFragment(final DiAsSetup main) {
 		final String FUNC_TAG = "DevicesFragment";
 		
 		this.main = main;
 
 		hardware = DriverData.getInstance();
 
-		SharedPreferences prefs = main.getSharedPreferences(DiAsSetup1.PREFS_NAME, 0);
+		SharedPreferences prefs = main.getSharedPreferences(DiAsSetup.PREFS_NAME, 0);
 		hardware.realTime = prefs.getBoolean("realtime", true);
 		hardware.speedupMultiplier = prefs.getInt("speedupMultiplier", 1);
 		driverAdapter = new SwitchAdapter(main, R.layout.listsettings);		

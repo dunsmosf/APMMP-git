@@ -27,7 +27,7 @@ import edu.virginia.dtc.SysMan.Params;
 public class SubjectInfoFragment extends Fragment {
 	public static String TAG = "SubjectInfoFragment";
 	public static View view;
-	public DiAsSetup1 main;
+	public DiAsSetup main;
 	public static int COLOR_DISABLED = Color.rgb(130, 130, 130);
 
 	// Remote Monitoring URI dropdown list declarations
@@ -37,7 +37,7 @@ public class SubjectInfoFragment extends Fragment {
 
 	//	public static boolean expandScrollView = true;
 
-	public SubjectInfoFragment(DiAsSetup1 main) 
+	public SubjectInfoFragment(DiAsSetup main) 
 	{
 		this.main = main;
 	}
@@ -95,9 +95,9 @@ public class SubjectInfoFragment extends Fragment {
 		spinner.setAdapter(adapter);
 		
 		// If a selection has already been made then initialize the spinner accordingly
-		if (DiAsSetup1.local_sd != null) {
-			if (DiAsSetup1.local_sd.AITValid) {
-				switch (DiAsSetup1.local_sd.subjectAIT) 
+		if (DiAsSetup.local_sd != null) {
+			if (DiAsSetup.local_sd.AITValid) {
+				switch (DiAsSetup.local_sd.subjectAIT) 
 				{
 					case 2:
 						spinner.setSelection(0);
@@ -123,27 +123,27 @@ public class SubjectInfoFragment extends Fragment {
 				switch (pos) 
 				{
 					case 0:
-						DiAsSetup1.local_sd.subjectAIT = 2;
-						DiAsSetup1.local_sd.AITValid = true;
+						DiAsSetup.local_sd.subjectAIT = 2;
+						DiAsSetup.local_sd.AITValid = true;
 						break;
 					case 1:
-						DiAsSetup1.local_sd.subjectAIT = 4;
-						DiAsSetup1.local_sd.AITValid = true;
+						DiAsSetup.local_sd.subjectAIT = 4;
+						DiAsSetup.local_sd.AITValid = true;
 						break;
 					case 2:
-						DiAsSetup1.local_sd.subjectAIT = 6;
-						DiAsSetup1.local_sd.AITValid = true;
+						DiAsSetup.local_sd.subjectAIT = 6;
+						DiAsSetup.local_sd.AITValid = true;
 						break;
 					case 3:
-						DiAsSetup1.local_sd.subjectAIT = 8;
-						DiAsSetup1.local_sd.AITValid = true;
+						DiAsSetup.local_sd.subjectAIT = 8;
+						DiAsSetup.local_sd.AITValid = true;
 						break;
 					default:
-						DiAsSetup1.local_sd.AITValid = false;
+						DiAsSetup.local_sd.AITValid = false;
 						break;
 				}
-				DiAsSetup1.local_sd.subjectAIT = 4;
-				DiAsSetup1.local_sd.AITValid = true;
+				DiAsSetup.local_sd.subjectAIT = 4;
+				DiAsSetup.local_sd.AITValid = true;
 				main.updateDisplay();
 			}
 
@@ -164,13 +164,13 @@ public class SubjectInfoFragment extends Fragment {
 				} 
 				else 
 				{
-					DiAsSetup1.local_sd.subjectNameValid = false;
+					DiAsSetup.local_sd.subjectNameValid = false;
 					if (((TextView) v).getText().toString().length() > 0) 
 					{
 						Debug.w(TAG, FUNC_TAG, "ID!");
-						DiAsSetup1.local_sd.subjectName = ((EditText) view.findViewById(R.id.editTextSubjectID)).getText().toString();
-						DiAsSetup1.local_sd.subjectNameValid = true;
-						if (!DiAsSetup1.configurationMode)
+						DiAsSetup.local_sd.subjectName = ((EditText) view.findViewById(R.id.editTextSubjectID)).getText().toString();
+						DiAsSetup.local_sd.subjectNameValid = true;
+						if (!DiAsSetup.configurationMode)
 							((TextView) v).setTextColor(Color.WHITE);
 					}
 				}
@@ -179,12 +179,12 @@ public class SubjectInfoFragment extends Fragment {
 		});
 		editTextSubjectID.setOnEditorActionListener(new OnEditorActionListener() {
 			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-				DiAsSetup1.local_sd.subjectNameValid = false;
+				DiAsSetup.local_sd.subjectNameValid = false;
 				if (v.getText().toString().length() > 0) {
 					Debug.i(TAG, FUNC_TAG, "valid subjectID=" + v.getText().toString());
-					DiAsSetup1.local_sd.subjectName = ((EditText) view.findViewById(R.id.editTextSubjectID)).getText().toString();
-					DiAsSetup1.local_sd.subjectNameValid = true;
-					if (!DiAsSetup1.configurationMode)
+					DiAsSetup.local_sd.subjectName = ((EditText) view.findViewById(R.id.editTextSubjectID)).getText().toString();
+					DiAsSetup.local_sd.subjectNameValid = true;
+					if (!DiAsSetup.configurationMode)
 						v.setTextColor(Color.WHITE);
 					main.updateDisplay();
 					return false;
@@ -201,14 +201,14 @@ public class SubjectInfoFragment extends Fragment {
 				if (hasFocus) {
 					textViewInstructions.setText("Enter a Subject Number from 1-999999999");
 				} else {
-					DiAsSetup1.local_sd.subjectSessionValid = false;
+					DiAsSetup.local_sd.subjectSessionValid = false;
 					if (((TextView) v).getText().toString().length() > 0) {
 						if (((TextView) v).getText().toString().length() < 10) {
 							int subject_number = Integer.parseInt(((TextView) v).getText().toString());
 							if (subject_number > 0 && subject_number < 1000000000) {
 								Debug.i(TAG, FUNC_TAG, "valid Subject Number=" + subject_number);
-								DiAsSetup1.local_sd.subjectSession = ((EditText) view.findViewById(R.id.editTextSessionNumber)).getText().toString();
-								DiAsSetup1.local_sd.subjectSessionValid = true;
+								DiAsSetup.local_sd.subjectSession = ((EditText) view.findViewById(R.id.editTextSessionNumber)).getText().toString();
+								DiAsSetup.local_sd.subjectSessionValid = true;
 								((TextView) v).setTextColor(Color.WHITE);
 							} 
 							else {
@@ -228,11 +228,11 @@ public class SubjectInfoFragment extends Fragment {
 				if (v.getText().toString().length() > 0) {
 					int subject_number = Integer.parseInt(v.getText().toString());
 					Debug.i(TAG, FUNC_TAG, "subject number=" + subject_number);
-					DiAsSetup1.local_sd.subjectSessionValid = false;
+					DiAsSetup.local_sd.subjectSessionValid = false;
 					if (subject_number > 0 && subject_number < 1000000000) {
 						Debug.i(TAG, FUNC_TAG, "valid Subject Number=" + subject_number);
-						DiAsSetup1.local_sd.subjectSession = ((EditText) view.findViewById(R.id.editTextSessionNumber)).getText().toString();
-						DiAsSetup1.local_sd.subjectSessionValid = true;
+						DiAsSetup.local_sd.subjectSession = ((EditText) view.findViewById(R.id.editTextSessionNumber)).getText().toString();
+						DiAsSetup.local_sd.subjectSessionValid = true;
 						v.setTextColor(Color.WHITE);
 						v.setTextColor(Color.WHITE);
 						main.updateDisplay();
@@ -254,12 +254,12 @@ public class SubjectInfoFragment extends Fragment {
 					textViewInstructions.setText("Enter subject weight from 27-136 kg");
 				} else {
 					if (((TextView) v).getText().toString().length() > 0) {
-						DiAsSetup1.local_sd.subjectWeight = Integer.parseInt(((TextView) v).getText().toString());
-						Debug.i(TAG, FUNC_TAG, "OnFocusChangeListener weight=" + DiAsSetup1.local_sd.subjectWeight);
-						DiAsSetup1.local_sd.weightValid = false;
-						if (DiAsSetup1.local_sd.subjectWeight >= 27 && DiAsSetup1.local_sd.subjectWeight <= 136) {
-							Debug.i(TAG, FUNC_TAG, "valid weight=" + DiAsSetup1.local_sd.subjectWeight);
-							DiAsSetup1.local_sd.weightValid = true;
+						DiAsSetup.local_sd.subjectWeight = Integer.parseInt(((TextView) v).getText().toString());
+						Debug.i(TAG, FUNC_TAG, "OnFocusChangeListener weight=" + DiAsSetup.local_sd.subjectWeight);
+						DiAsSetup.local_sd.weightValid = false;
+						if (DiAsSetup.local_sd.subjectWeight >= 27 && DiAsSetup.local_sd.subjectWeight <= 136) {
+							Debug.i(TAG, FUNC_TAG, "valid weight=" + DiAsSetup.local_sd.subjectWeight);
+							DiAsSetup.local_sd.weightValid = true;
 							((TextView) v).setTextColor(Color.WHITE);
 						} else {
 							((TextView) v).setTextColor(Color.RED);
@@ -274,12 +274,12 @@ public class SubjectInfoFragment extends Fragment {
 		editTextWeight.setOnEditorActionListener(new OnEditorActionListener() {
 			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 				if (v.getText().toString().length() > 0) {
-					DiAsSetup1.local_sd.subjectWeight = Integer.parseInt(v.getText().toString());
-					Debug.i(TAG, FUNC_TAG, "weight=" + DiAsSetup1.local_sd.subjectWeight);
-					DiAsSetup1.local_sd.weightValid = false;
-					if (DiAsSetup1.local_sd.subjectWeight >= 27 && DiAsSetup1.local_sd.subjectWeight <= 136) {
-						Debug.i(TAG, FUNC_TAG, "valid weight=" + DiAsSetup1.local_sd.subjectWeight);
-						DiAsSetup1.local_sd.weightValid = true;
+					DiAsSetup.local_sd.subjectWeight = Integer.parseInt(v.getText().toString());
+					Debug.i(TAG, FUNC_TAG, "weight=" + DiAsSetup.local_sd.subjectWeight);
+					DiAsSetup.local_sd.weightValid = false;
+					if (DiAsSetup.local_sd.subjectWeight >= 27 && DiAsSetup.local_sd.subjectWeight <= 136) {
+						Debug.i(TAG, FUNC_TAG, "valid weight=" + DiAsSetup.local_sd.subjectWeight);
+						DiAsSetup.local_sd.weightValid = true;
 						v.setTextColor(Color.WHITE);
 						main.updateDisplay();
 						return false;
@@ -300,12 +300,12 @@ public class SubjectInfoFragment extends Fragment {
 					textViewInstructions.setText("Enter subject height from 127-221 cm");
 				} else {
 					if (((TextView) v).getText().toString().length() > 0) {
-						DiAsSetup1.local_sd.subjectHeight = Integer.parseInt(((TextView) v).getText().toString());
-						Debug.i(TAG, FUNC_TAG, "OnFocusChangeListener height=" + DiAsSetup1.local_sd.subjectHeight);
-						DiAsSetup1.local_sd.heightValid = false;
-						if (DiAsSetup1.local_sd.subjectHeight >= 127 && DiAsSetup1.local_sd.subjectWeight <= 221) {
-							Debug.i(TAG, FUNC_TAG, "valid height=" + DiAsSetup1.local_sd.subjectHeight);
-							DiAsSetup1.local_sd.heightValid = true;
+						DiAsSetup.local_sd.subjectHeight = Integer.parseInt(((TextView) v).getText().toString());
+						Debug.i(TAG, FUNC_TAG, "OnFocusChangeListener height=" + DiAsSetup.local_sd.subjectHeight);
+						DiAsSetup.local_sd.heightValid = false;
+						if (DiAsSetup.local_sd.subjectHeight >= 127 && DiAsSetup.local_sd.subjectWeight <= 221) {
+							Debug.i(TAG, FUNC_TAG, "valid height=" + DiAsSetup.local_sd.subjectHeight);
+							DiAsSetup.local_sd.heightValid = true;
 							((TextView) v).setTextColor(Color.WHITE);
 						} else {
 							((TextView) v).setTextColor(Color.RED);
@@ -320,12 +320,12 @@ public class SubjectInfoFragment extends Fragment {
 		editTextHeight.setOnEditorActionListener(new OnEditorActionListener() {
 			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 				if (v.getText().toString().length() > 0) {
-					DiAsSetup1.local_sd.subjectHeight = Integer.parseInt(v.getText().toString());
-					Debug.i(TAG, FUNC_TAG, "height=" + DiAsSetup1.local_sd.subjectHeight);
-					DiAsSetup1.local_sd.heightValid = false;
-					if (DiAsSetup1.local_sd.subjectHeight >= 127 && DiAsSetup1.local_sd.subjectHeight <= 221) {
-						Debug.i(TAG, FUNC_TAG, "valid height=" + DiAsSetup1.local_sd.subjectHeight);
-						DiAsSetup1.local_sd.heightValid = true;
+					DiAsSetup.local_sd.subjectHeight = Integer.parseInt(v.getText().toString());
+					Debug.i(TAG, FUNC_TAG, "height=" + DiAsSetup.local_sd.subjectHeight);
+					DiAsSetup.local_sd.heightValid = false;
+					if (DiAsSetup.local_sd.subjectHeight >= 127 && DiAsSetup.local_sd.subjectHeight <= 221) {
+						Debug.i(TAG, FUNC_TAG, "valid height=" + DiAsSetup.local_sd.subjectHeight);
+						DiAsSetup.local_sd.heightValid = true;
 						v.setTextColor(Color.WHITE);
 						main.updateDisplay();
 						return false;
@@ -346,12 +346,12 @@ public class SubjectInfoFragment extends Fragment {
 					textViewInstructions.setText("Enter subject age from 1-100 years");
 				} else {
 					if (((TextView) v).getText().toString().length() > 0) {
-						DiAsSetup1.local_sd.subjectAge = Integer.parseInt(((TextView) v).getText().toString());
-						Debug.i(TAG, FUNC_TAG, "age=" + DiAsSetup1.local_sd.subjectAge);
-						DiAsSetup1.local_sd.ageValid = false;
-						if (DiAsSetup1.local_sd.subjectAge >= 1 && DiAsSetup1.local_sd.subjectAge <= 100) {
-							Debug.i(TAG, FUNC_TAG, "valid age=" + DiAsSetup1.local_sd.subjectAge);
-							DiAsSetup1.local_sd.ageValid = true;
+						DiAsSetup.local_sd.subjectAge = Integer.parseInt(((TextView) v).getText().toString());
+						Debug.i(TAG, FUNC_TAG, "age=" + DiAsSetup.local_sd.subjectAge);
+						DiAsSetup.local_sd.ageValid = false;
+						if (DiAsSetup.local_sd.subjectAge >= 1 && DiAsSetup.local_sd.subjectAge <= 100) {
+							Debug.i(TAG, FUNC_TAG, "valid age=" + DiAsSetup.local_sd.subjectAge);
+							DiAsSetup.local_sd.ageValid = true;
 							((TextView) v).setTextColor(Color.WHITE);
 						} else {
 							((TextView) v).setTextColor(Color.RED);
@@ -366,12 +366,12 @@ public class SubjectInfoFragment extends Fragment {
 		editTextAge.setOnEditorActionListener(new OnEditorActionListener() {
 			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 				if (v.getText().toString().length() > 0) {
-					DiAsSetup1.local_sd.subjectAge = Integer.parseInt(v.getText().toString());
-					Debug.i(TAG, FUNC_TAG, "age=" + DiAsSetup1.local_sd.subjectAge);
-					DiAsSetup1.local_sd.ageValid = false;
-					if (DiAsSetup1.local_sd.subjectAge >= 1 && DiAsSetup1.local_sd.subjectAge <= 100) {
-						Debug.i(TAG, FUNC_TAG, "valid age=" + DiAsSetup1.local_sd.subjectAge);
-						DiAsSetup1.local_sd.ageValid = true;
+					DiAsSetup.local_sd.subjectAge = Integer.parseInt(v.getText().toString());
+					Debug.i(TAG, FUNC_TAG, "age=" + DiAsSetup.local_sd.subjectAge);
+					DiAsSetup.local_sd.ageValid = false;
+					if (DiAsSetup.local_sd.subjectAge >= 1 && DiAsSetup.local_sd.subjectAge <= 100) {
+						Debug.i(TAG, FUNC_TAG, "valid age=" + DiAsSetup.local_sd.subjectAge);
+						DiAsSetup.local_sd.ageValid = true;
 						v.setTextColor(Color.WHITE);
 						main.updateDisplay();
 						return false;
@@ -392,12 +392,12 @@ public class SubjectInfoFragment extends Fragment {
 					textViewInstructions.setText("Enter subject total daily insulin from 10-100 units");
 				} else {
 					if (((TextView) v).getText().toString().length() > 0) {
-						DiAsSetup1.local_sd.subjectTDI = Double.parseDouble(((TextView) v).getText().toString());
-						Debug.i(TAG, FUNC_TAG, "TDI=" + DiAsSetup1.local_sd.subjectTDI);
-						DiAsSetup1.local_sd.TDIValid = false;
-						if (DiAsSetup1.local_sd.subjectTDI >= 10 && DiAsSetup1.local_sd.subjectTDI <= 100) {
-							Debug.i(TAG, FUNC_TAG, "valid TDI=" + DiAsSetup1.local_sd.subjectTDI);
-							DiAsSetup1.local_sd.TDIValid = true;
+						DiAsSetup.local_sd.subjectTDI = Double.parseDouble(((TextView) v).getText().toString());
+						Debug.i(TAG, FUNC_TAG, "TDI=" + DiAsSetup.local_sd.subjectTDI);
+						DiAsSetup.local_sd.TDIValid = false;
+						if (DiAsSetup.local_sd.subjectTDI >= 10 && DiAsSetup.local_sd.subjectTDI <= 100) {
+							Debug.i(TAG, FUNC_TAG, "valid TDI=" + DiAsSetup.local_sd.subjectTDI);
+							DiAsSetup.local_sd.TDIValid = true;
 							((TextView) v).setTextColor(Color.WHITE);
 						} else {
 							((TextView) v).setTextColor(Color.RED);
@@ -412,12 +412,12 @@ public class SubjectInfoFragment extends Fragment {
 		editTextTDI.setOnEditorActionListener(new OnEditorActionListener() {
 			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 				if (v.getText().toString().length() > 0) {
-					DiAsSetup1.local_sd.subjectTDI = Double.parseDouble(v.getText().toString());
-					Debug.i(TAG, FUNC_TAG, "TDI=" + DiAsSetup1.local_sd.subjectTDI);
-					DiAsSetup1.local_sd.TDIValid = false;
-					if (DiAsSetup1.local_sd.subjectTDI >= 10 && DiAsSetup1.local_sd.subjectTDI <= 100) {
-						Debug.i(TAG, FUNC_TAG, "valid TDI=" + DiAsSetup1.local_sd.subjectTDI);
-						DiAsSetup1.local_sd.TDIValid = true;
+					DiAsSetup.local_sd.subjectTDI = Double.parseDouble(v.getText().toString());
+					Debug.i(TAG, FUNC_TAG, "TDI=" + DiAsSetup.local_sd.subjectTDI);
+					DiAsSetup.local_sd.TDIValid = false;
+					if (DiAsSetup.local_sd.subjectTDI >= 10 && DiAsSetup.local_sd.subjectTDI <= 100) {
+						Debug.i(TAG, FUNC_TAG, "valid TDI=" + DiAsSetup.local_sd.subjectTDI);
+						DiAsSetup.local_sd.TDIValid = true;
 						v.setTextColor(Color.WHITE);
 						main.updateDisplay();
 						return false;
@@ -432,10 +432,10 @@ public class SubjectInfoFragment extends Fragment {
 			public void onCheckedChanged(final RadioGroup group, final int checkedId) {
 				switch (checkedId) {
 					case R.id.RadioButtonMale:
-						DiAsSetup1.local_sd.subjectFemale = false;
+						DiAsSetup.local_sd.subjectFemale = false;
 						break;
 					case R.id.RadioButtonFemale:
-						DiAsSetup1.local_sd.subjectFemale = true;
+						DiAsSetup.local_sd.subjectFemale = true;
 						break;
 					default:break;
 				}
@@ -444,19 +444,19 @@ public class SubjectInfoFragment extends Fragment {
 		
 		
 		// fill in fields
-		if (DiAsSetup1.local_sd.subjectNameValid)
-			editTextSubjectID.setText(DiAsSetup1.local_sd.subjectName);
-		if (DiAsSetup1.local_sd.subjectSessionValid)
-			editTextSessionNumber.setText(DiAsSetup1.local_sd.subjectSession);
-		if (DiAsSetup1.local_sd.weightValid)
-			editTextWeight.setText(Integer.toString(DiAsSetup1.local_sd.subjectWeight));
-		if (DiAsSetup1.local_sd.heightValid)
-			editTextHeight.setText(Integer.toString(DiAsSetup1.local_sd.subjectHeight));
-		if (DiAsSetup1.local_sd.ageValid)
-			editTextAge.setText(Integer.toString(DiAsSetup1.local_sd.subjectAge));
-		if (DiAsSetup1.local_sd.TDIValid)
-			editTextTDI.setText(Double.toString(DiAsSetup1.local_sd.subjectTDI));
-		if (DiAsSetup1.local_sd.subjectFemale) {
+		if (DiAsSetup.local_sd.subjectNameValid)
+			editTextSubjectID.setText(DiAsSetup.local_sd.subjectName);
+		if (DiAsSetup.local_sd.subjectSessionValid)
+			editTextSessionNumber.setText(DiAsSetup.local_sd.subjectSession);
+		if (DiAsSetup.local_sd.weightValid)
+			editTextWeight.setText(Integer.toString(DiAsSetup.local_sd.subjectWeight));
+		if (DiAsSetup.local_sd.heightValid)
+			editTextHeight.setText(Integer.toString(DiAsSetup.local_sd.subjectHeight));
+		if (DiAsSetup.local_sd.ageValid)
+			editTextAge.setText(Integer.toString(DiAsSetup.local_sd.subjectAge));
+		if (DiAsSetup.local_sd.TDIValid)
+			editTextTDI.setText(Double.toString(DiAsSetup.local_sd.subjectTDI));
+		if (DiAsSetup.local_sd.subjectFemale) {
 			((RadioButton) view.findViewById(R.id.RadioButtonFemale)).setChecked(true);
 		} else {
 			((RadioButton) view.findViewById(R.id.RadioButtonMale)).setChecked(true);
@@ -466,7 +466,7 @@ public class SubjectInfoFragment extends Fragment {
 		((ScrollView) view.findViewById(R.id.scrollWindow)).setFadingEdgeLength(50);		
 
 		Debug.w(TAG, FUNC_TAG, "OnCreate Subject Info Fragment");
-		DiAsSubjectData.print(TAG, DiAsSetup1.local_sd);
+		DiAsSubjectData.print(TAG, DiAsSetup.local_sd);
 		
 		return view;
 	}
@@ -477,7 +477,7 @@ public class SubjectInfoFragment extends Fragment {
 		
 		if (view == null)
 			return;
-		if (DiAsSetup1.configurationMode) 
+		if (DiAsSetup.configurationMode) 
 		{
 			Debug.w(TAG, FUNC_TAG, "Configuration Mode");
 			

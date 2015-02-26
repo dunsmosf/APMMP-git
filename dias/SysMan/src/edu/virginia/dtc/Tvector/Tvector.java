@@ -12,7 +12,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import edu.virginia.dtc.SysMan.Debug;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -447,6 +449,30 @@ public class Tvector extends Object {
 		}
 		c.close();
 		return retvalue;
+	}
+	
+	public static void saveTvector(Tvector tvector, Uri uri, boolean value, ContentResolver resolver) 
+	{
+		final String FUNC_TAG = "saveTvector";
+		
+		int ii;
+		ContentValues content_values = new ContentValues();
+		for (ii = 0; ii < tvector.count(); ii++) 
+		{
+			content_values.put("time", tvector.get_time(ii).longValue());
+			
+			if (tvector.get_end_time(ii) != 0)
+				content_values.put("endtime", tvector.get_end_time(ii).longValue());
+			
+			if (tvector.get_value(ii) >= 0 && value)
+				content_values.put("value", (tvector.get_value(ii).doubleValue()));
+			
+			try {
+				resolver.insert(uri, content_values);
+			} catch (Exception e) {
+				Debug.e(TAG, FUNC_TAG,"Error: " + e.getMessage());
+			}
+		}
 	}
 	
 }

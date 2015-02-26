@@ -24,7 +24,7 @@ public class TimeModeDialogFragment extends DialogFragment {
 		// Use the Builder class for convenient dialog construction
 		CharSequence[] items;
 
-		if (DiAsSetup1.speedupAllowed) {
+		if (DiAsSetup.speedupAllowed) {
 			items = new CharSequence[SPEEDUP_MULTIPLIERS.length + 1];
 			for (int i = 1; i < items.length; i++)
 				items[i] = SPEEDUP_MULTIPLIERS[i - 1] + "x Simulated";

@@ -24,7 +24,7 @@ public class CarbohydrateRatioFragment extends ProfileFragment {
 	public boolean subjectCRMinuteValid = false;
 	public boolean subjectCRValueValid = false;
 
-	public CarbohydrateRatioFragment(DiAsSetup1 main) {
+	public CarbohydrateRatioFragment(DiAsSetup main) {
 		this.main = main;
 	}
 
@@ -187,25 +187,25 @@ public class CarbohydrateRatioFragment extends ProfileFragment {
 	public void buildProfile() {
 		int ii, jj, t;
 		profileList.clear();
-		if (DiAsSetup1.local_sd.subjectCRValid) {
-			for (ii = 0; ii < DiAsSetup1.local_sd.subjectCR.count(); ii++) {
-				t = DiAsSetup1.local_sd.subjectCR.get_time(ii).intValue();
-				String s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup1.local_sd.subjectCR.get_value(ii) + " " + strings[UNIT]);
+		if (DiAsSetup.local_sd.subjectCRValid) {
+			for (ii = 0; ii < DiAsSetup.local_sd.subjectCR.count(); ii++) {
+				t = DiAsSetup.local_sd.subjectCR.get_time(ii).intValue();
+				String s = new String(pad(t / 60) + ":" + pad(t % 60) + "  " + DiAsSetup.local_sd.subjectCR.get_value(ii) + " " + strings[UNIT]);
 				profileList.add(new SelectBox(main, this, ii, s));
 			}
 		}
 		
-		DiAsSetup1.db.writeDb(DiAsSetup1.local_sd);
+		DiAsSetup.db.writeDb(DiAsSetup.local_sd);
 	}
 
 	// Add item to profile
 	public void addItemToProfile(View view) {
 		final String FUNC_TAG = "addItemToProfile";
 		
-		if (DiAsSetup1.local_sd.subjectCR.count() < DiAsSetup1.local_sd.subjectCR.capacity() && subjectCRHourValid && subjectCRMinuteValid && subjectCRValueValid) {
+		if (DiAsSetup.local_sd.subjectCR.count() < DiAsSetup.local_sd.subjectCR.capacity() && subjectCRHourValid && subjectCRMinuteValid && subjectCRValueValid) {
 			int minutes = subjectCRHour * 60 + subjectCRMinute;
-			DiAsSetup1.local_sd.subjectCR.put_with_replace(minutes, subjectCRValue);
-			DiAsSetup1.local_sd.subjectCRValid = true;
+			DiAsSetup.local_sd.subjectCR.put_with_replace(minutes, subjectCRValue);
+			DiAsSetup.local_sd.subjectCRValid = true;
 			Debug.i(TAG, FUNC_TAG,"addItemToProfile, minutes=" + minutes + ", CR=" + subjectCRValue);
 			buildProfile();
 			displayProfile();
@@ -219,10 +219,10 @@ public class CarbohydrateRatioFragment extends ProfileFragment {
 	public void removeItemFromProfile(View view) {
 		final String FUNC_TAG = "removeItemFromProfile";
 		
-		if (DiAsSetup1.local_sd.subjectCR.count() > 0 && profileLineSelected < DiAsSetup1.local_sd.subjectCR.count()) {
-			DiAsSetup1.local_sd.subjectCR.remove(profileLineSelected);
-			if (DiAsSetup1.local_sd.subjectCR.count() == 0) {
-				DiAsSetup1.local_sd.subjectCRValid = false;
+		if (DiAsSetup.local_sd.subjectCR.count() > 0 && profileLineSelected < DiAsSetup.local_sd.subjectCR.count()) {
+			DiAsSetup.local_sd.subjectCR.remove(profileLineSelected);
+			if (DiAsSetup.local_sd.subjectCR.count() == 0) {
+				DiAsSetup.local_sd.subjectCRValid = false;
 			}
 			buildProfile();
 			displayProfile();
@@ -233,9 +233,9 @@ public class CarbohydrateRatioFragment extends ProfileFragment {
 	}
 
 	public void clearConfirm() {
-		DiAsSetup1.local_sd.subjectCR.init();
+		DiAsSetup.local_sd.subjectCR.init();
 		profileLineSelected = 0;
-		DiAsSetup1.local_sd.subjectCRValid = false;
+		DiAsSetup.local_sd.subjectCRValid = false;
 		buildProfile();
 		displayProfile();
 		main.updateDisplay();

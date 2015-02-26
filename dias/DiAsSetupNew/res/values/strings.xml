@@ -55,7 +55,10 @@
     <string name="title_section2">Section 2</string>
     <string name="title_section1">Section 1</string>
     <string name="hello_world">Hello world!</string>
-    <string name="title_activity_di_as_setup1">DiAsSetup1</string>
+    <string name="title_activity_di_as_setup1">DiAsSetup</string>
+    
+    <string name="title_params">Parameters</string>
+    <string name="title_conf">Configuration</string>
 
     <!-- Main screen -->
     <string name="avail_list">Available Drivers</string>

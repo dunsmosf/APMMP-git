@@ -45,5 +45,13 @@
         android:title="Monitoring Server URL"
         android:titleCondensed="Server URL">
     </item>
+    
+    <item
+        android:id="@+id/menuParamsSetup"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:showAsAction="never"
+        android:title="Parameters"
+        android:titleCondensed="Params">
+    </item>
 
 </menu>
