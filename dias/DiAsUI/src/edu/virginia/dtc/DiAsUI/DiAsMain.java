@@ -1425,20 +1425,22 @@ public class DiAsMain extends Activity implements OnGestureListener {
     {
     	final String FUNC_TAG = "temporaryBasalStartClick";
  	   	Debug.i(TAG, FUNC_TAG, "tapclink1");
-
+ 	   	
+ 	   	int tbrAvailable = Params.getInt(getContentResolver(), "temporaryBasalRateEnabled", 0);
+ 	   	
  	   	if (temporaryBasalRateActive()) {
 	   		Bundle b = new Bundle();
 			b.putString("description", FUNC_TAG+" while temporaryBasalRateActive==true");
 			Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
  	   	}
  	   	else {
- 	    	if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP && Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
+ 	    	if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP && (tbrAvailable == TempBasal.MODE_AVAILABLE_PUMP || tbrAvailable == TempBasal.MODE_NAVAILABLE_PUMP_AND_CL)) {
  		 		Intent tbIntent = new Intent();
  		 		tbIntent.setComponent(new ComponentName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.TempBasalActivity"));
  		 		startActivityForResult(tbIntent, TEMP_BASAL);
  	    	}
- 	    	else if ((DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) && 
- 	    			Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
+ 	    	else if ((DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) 
+ 	    			&& (tbrAvailable == TempBasal.MODE_AVAILABLE_CL || tbrAvailable == TempBasal.MODE_NAVAILABLE_PUMP_AND_CL)) {
  			    Intent intentBroadcast = new Intent("edu.virginia.dtc.intent.action.TEMP_BASAL");
  			    intentBroadcast.putExtra("command", TempBasal.TEMP_BASAL_START);
  		        sendBroadcast(intentBroadcast);
@@ -1455,13 +1457,15 @@ public class DiAsMain extends Activity implements OnGestureListener {
     {
     	final String FUNC_TAG = "temporaryBasalCancelClick";
  	   	Debug.i(TAG, FUNC_TAG, "tapclink1");
-
- 	   	if (temporaryBasalRateActive()) {
+ 	   	
+ 	    int tbrAvailable = Params.getInt(getContentResolver(), "temporaryBasalRateEnabled", 0);
+ 	   	
+ 	    if (temporaryBasalRateActive()) {
  	   		if (DIAS_STATE == State.DIAS_STATE_OPEN_LOOP) {
  	 	 	   	showDialog(DIALOG_CONFIRM_CANCEL_TEMP_BASAL);
  	   		}
- 	   		else if ((DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) && 
- 	   			Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) //&& temporaryBasalRateActivityAvailable()) 
+ 	   		else if ((DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP || DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) 
+ 	   				&& (tbrAvailable == TempBasal.MODE_AVAILABLE_CL || tbrAvailable == TempBasal.MODE_NAVAILABLE_PUMP_AND_CL)) //&& temporaryBasalRateActivityAvailable()) 
  	   		{
  		        showDialog(DIALOG_CONFIRM_CANCEL_TEMP_BASAL); // cancel TBR in DiAs Ui
  	   		}
@@ -1593,6 +1597,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   
  	   Debug.i(TAG, FUNC_TAG, "CLenable: "+ClosedLoopEnabled+" OLenable: "+PumpModeEnabled+" mode:"+Mode.getMode(getContentResolver()));
  	   
+ 	  int tbrAvailable = Params.getInt(getContentResolver(), "temporaryBasalRateEnabled", 0);
+ 	   
  	   switch (DIAS_STATE) 
  	   {
  	   		case State.DIAS_STATE_STOPPED:
@@ -1675,7 +1681,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		   			buttonExercise.setText("");
 		   		}
 	   			checkVisible(buttonExercise, ToggleButton.VISIBLE);
- 	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
+	   			
+ 	   			if (tbrAvailable >= TempBasal.MODE_AVAILABLE_CL) {
  	   				checkVisible(frame3, FrameLayout.VISIBLE);
  	   				if (temporaryBasalRateActive()) {
  	 	 	   			checkVisible(buttonStartTemporaryBasal, Button.GONE);
@@ -1724,22 +1731,12 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			}
  	   			
  	   			checkVisible(buttonExercise, ToggleButton.VISIBLE);
- 	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
- 	   				checkVisible(frame3, FrameLayout.VISIBLE);
- 	   				if (temporaryBasalRateActive()) {
- 	 	 	   			checkVisible(buttonStartTemporaryBasal, Button.GONE);
- 	 	 	   			checkVisible(buttonCancelTemporaryBasal, Button.VISIBLE);
- 	   				}
- 	   				else {
- 	 	 	   			checkVisible(buttonStartTemporaryBasal, Button.VISIBLE);
- 	 	 	   			checkVisible(buttonCancelTemporaryBasal, Button.GONE);
- 	   				}
- 	   			}
- 	   			else {
- 	 	   			checkVisible(frame3, FrameLayout.INVISIBLE);
- 	 	   			checkVisible(buttonStartTemporaryBasal, Button.INVISIBLE);
- 	 	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
- 	   			}
+ 	   			
+	   			// Temporary Basal Rate not available in Safety
+ 	   			checkVisible(frame3, FrameLayout.INVISIBLE);
+ 	   			checkVisible(buttonStartTemporaryBasal, Button.INVISIBLE);
+ 	   			checkVisible(buttonCancelTemporaryBasal, Button.INVISIBLE);
+   			
  	   			
  	   			checkVisible(buttonHypoTreatment, Button.VISIBLE);
  	   			checkVisible(buttonMeal, Button.VISIBLE);
@@ -1750,7 +1747,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(mainButtonsHigh, FrameLayout.VISIBLE);
  	   			checkVisible(frame1, FrameLayout.VISIBLE);
  	   			checkVisible(frame2, FrameLayout.VISIBLE);
- 	   			if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
+ 	   			if (tbrAvailable == TempBasal.MODE_AVAILABLE_PUMP || tbrAvailable == TempBasal.MODE_NAVAILABLE_PUMP_AND_CL) {
  	   				checkVisible(frame3, FrameLayout.VISIBLE);
  	   				if (temporaryBasalRateActive()) {
  	 	 	   			checkVisible(buttonStartTemporaryBasal, Button.GONE);
@@ -2042,39 +2039,6 @@ public class DiAsMain extends Activity implements OnGestureListener {
    		return false;
    	}
     
-    private boolean temporaryBasalRateActivityAvailable()
-   	{		
-   		//Does a quick scan to check if the APCService temporaryBasalRateActivity is supported by the ControllerPackage, if so it returns true
-    	String controllerPackageName = new String("edu.virginia.dtc.APCservice");
-		String activityName = Params.getString(getContentResolver(), "temporaryBasalRateActivity", "null");
-    	if (Params.getBoolean(getContentResolver(), "temporaryBasalRateEnabled", false)) {
-       		final PackageManager pm = this.getPackageManager();
-    		List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-
-    		for(ApplicationInfo a: packages)
-    		{
-    			if(a.packageName.equalsIgnoreCase(controllerPackageName))
-    			{
-    	    		try {
-        	    		PackageInfo pi = pm.getPackageInfo(controllerPackageName, PackageManager.GET_ACTIVITIES);
-        	    		if(pi.activities != null) {
-	        	    		for (ActivityInfo ai: pi.activities) {
-	        	    			if(ai.name.equalsIgnoreCase(activityName)) {
-	        	    				return true;
-	        	    			}
-	        	    		}
-        	    		}
-    	    		}
-    	    		catch (PackageManager.NameNotFoundException e) {
-         				Bundle b = new Bundle();
-         	    		b.putString("description", "DiAsMain > PackageManager.NameNotFoundException: "+controllerPackageName+", "+e.getMessage());
-         	    		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_ERROR, Event.makeJsonString(b), Event.SET_LOG);
-    	    		}
-    			}
-    		}
-    	}
-   		return false;
-   	}
     
 	private void cancelTemporaryBasalRate() {
 		final String FUNC_TAG = "cancelTemporaryBasalRate";

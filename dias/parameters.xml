@@ -141,8 +141,16 @@
     <parameter name="mac1" value="D0:5F:B8" type="string"> </parameter>
     <parameter name="mac2" value="D0:D7:EB" type="string"> </parameter>
     <parameter name="mac3" value="FC:6A:29" type="string"> </parameter>
-  
-    <parameter name="temporaryBasalRateEnabled" value="false" type="boolean"> </parameter>
+
+    <!--
+     Temporary Basal Rate Enabled in:
+     
+     0: No operating mode
+     1: Pump mode only
+     2: Closed Loop only
+     3: Pump and Closed Loop modes
+     -->
+    <parameter name="temporaryBasalRateEnabled" value="1" type="int"> </parameter>
     
     <parameter name="collectBatteryStats" value="false" type="boolean"> </parameter>
     <parameter name="collectBatteryStatsInterval" value="15" type="int"> </parameter>
