@@ -122,7 +122,7 @@ public class networkService extends Service {
 			}
 			catch (Exception e) {
 				Debug.e(TAG, FUNC_TAG, "Sending_biometrics > error in Ping=" + e.getMessage());
-				log_action("Sending_biometrics, Error in Ping: " + e.getMessage(), Log.LOG_ACTION_ERROR);
+				//log_action("Sending_biometrics, Error in Ping: " + e.getMessage(), Log.LOG_ACTION_ERROR);
 			}
 			
 			if (hourlyPingAttempts >= 120 && isSubjectReady()) {
@@ -144,7 +144,7 @@ public class networkService extends Service {
 			}
 			else {
 				Debug.e(TAG, FUNC_TAG, "Sending_diasdata > Server unreachable, Diasdata not sent");
-				log_action("Sending_diasdata, Error: Server unreachable, Diasdata not sent", Log.LOG_ACTION_ERROR);
+				//log_action("Sending_diasdata, Error: Server unreachable, Diasdata not sent", Log.LOG_ACTION_ERROR);
 			}
 		}	
 	};
@@ -457,17 +457,17 @@ public class networkService extends Service {
 		{
 		     e.printStackTrace();
 		     Debug.i(TAG, FUNC_TAG, "Error in http connection, SocketTimeoutException: " + e.toString());
-		     log_action(FUNC_TAG+", SocketTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		     //log_action(FUNC_TAG+", SocketTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		catch (ConnectTimeoutException e)
 		{
 		     e.printStackTrace();
 		     Debug.i(TAG, FUNC_TAG, "Error in http connection, ConnectTimeoutException: " + e.toString());
-		     log_action(FUNC_TAG+", ConnectTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		     //log_action(FUNC_TAG+", ConnectTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		catch (Exception e) {
 			Debug.i(TAG, FUNC_TAG, "Error in http connection " + e.toString());
-			log_action(FUNC_TAG+", Connection error: " + e.toString(), Log.LOG_ACTION_ERROR);
+			//log_action(FUNC_TAG+", Connection error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		
 		return response;
@@ -644,16 +644,16 @@ public class networkService extends Service {
 		catch (SocketTimeoutException e) 
 		{
 		     Debug.i(TAG, FUNC_TAG, "Error in http connection, SocketTimeoutException: " + e.toString());
-		     log_action(FUNC_TAG+", SocketTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		     //log_action(FUNC_TAG+", SocketTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		catch (ConnectTimeoutException e)
 		{
 		     Debug.i(TAG, FUNC_TAG, "Error in http connection, ConnectTimeoutException: " + e.toString());
-		     log_action(FUNC_TAG+", ConnectTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
+		     //log_action(FUNC_TAG+", ConnectTimeout error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		catch (Exception e) {
 			Debug.i(TAG, FUNC_TAG, "Error in http connection " + e.toString());
-			log_action(FUNC_TAG+", Connection error: " + e.toString(), Log.LOG_ACTION_ERROR);
+			//log_action(FUNC_TAG+", Connection error: " + e.toString(), Log.LOG_ACTION_ERROR);
 		}
 		
         //convert response to string
