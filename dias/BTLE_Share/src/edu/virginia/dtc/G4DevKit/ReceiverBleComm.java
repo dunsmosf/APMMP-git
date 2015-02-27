@@ -300,7 +300,9 @@ public class ReceiverBleComm  implements IReceiverComm
 		else
 		{
 			setState(RECONNECTING);
-			setRecon = scheduler.scheduleAtFixedRate(recon, 10, 30, TimeUnit.SECONDS);
+			//setRecon = scheduler.scheduleAtFixedRate(recon, 10, 30, TimeUnit.SECONDS);
+			
+			Debug.i(TAG, FUNC_TAG, "Reconnecting the device: "+btleGatt.connect());
 		}
 	}
 	

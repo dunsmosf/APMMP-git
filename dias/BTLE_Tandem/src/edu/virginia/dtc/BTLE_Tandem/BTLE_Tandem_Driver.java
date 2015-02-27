@@ -419,6 +419,7 @@ public class BTLE_Tandem_Driver extends Service{
 					getContentResolver().update(Biometrics.HARDWARE_CONFIGURATION_URI, dv, null, null);
 	                
 	                cancelWarnings();
+	                cancelReconnect();
 	                
 	                btleGatt.discoverServices();
 	            	break;
@@ -524,32 +525,43 @@ public class BTLE_Tandem_Driver extends Service{
     		bolusing = false;
 			setTime = false;
 			
-        	Debug.i(TAG, FUNC_TAG, "Device was previously paired!");
+        	Debug.i(TAG, FUNC_TAG, "Device was previously paired!  Attempting reconnect!");
         	
         	cancelWarnings();
 			
 			txMessages.clear();
 			rwLatch = new CountDownLatch(0);
 			
-			reconTimer = scheduler.scheduleAtFixedRate(recon, 0, 30, TimeUnit.SECONDS);
+			startWarnings();
+			
+			//reconTimer = scheduler.scheduleAtFixedRate(recon, 0, 30, TimeUnit.SECONDS);
+			btleGatt.connect();
     	}
     }
     
     private void cancelReconnect()
     {
+    	Debug.i(TAG, "cancelReconnect", "Cancelling reconnect timer...");
+    	
     	if(reconTimer != null)
     		reconTimer.cancel(true);
     }
     
     private void cancelWarnings()
     {
-    	final String FUNC_TAG = "cancelTimers";
-    	
-    	Debug.w(TAG, FUNC_TAG, "Stopping warning and disconnect timers...");
+    	Debug.w(TAG, "cancelWarnings", "Stopping warning and disconnect timers...");
         if(warningTimer != null)
 			warningTimer.cancel(true);
 		if(disconnectTimer != null)
 			disconnectTimer.cancel(true);
+    }
+    
+    private void startWarnings()
+    {
+    	Debug.i(TAG, "startWarnings", "Starting up 15 minute warning and 20 minute disconnect...");
+    	
+    	warningTimer = scheduler.schedule(warning, 15, TimeUnit.MINUTES);
+    	disconnectTimer = scheduler.schedule(disconnect, 20, TimeUnit.MINUTES);
     }
     
     private void reconnectDevice()
