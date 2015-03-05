@@ -26,7 +26,7 @@ public class Subject extends Object	{
 		public boolean valid = false;
 	
 		// Storage for subject session parameters
-		public boolean realTime;
+//		public boolean realTime;
 		public String remoteMonitoringURI;
 	   	public String subjectName, subjectSession;
 	   	public int subjectAIT, subjectWeight, subjectHeight, subjectAge;
@@ -67,7 +67,7 @@ public class Subject extends Object	{
 		
 	   	private void init() {
 	   		// Instantiation happens  exactly once so initialize all fields to known values here.
-	   		realTime = true;
+//	   		realTime = true;
 	   		subjectName = new String("");
 	   		subjectSession = new String("");
 	   		subjectAIT=0;
@@ -112,17 +112,17 @@ public class Subject extends Object	{
 				else
 					subjectFemale = false;
 
-				int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
-				if (SafetyOnlyModeIsEnabled == 1)
-					subjectSafetyValid = true;
-				else
-					subjectSafetyValid = false;
-
-				int realtime = c.getInt(c.getColumnIndex("realtime"));
-				if (realtime == 1)
-					realTime = true;
-				else
-					realTime = false;
+//				int SafetyOnlyModeIsEnabled = c.getInt(c.getColumnIndex("SafetyOnlyModeIsEnabled"));
+//				if (SafetyOnlyModeIsEnabled == 1)
+//					subjectSafetyValid = true;
+//				else
+//					subjectSafetyValid = false;
+//
+//				int realtime = c.getInt(c.getColumnIndex("realtime"));
+//				if (realtime == 1)
+//					realTime = true;
+//				else
+//					realTime = false;
 
 				// Set flags
 				subjectNameValid = true;
