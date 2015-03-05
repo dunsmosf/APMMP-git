@@ -67,8 +67,9 @@
     
     <!--
      Exercise detection mode (sets the exercise button automatically on and off
-     0 = none
-     1 = ExerciseService
+     0 = Manual - button press in DiAsUI
+     1 = ExerciseService - initial value is 'not exercising'
+     2 = ExerciseService - initial value is 'not exercising' if current time is within Night Profile range and 'exercising' otherwise
      -->
     <parameter name="exercise_detection_mode" value="0" type="int"> </parameter>
     
@@ -78,7 +79,7 @@
     <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_interval" value="60000" type="long"> </parameter>
 
-    <parameter name="tbr_enabled" value="true" type="boolean"> </parameter>
+    <parameter name="tbr_enabled" value="false" type="boolean"> </parameter>
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
     <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>
     <parameter name="audible_alarms" value="true" type="boolean"> </parameter>
@@ -100,7 +101,7 @@
     <parameter name="bolus_interceptor_enabled" value="true" type="boolean"> </parameter>
     
     <parameter name="center" value="DTC" type="string"> </parameter>
-    <parameter name="protocol" value="TST01" type="string"> </parameter>
+    <parameter name="protocol" value="TST0" type="string"> </parameter>
     
     <parameter name="cgm_history_hrs" value="8" type="int"> </parameter>
     
@@ -132,10 +133,11 @@
     <parameter name="enableIO" value="true" type="boolean"> </parameter>
     
     <!-- The number of addresses "macX" must match the number of "tandem_addresses" -->
-    <parameter name="tandem_addresses" value="3" type="int"> </parameter>
+    <parameter name="tandem_addresses" value="4" type="int"> </parameter>
     <parameter name="mac1" value="D0:5F:B8" type="string"> </parameter>
     <parameter name="mac2" value="D0:D7:EB" type="string"> </parameter>
     <parameter name="mac3" value="FC:6A:29" type="string"> </parameter>
+    <parameter name="mac4" value="FC:2D:B7" type="string"> </parameter>
 
     <!--
      Temporary Basal Rate Enabled in:
