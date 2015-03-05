@@ -76,9 +76,6 @@ public class RocheDriver extends Service {
     PowerManager pm; 
 	PowerManager.WakeLock wl;
 	
-	private Thread logThread;
-	private boolean logStop, logRunning;
-	
 	private InterfaceData data;
 	
 	private Runnable connect = new Runnable()
@@ -256,66 +253,6 @@ public class RocheDriver extends Service {
 			}
 		};
 		registerReceiver(updateReceiver, new IntentFilter("edu.virginia.dtc.DRIVER_UPDATE"));
-		
-		logRunning = logStop = false;
-		if(Params.getBoolean(getContentResolver(), "logcatToSd", false))
-		{
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is enabled!");
-			startLogThread();
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is disabled!");
-	}
-	
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/rocheLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
-		}
 	}
 	
 	@Override
@@ -367,20 +304,6 @@ public class RocheDriver extends Service {
 		
 		if(wl.isHeld())
 			wl.release();
-		
-		logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
 	}
 	
 	// onBind calls this which returns the binder object

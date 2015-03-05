@@ -275,12 +275,11 @@ public class DiAsService extends Service
 							" Calculate Response", 
 							Debug.LOG_ACTION_INFORMATION);
         			
-        			if(SYNC.state == FSM.SSM_CALC_CALL)
-        			{
+        			if(SYNC.state == FSM.SSM_CALC_CALL) {
         				changeSyncState(FSM.SSM_CALC_RESPONSE);
         			}
-        			if(ASYNC.state == FSM.SSM_CALC_CALL)
-        			{
+        			
+        			if(ASYNC.state == FSM.SSM_CALC_CALL) {
         				changeAsyncState(FSM.SSM_CALC_RESPONSE);
         			}
         			break;
@@ -3256,25 +3255,66 @@ public class DiAsService extends Service
 	    	    	case FSM.APC_BRM:
 	    	    		if(Apc.doesBolus)
 	    	    			correction = Apc.correction;
-	    	    		
 	    	    		if(Brm.doesRate)
 	    	    			diff_rate = Brm.diff_rate;
+	    	    		
+	    	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
+	    	        		Bundle b = new Bundle();
+	    	        		b.putString(	"description", 
+	    	        						" DIAS_SERVICE"+
+	    	        						" CONFIG: "+FSM.configToString(CONFIG)+
+	    	        						" APC.doesBolus: "+Apc.doesBolus+
+	    	        						" BRM.doesRate: "+Brm.doesRate
+	    	        					);
+	    	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+	    	    		}
 	    	    		break;
 	    	    	case FSM.APC_ONLY:
 	    	    		if(Apc.doesRate)
 	    	    			diff_rate = Apc.diff_rate;
 	    	    		if(Apc.doesBolus)
 	    	    			correction = Apc.correction;
+	    	    		
+	    	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
+	    	        		Bundle b = new Bundle();
+	    	        		b.putString(	"description", 
+	    	        						" DIAS_SERVICE"+
+	    	        						" CONFIG: "+FSM.configToString(CONFIG)+
+	    	        						" APC.doesBolus: "+Apc.doesBolus+
+	    	        						" APC.doesRate: "+Apc.doesRate
+	    	        					);
+	    	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+	    	    		}
 	    	    		break;
 	    	    	case FSM.BRM_ONLY:
 	    	    		if(Brm.doesRate)
 	    	    			diff_rate = Brm.diff_rate;
 	    	    		if(Brm.doesBolus)
 	    	    			correction = Brm.correction;
+	    	    		
+	    	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
+	    	        		Bundle b = new Bundle();
+	    	        		b.putString(	"description", 
+	    	        						" DIAS_SERVICE"+
+	    	        						" CONFIG: "+FSM.configToString(CONFIG)+
+	    	        						" BRM.doesBolus: "+Brm.doesBolus+
+	    	        						" BRM.doesRate: "+Brm.doesRate
+	    	        					);
+	    	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+	    	    		}
 	    	    		break;
 	    	    	case FSM.NONE:
 	    	    		Debug.i(TAG, FUNC_TAG, "No controllers, setting all values to zero and delivering basal profile...");
 	    	    		diff_rate = correction = 0.0;
+	    	    		
+	    	    		if (Params.getBoolean(getContentResolver(), "enableIO", false)) {
+	    	        		Bundle b = new Bundle();
+	    	        		b.putString(	"description", 
+	    	        						" DIAS_SERVICE"+
+	    	        						" CONFIG: "+FSM.configToString(CONFIG)
+	    	        					);
+	    	        		Event.addEvent(getApplicationContext(), Event.EVENT_SYSTEM_IO_TEST, Event.makeJsonString(b), Event.SET_LOG);
+	    	    		}
 	    	    		break;
 	        	}
 	    		
@@ -3319,7 +3359,7 @@ public class DiAsService extends Service
     	}
     }
     
-    public Message syncCall(String process)
+    private Message syncCall(String process)
 	{
     	final String FUNC_TAG = "syncApcCall";
 

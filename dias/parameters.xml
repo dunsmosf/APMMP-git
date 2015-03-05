@@ -38,7 +38,7 @@
      2: Enabled within Night Profile
      3: Disabled within Night Profile
      -->
-    <parameter name="apc_enabled" value="3" type="int"> </parameter>
+    <parameter name="apc_enabled" value="1" type="int"> </parameter>
     <parameter name="brm_enabled" value="1" type="int"> </parameter>
     
     <!--
@@ -59,9 +59,9 @@
     
     <!--
      MealActivity Bolus Calculation Mode:
-     0 = MealActivity calculates bolus in all modes
-     1 = MealActivity calculates bolus in Pump mode; MCMservice calculates bolus in CL, Safety modes
-     2 = MCMservice calculates boluses in all modes
+     0 = Classic bolus calculator (Carbs, BG, Correction, IOB) at all times
+     1 = Classic bolus calculator in Pump mode, custom calculator in CL, Safety modes
+     2 = Custom calculator in all modes
      -->
     <parameter name="meal_activity_bolus_calculation_mode" value="0" type="int"> </parameter>
     
@@ -72,10 +72,7 @@
      -->
     <parameter name="exercise_detection_mode" value="0" type="int"> </parameter>
     
-    <parameter name="bolus_redeliver_threshold_units" value="1.0" type="double"> </parameter>
-    <parameter name="bolus_notify_threshold_units" value="1.0" type="double"> </parameter>
     <parameter name="bolus_missed_threshold" value="4" type="int"> </parameter>
-    <parameter name="brm_sets_floor" value="false" type="boolean"> </parameter>
     
     <parameter name="acc_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
@@ -85,6 +82,7 @@
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
     <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>
     <parameter name="audible_alarms" value="true" type="boolean"> </parameter>
+    
     <!--
      Audible Alarms Threshold:
      0: Hypo Only
@@ -92,20 +90,19 @@
      -->
     <parameter name="audible_alarms_threshold" value="1" type="int"> </parameter>
     <parameter name="vibrate_alarms" value="true" type="boolean"> </parameter>
-    <parameter name="night_screen_enabled" value="false" type="boolean"> </parameter>
+    
     <parameter name="dwm_address_default" value="https://dwm.med.virginia.edu/staging" type="string"> </parameter>
     <parameter name="dwm_address_2" value="https://dias.med.virginia.edu/staging" type="string"> </parameter>
     <parameter name="dwm_address_3" value="https://dwm.med.virginia.edu" type="string"> </parameter>
+    
     <parameter name="backup_password" value="diabetes" type="string"> </parameter>
+    
     <parameter name="bolus_interceptor_enabled" value="true" type="boolean"> </parameter>
     
     <parameter name="center" value="DTC" type="string"> </parameter>
     <parameter name="protocol" value="TST01" type="string"> </parameter>
     
     <parameter name="cgm_history_hrs" value="8" type="int"> </parameter>
-    
-    <!-- Determines if Logcat sends data to the SD card (DO NOT leave this true in production)-->
-    <parameter name="logcatToSd" value="false" type="boolean"> </parameter>
     
     <!--
      Hypo Alarm handling:
@@ -132,9 +129,7 @@
     <parameter name="hypo_mute_middle_bg" value="15" type="int"> </parameter>
     <parameter name="hypo_mute_high_bg" value="30" type="int"> </parameter>
     
-    <parameter name="connection_scheduling" value="false" type="boolean"> </parameter>
-    <parameter name="enableIO" value="false" type="boolean"> </parameter>
-    <parameter name="speedupEnabled" value="false" type="boolean"> </parameter>
+    <parameter name="enableIO" value="true" type="boolean"> </parameter>
     
     <!-- The number of addresses "macX" must match the number of "tandem_addresses" -->
     <parameter name="tandem_addresses" value="3" type="int"> </parameter>

@@ -138,9 +138,6 @@ public class BTLE_G4_Driver extends Service {
 	private BluetoothManager btleManager;
 	private BluetoothAdapter btleAdapter;
 	
-	private Thread logThread;
-	private boolean logStop, logRunning;
-	
 	private final ServiceConnection m_serviceConnection = new ServiceConnection() {
 		final String FUNC_TAG = "m_serviceConnection";
 
@@ -464,16 +461,6 @@ public class BTLE_G4_Driver extends Service {
 			Debug.i(TAG, FUNC_TAG, "There is no stored device, starting discovery!");
 			discoverLeDevices(true);
 		}
-		
-		//Logging
-		logRunning = logStop = false;
-		if(Params.getBoolean(getContentResolver(), "logcatToSd", false))
-		{
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is enabled!");
-			startLogThread();
-		}
-		else
-			Debug.i(TAG, FUNC_TAG, "Logcat to SD is disabled!");
 	}
 	
 	public void sendDeviceResult()
@@ -692,20 +679,6 @@ public class BTLE_G4_Driver extends Service {
 		unregisterReceiver(stopDriverReceiver);
 		unbindService(m_serviceConnection);
 		updateDriverDetails("");
-		
-		logStop = true;
-		if(logThread != null)
-		{
-			if(logThread.isAlive())
-			{
-				try {
-					logThread.join();
-					logRunning = false;
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
 	}
 
 	// onBind supports two connections due to the dual nature of the standalone driver (these are filtered based on connection intent)
@@ -941,57 +914,6 @@ public class BTLE_G4_Driver extends Service {
 		catch (Exception e)
 		{
 			Debug.e(TAG, FUNC_TAG, e.getMessage());
-		}
-	}
-	
-	private void startLogThread()
-	{
-		if(logThread == null || !logThread.isAlive())
-		{
-			logThread = new Thread()
-			{
-				final String FUNC_TAG = "logThread";
-				
-				public void run()
-				{
-					File log = new File(Environment.getExternalStorageDirectory().getPath() + "/dexcomBtleLogcat.txt");
-					
-					while(!logStop)
-					{
-						try 
-						{
-							Process process = Runtime.getRuntime().exec("logcat -v time -d");
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-							BufferedWriter bW = new BufferedWriter(new FileWriter(log, true));
-							String line;
-							
-							while ((line = bufferedReader.readLine()) != null) 
-							{
-								if(!line.equals("--------- beginning of /dev/log/main"))
-								{
-									bW.write(line);
-									bW.newLine();
-								}
-							}
-							
-							process = Runtime.getRuntime().exec("logcat -c");
-							
-							bW.flush();
-							bW.close();
-						} 
-						catch (IOException e) 
-						{
-						}
-						
-						try {
-							Thread.sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			logThread.start();
 		}
 	}
 	

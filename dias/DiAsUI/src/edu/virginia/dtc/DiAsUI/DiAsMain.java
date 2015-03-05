@@ -338,25 +338,10 @@ public class DiAsMain extends Activity implements OnGestureListener {
     }
 
     public boolean onDown(MotionEvent e) {
-    	final String FUNC_TAG = "onDown";
         return true;
     }
 
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
-            float velocityY) {
-    	final String FUNC_TAG = "onFling";
-    	if (Params.getBoolean(getContentResolver(), "night_screen_enabled", false)) {
-        	double v = Math.sqrt(velocityX*velocityX + velocityY*velocityY);
-            Debug.i(TAG, FUNC_TAG, "Fling v="+v);
-            if (v > 5000) {
-            	Intent alarmClockIntent = new Intent();
-            	alarmClockIntent.setComponent(new ComponentName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.AlarmClockActivity"));
-            	alarmClockIntent.putExtra("height", midFrameH);
-            	alarmClockIntent.putExtra("width", midFrameW);
-            	alarmClockIntent.putExtra("SIM_TIME", SIM_TIME);
-            	startActivity(alarmClockIntent);
-            }
-    	}
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         return true;
     }
 

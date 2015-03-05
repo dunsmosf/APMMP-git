@@ -28,8 +28,8 @@ adb install "PumpService/bin/PumpService.apk"
 ::adb install "ConstraintServiceShell/bin/ConstraintServiceShell.apk"
 ::adb install "ExerciseServiceShell/bin/ExerciseServiceShell.apk"
 
-adb install "../controllers/USS/SSMservice/bin/SSMservice.apk"
-::adb install "SSMservicePassThrough/bin/SSMservicePassThrough.apk"
+::adb install "../controllers/USS/SSMservice/bin/SSMservice.apk"
+adb install "SSMservicePassThrough/bin/SSMservicePassThrough.apk"
 
 adb install "../controllers/USS/BRMservice/bin/BRMservice.apk"
 adb install "../controllers/HMS/HMSservice/bin/HMSservice.apk"
