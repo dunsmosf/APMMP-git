@@ -1650,8 +1650,14 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(frame4, FrameLayout.VISIBLE);
  	   			
  	   			checkVisible(buttonClosedLoop, Button.GONE);
- 	   			if (SafetyModeEnabled) checkVisible(buttonSafety, Button.VISIBLE);
-	   			if (PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
+ 	   			if (SafetyModeEnabled)
+ 	   				checkVisible(buttonSafety, Button.VISIBLE);
+ 	   			else
+ 	   				checkVisible(buttonSafety, Button.INVISIBLE);
+	   			if (PumpModeEnabled)
+	   				checkVisible(buttonOpenLoop, Button.VISIBLE);
+	   			else
+	   				checkVisible(buttonOpenLoop, Button.INVISIBLE);
 	   			checkVisible(buttonSensorOnly, Button.GONE);
  	   			checkVisible(buttonStop, Button.VISIBLE);
  	   			
@@ -1701,9 +1707,15 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   			checkVisible(infoCGMStatus, LinearLayout.VISIBLE);
  	   			checkVisible(infoExtra, LinearLayout.VISIBLE);
  	   			
- 	   			if (ClosedLoopEnabled) checkVisible(buttonClosedLoop, Button.VISIBLE);
+ 	   			if (ClosedLoopEnabled)
+ 	   				checkVisible(buttonClosedLoop, Button.VISIBLE);
+ 	   			else
+ 	   				checkVisible(buttonClosedLoop, Button.INVISIBLE);
  	   			checkVisible(buttonSafety, Button.GONE);
- 	   			if(PumpModeEnabled) checkVisible(buttonOpenLoop, Button.VISIBLE);
+ 	   			if(PumpModeEnabled)
+ 	   				checkVisible(buttonOpenLoop, Button.VISIBLE);
+ 	   			else
+ 	   				checkVisible(buttonOpenLoop, Button.INVISIBLE);
  	   			checkVisible(buttonSensorOnly, Button.GONE);
  	   			checkVisible(buttonStop, Button.VISIBLE);
  	   			
