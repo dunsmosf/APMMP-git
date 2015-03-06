@@ -462,7 +462,7 @@ public class StandaloneDriver extends Service {
 				double bolusReq = msg.getData().getDouble("bolus");
 				Debug.i(TAG, FUNC_TAG, "Bolus of " + bolusReq + " was requested");
 
-				if(drv.pump.state > 0)
+				if(drv.pump.state > 0 && !drv.pump.status.equals("Missing Bolus"))
 				{
 					startInfusionTimer(bolusReq);
 					updateDriverDetails();
