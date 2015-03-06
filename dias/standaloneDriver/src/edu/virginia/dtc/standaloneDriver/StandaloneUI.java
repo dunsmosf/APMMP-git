@@ -396,7 +396,8 @@ public class StandaloneUI extends Activity {
 		{
 			drv.pumpList.clear();
 			
-			drv.pump.status = "Started";
+			if (drv.pump.status == null)
+				drv.pump.status = "Started";
 			
 			drv.pumpList.add("PUMP \n"+drv.pump.status);
 			pumps = 1;
