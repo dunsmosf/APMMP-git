@@ -311,6 +311,7 @@ public class Permissions
 				
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
 		    	case Biometrics.USER_TABLE_1:						return new perm(table, 	true, 	true, 	true, 	false);
+		    	case Biometrics.USER_TABLE_2:						return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.CONSTRAINTS_TABLE:					return new perm(table, 	true, 	true, 	true, 	true);
 		    	case Biometrics.EVENT_TABLE:						return new perm(table,	true,	false, 	true,	false);
 			}
@@ -388,6 +389,7 @@ public class Permissions
 				case Biometrics.ALL_URI:							return new perm(table,	false,	false,	false,	false);
 				case Biometrics.INFO_URI:							return new perm(table,	false,	false,	false,	false);
 				
+				case Biometrics.MEAL_TABLE:							return new perm(table, 	true, 	true, 	true, 	false);
 		   		case Biometrics.LOG_TABLE:							return new perm(table, 	true, 	false, 	true, 	false);
 		    	case Biometrics.PUMP_DETAILS_TABLE:					return new perm(table, 	true, 	true, 	true, 	false);
 		    	case Biometrics.USER_TABLE_3:						return new perm(table, 	true, 	false, 	true, 	false);
