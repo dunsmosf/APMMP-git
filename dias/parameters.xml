@@ -73,13 +73,13 @@
      -->
     <parameter name="exercise_detection_mode" value="0" type="int"> </parameter>
     
-    <parameter name="bolus_missed_threshold" value="4" type="int"> </parameter>
+    <parameter name="bolus_missed_threshold" value="6" type="int"> </parameter>
     
     <parameter name="acc_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_interval" value="60000" type="long"> </parameter>
 
-    <parameter name="tbr_enabled" value="false" type="boolean"> </parameter>
+    <parameter name="tbr_enabled" value="true" type="boolean"> </parameter>
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
     <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>
     <parameter name="audible_alarms" value="true" type="boolean"> </parameter>
@@ -103,7 +103,7 @@
     <parameter name="center" value="DTC" type="string"> </parameter>
     <parameter name="protocol" value="TST0" type="string"> </parameter>
     
-    <parameter name="cgm_history_hrs" value="8" type="int"> </parameter>
+    <parameter name="cgm_history_hrs" value="2" type="int"> </parameter>
     
     <!--
      Hypo Alarm handling:

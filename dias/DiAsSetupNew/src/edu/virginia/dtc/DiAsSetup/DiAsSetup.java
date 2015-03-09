@@ -300,8 +300,11 @@ public class DiAsSetup extends FragmentActivity implements ActionBar.TabListener
     	
     	Debug.i(TAG, FUNC_TAG, "");
     	
-    	//Read the local DB on start so that we can update the display from what we previously entered
-	    local_sd = db.readDb();
+    	if(subjectDataExists())
+    		local_sd = readDiAsSubjectData();
+    	else
+    		local_sd = db.readDb();
+    		
 	    
 	    validate();
 	    
