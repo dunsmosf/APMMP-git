@@ -1,2 +1,10 @@
-<config name="maf_v2.3_Testing">
+<config name="maf_v2.4_Testing">
+    <package name="edu.virginia.dtc.biometricsContentProvider" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.CgmService" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.DiAsService" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.DiAsSetup" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.DiAsUI" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.networkService" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.PumpService" minVersion="2300" maxVersion="2300"> </package>
+    <package name="edu.virginia.dtc.supervisor" minVersion="2300" maxVersion="2300"> </package>
 </config>

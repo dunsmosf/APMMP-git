@@ -2509,9 +2509,6 @@ public class DiAsService extends Service
 		
 		int oldState = DIAS_STATE;
 		
-		//If we transition modes then we clear the recovery flag
-		clearRecoveryFlag();
-		
 		// TODO: Figure out whether we want to check 'Sensor Only' mode availability.
 		switch(DIAS_STATE) {
 			case State.DIAS_STATE_STOPPED:
@@ -2628,6 +2625,12 @@ public class DiAsService extends Service
 		if (oldState != DIAS_STATE) 
 		{
 			updateTbr(oldState);
+			
+			if(isClick)
+			{
+				//If we transition modes then we clear the recovery flag
+				clearRecoveryFlag();
+			}
 		}
 		
 		updateBarIcon();
