@@ -694,7 +694,9 @@ public class biometricsContentProvider extends ContentProvider {
  		Debug.i(TAG, FUNC_TAG,  "inserting into "+table+", values="+values+"...");
 	 	rowID = biometricDB.insert(table, "", values);
         if (rowID > -1) {
-            values.put("_id", rowID);
+        	if(!Arrays.asList(Biometrics.SINGLE_ROW_TABLES_URIS).contains(uri)) {
+        		values.put("_id", rowID);
+        	}
             archiveDB.insert(table, "", values);
         }
 	 	
@@ -797,6 +799,7 @@ public class biometricsContentProvider extends ContentProvider {
 		db.execSQL("DROP TABLE IF EXISTS time");
 		db.execSQL("DROP TABLE IF EXISTS exercise_state");
 		db.execSQL("DROP TABLE IF EXISTS controller_parameters");
+		db.execSQL("DROP TABLE IF EXISTS "+Biometrics.SERVICE_OUTPUTS_TABLE_NAME);
 		db.execSQL("DROP TABLE IF EXISTS "+Biometrics.MISC_TABLE_NAME);
 		
 		db.execSQL(DATABASE_USER_TABLE_1_CREATE);								// Create user table 1
