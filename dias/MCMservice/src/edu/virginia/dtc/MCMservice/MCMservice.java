@@ -527,6 +527,17 @@ public class MCMservice extends Service
 	        			correction -= MealActivity.iobInsulin;
 	            	
 	        		Debug.i(TAG, FUNC_TAG, "Carbs: "+MealActivity.carbs+" SMBG: "+MealActivity.bg);
+	        		
+	        		Debug.i(TAG, FUNC_TAG, "Before negative compenstation - Meal: "+meal+" Correction: "+correction);
+	        		
+	        		if(correction < 0)
+	        		{
+	        			meal += correction;
+	        			correction = 0;
+	        			if(meal < 0)
+	        				meal = 0;
+	        		}
+	        		
 	        		Debug.i(TAG, FUNC_TAG, "Meal: "+meal+" Correction: "+correction);
 	        		Debug.i(TAG, FUNC_TAG, "Total: "+(meal+correction));
 	        		

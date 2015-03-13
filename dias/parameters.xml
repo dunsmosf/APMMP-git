@@ -63,7 +63,7 @@
      1 = Classic bolus calculator in Pump mode, custom calculator in CL, Safety modes
      2 = Custom calculator in all modes
      -->
-    <parameter name="meal_activity_bolus_calculation_mode" value="0" type="int"> </parameter>
+    <parameter name="meal_activity_bolus_calculation_mode" value="1" type="int"> </parameter>
     
     <!--
      Exercise detection mode (sets the exercise button automatically on and off
