@@ -149,22 +149,15 @@ public class ExerciseService extends Service
 					
 					ContentValues cv = new ContentValues();
 					cv.put("time", System.currentTimeMillis()/1000);
-					//in case Zephyr if (Zephyr_HXM_EX_Detection())
-					if (driverName.equalsIgnoreCase("HR_Driver"))
-					{
-						Debug.i(TAG, FUNC_TAG, "Starting resting HR calculation thread");
-			    		if (! restingHrThread.isAlive())
-		        		{
-		    				restingHrThread.start();
-		        		}
-						EX_indicator=Zephyr_HXM_EX_Detection();
-						Debug.i(TAG, FUNC_TAG, "Using HXM exercise detection algorithm" ); 
-					}
-					else if (driverName.equalsIgnoreCase("Bioharness_Driver"))
-					{
-						EX_indicator=Bioharness_EX_Detection();
-						Debug.i(TAG, FUNC_TAG, "Using Bioharness exercise detection algorithm" ); 
-					}
+					
+					Debug.i(TAG, FUNC_TAG, "Starting resting HR calculation thread");
+		    		if (! restingHrThread.isAlive())
+	        		{
+	    				restingHrThread.start();
+	        		}
+					EX_indicator=Zephyr_HXM_EX_Detection();
+					Debug.i(TAG, FUNC_TAG, "Using HXM exercise detection algorithm" ); 
+					
 					
 					if (EX_indicator)
 					{
@@ -387,7 +380,7 @@ public class ExerciseService extends Service
 		    			try
 		    			{
 		    				j = new JSONObject(s);
-		    				hr = j.getDouble("hr1");
+		    				hr = j.getDouble("HR");
 		    				
 		    				//Generates a lot of debug output
 		    				//Debug.i(TAG, FUNC_TAG, "HR: "+hr)
@@ -571,7 +564,7 @@ public class ExerciseService extends Service
 	    			try
 	    			{
 	    				j = new JSONObject(s);
-	    				hr = j.getDouble("hr1");
+	    				hr = j.getDouble("HR");
 	    			}
 	    			catch(JSONException e)
 	    			{
