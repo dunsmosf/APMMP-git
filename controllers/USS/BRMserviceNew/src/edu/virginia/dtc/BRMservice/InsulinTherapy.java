@@ -39,10 +39,10 @@ public class InsulinTherapy {
 	private double detect_meal_user1;
 	
 	//Variables created for glucose target calculation (glucose target can be tuned by changing these parameters)
-	private static final int N_end=7;
-	private static final int N_start=23;
-	private static final int N_length=8;
-	private final static int N_glucoseTarget=7;
+	private int N_end=0; //default ensures no night profile if failed to read from DB
+	private int N_start=24; //default ensures no night profile if failed to read from DB
+	private int N_length=24; //default ensures no night profile if failed to read from DB
+	private static final int N_glucoseTarget=7;
 	private static final double Taux=0.2;
 	private static final double Gmax=160;
 	private static final double Gspred=40;
@@ -178,22 +178,56 @@ public class InsulinTherapy {
 	
 	private double glucoseTarget(long time) {
 		final String FUNC_TAG = "glucoseTarget";
-		
+		String error = "";
 		// Get the offset in hours into the current day in the current time zone (based on cell phone time zone setting)
 		TimeZone tz = TimeZone.getDefault();
 		int UTC_offset_secs = tz.getOffset(time*1000)/1000;
 		int timeNowMins = (int)((time+UTC_offset_secs)/60)%1440;
 		double ToD_hours = (double)timeNowMins/60.0;
 		double x;
+		Bundle b = new Bundle();
+		Cursor c = context.getContentResolver().query(Biometrics.USS_BRM_PROFILE_URI, null, null, null, null);
+		if (c.getCount()==1) // one and only one profile set
+		{
+			c.moveToFirst();
+			N_start = c.getInt(c.getColumnIndex("time"));
+			N_end = c.getInt(c.getColumnIndex("endtime"));
+			
+			
+		}
+		else {
+			N_start=24;
+			N_end=0;
+			N_length=24;
 		
-		if (ToD_hours<N_end)
-			x = (ToD_hours+24-N_start)/N_length;
-		else if (ToD_hours>N_start)
-			x = (ToD_hours-N_start)/N_length;
-		else if ((ToD_hours>=N_end)&&(ToD_hours<=N_end+1))
-			x = 1-ToD_hours+N_end;
-		else
-			x = 0;
+			if (c.getCount()<1) { //no profile set
+				error="NO PROFILE default ";
+			}
+			else { //more than one profile set
+				b.putString("description", "More than one night profile period was defined. Please remove all but one profile.");
+				Event.addEvent(getApplicationContext(), Event.EVENT_BRM_ERROR, b.toString(), Event.SET_POPUP_AUDIBLE_ALARM);
+				error=">1 PROFILE default ";
+			}
+				
+		}
+			
+		c.close();
+		
+	
+	
+	double RelT=0;
+	if (ToD_hours-N_start<0) RelT = ToD_hours-N_start+24; //create relative time to start of night modulo 24
+	else	RelT= ToD_hours-N_start;
+
+	if (N_end-N_start<0) N_end= N_end-N_start+24;  
+	else N_end= N_end-N_start;
+	N_length = Math.max(5,N_end);
+
+		if (RelT<N_end)
+			x = RelT/N_length;
+		else if ((RelT>=N_end)&&(RelT<=N_end+1))
+			x = (Math.pow((double)(N_end),2)+N_end)/N_length - (N_end/N_length)*RelT;
+		else x = 0;
 		
 		double x1 = Math.pow((x/Taux),N_glucoseTarget)/(1.0+Math.pow((x/Taux),N_glucoseTarget));
 		double glucose_target = Gmax-Gspred*x1;
@@ -203,6 +237,8 @@ public class InsulinTherapy {
 		Debug.i(TAG, FUNC_TAG, "ToD_hours: "+ToD_hours+" x: "+x+" x1: "+x1);
 		Debug.i(TAG, FUNC_TAG, "Time: "+time+", ToD_hours="+ToD_hours+", glucose_target="+glucose_target);
 		
+		Log.log_action(context, TAG, "ToD_hours="+String.format("%.2f", ToD_hours)+", " + error + "glucose_target="+String.format("%.2f", glucose_target), System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
+
 		return glucose_target;
 	}
 	
@@ -221,14 +257,28 @@ public class InsulinTherapy {
 	
 	private double get_adaptive_TDI() {
 		final String FUNC_TAG = "get_adaptive_TDI";
+		double TDIest=subject.TDI;
 		
 		Settings st = IOMain.db.getLastTDIestBrmDB(subject.sessionID);
 		
-		Debug.i(TAG, FUNC_TAG, "Time: "+getCurrentTimeSeconds()+" BrmDB-Time: "+st.time+" BrmDB-TDI: "+st.TDIest);
-		if (st.TDIest == 0)
-			return subject.TDI;
-		else
-			return st.TDIest;
+		
+		if (st.TDIest == 0) {
+			Log.log_action(context, TAG, "estimated TDI is invalid, using default subject TDI", System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
+		}
+		else if (st.TDIest<0.5*subject.TDI) {
+			Log.log_action(context, TAG, "estimated TDI less than 50% default TDI, using 50 % default subject TDI", System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
+			TDIest=0.5*subject.TDI;
+		}
+		else if (st.TDIest>2*subject.TDI) {
+			Log.log_action(context, TAG, "estimated TDI is more than 200% default TDI, using 200% default subject TDI", System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
+			TDIest=2*subject.TDI;
+		}
+		else {
+			Log.log_action(context, TAG, "estimated TDI is " + st.TDIest, System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
+			TDIest=st.TDIest;
+		}
+		Debug.i(TAG, FUNC_TAG, "Time: "+getCurrentTimeSeconds() + ", BrmDB-Time: " + st.time+", BrmDB-TDI: " + st.TDIest+ ", TDIest=" + TDIest);
+		return TDIest;
 	}
 	
 	private double INS_target_saturate(double INS_target, double CF) {
