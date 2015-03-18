@@ -207,7 +207,7 @@ public class InsulinTherapy {
 			}
 			else { //more than one profile set
 				b.putString("description", "More than one night profile period was defined. Please remove all but one profile.");
-				Event.addEvent(context, Event.EVENT_BRM_ERROR, b.toString(), Event.SET_POPUP_AUDIBLE_ALARM);
+				Event.addEvent(context, Event.EVENT_BRM_ERROR, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE_ALARM);
 				error=">1 PROFILE default ";
 			}
 				

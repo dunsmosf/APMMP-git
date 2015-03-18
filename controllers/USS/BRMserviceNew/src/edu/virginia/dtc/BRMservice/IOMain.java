@@ -153,6 +153,8 @@ public class IOMain extends Service {
 				case Controllers.APC_SERVICE_CMD_START_SERVICE:	
 					Debug.i(TAG, FUNC_TAG, "APC_SERVICE_CMD_START_SERVICE");
 					
+					mMessengerToClient=msg.replyTo;
+					
 					// Create and initialize the Subject object
 					subject = new Subject();
 					subject.read(getApplicationContext());
