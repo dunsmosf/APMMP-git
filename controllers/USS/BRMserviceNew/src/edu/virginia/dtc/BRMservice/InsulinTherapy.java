@@ -186,7 +186,7 @@ public class InsulinTherapy {
 		int UTC_offset_secs = tz.getOffset(time*1000)/1000;
 		int timeNowMins = (int)((time+UTC_offset_secs)/60)%1440;
 		double ToD_hours = (double)timeNowMins/60.0;
-		double x=0;
+		double x;
 		Bundle b = new Bundle();
 		Cursor c = context.getContentResolver().query(Biometrics.USS_BRM_PROFILE_URI, null, null, null, null);
 		if (c.getCount()==1) // one and only one profile set
@@ -198,9 +198,9 @@ public class InsulinTherapy {
 			
 		}
 		else {
-			N_start=24;
-			N_end=0;
-			N_length=24;
+			N_start=24.0;
+			N_end=0.0;
+			N_length=24.0;
 		
 			if (c.getCount()<1) { //no profile set
 				error="NO PROFILE default ";
@@ -215,26 +215,26 @@ public class InsulinTherapy {
 			
 		c.close();
 		
-		Debug.i(TAG, FUNC_TAG, "ToD: " + ToD_hours + "N_start: "+N_start+" N_end: "+N_end);
+		Debug.i(TAG, FUNC_TAG, "ToD: " + ToD_hours + "N_start: "+ N_start + " N_end: " + N_end);
 	
-	double RelT=0;
-	if (ToD_hours<N_start) RelT = ToD_hours-N_start+24; //create relative time to start of night modulo 24
-	else	RelT= ToD_hours-N_start;
+		double RelT=0.0;
+		if (ToD_hours<N_start) RelT = ToD_hours-N_start+24.0; //create relative time to start of night modulo 24
+		else	RelT= ToD_hours-N_start;
 
-	if (N_end-N_start<0) N_end = N_end-N_start+24;  
-	else N_end= N_end-N_start;
-	N_length = Math.max(5,N_end);
+		if (N_end-N_start<0.0) N_end = N_end-N_start+24.0;  
+		else N_end= N_end-N_start;
+		N_length = Math.max(5.0,N_end);
 	
 	
 	
 		if (RelT<N_end)
 			x = RelT/N_length;
 		else if ((RelT>=N_end)&&(RelT<=N_end+1))
-			x = (Math.pow((N_end),2)+N_end)/N_length - (N_end/N_length)*RelT;
+			x = (Math.pow((N_end),2.0)+N_end)/N_length - (N_end/N_length)*RelT;
 		else x = 0;
 		
 		double x1 = Math.pow((x/Taux),N_glucoseTarget)/(1.0+Math.pow((x/Taux),N_glucoseTarget));
-		double offset = Math.pow((1/Taux),N_glucoseTarget)/(1.0+Math.pow((1/Taux),N_glucoseTarget));
+		double offset = Math.pow((1.0/Taux),N_glucoseTarget)/(1.0+Math.pow((1.0/Taux),N_glucoseTarget));
 		double glucose_target = Gmax-Gspred*x1/offset;
 		Debug.i(TAG, FUNC_TAG, "ToD: " + ToD_hours + ", RelT: " + RelT + ", N_end: " + N_end + ", N_length: " + N_length + ", x: " + x + ", TGT: " + glucose_target);
 		
