@@ -192,8 +192,8 @@ public class InsulinTherapy {
 		if (c.getCount()==1) // one and only one profile set
 		{
 			c.moveToFirst();
-			N_start = c.getDouble(c.getColumnIndex("time"));
-			N_end = c.getDouble(c.getColumnIndex("endtime"));
+			N_start = (double)c.getInt(c.getColumnIndex("time"));
+			N_end = (double)c.getInt(c.getColumnIndex("endtime"));
 			
 			
 		}
