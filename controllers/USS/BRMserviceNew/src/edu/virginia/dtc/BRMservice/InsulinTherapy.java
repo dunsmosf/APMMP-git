@@ -41,9 +41,9 @@ public class InsulinTherapy {
 	private double detect_meal_user1;
 	
 	//Variables created for glucose target calculation (glucose target can be tuned by changing these parameters)
-	private int N_end=0; //default ensures no night profile if failed to read from DB
-	private int N_start=24; //default ensures no night profile if failed to read from DB
-	private int N_length=24; //default ensures no night profile if failed to read from DB
+	private double N_end=0; //default ensures no night profile if failed to read from DB
+	private double N_start=24; //default ensures no night profile if failed to read from DB
+	private double N_length=24; //default ensures no night profile if failed to read from DB
 	private static final int N_glucoseTarget=7;
 	private static final double Taux=0.2;
 	private static final double Gmax=160;
@@ -186,14 +186,14 @@ public class InsulinTherapy {
 		int UTC_offset_secs = tz.getOffset(time*1000)/1000;
 		int timeNowMins = (int)((time+UTC_offset_secs)/60)%1440;
 		double ToD_hours = (double)timeNowMins/60.0;
-		double x;
+		double x=0;
 		Bundle b = new Bundle();
 		Cursor c = context.getContentResolver().query(Biometrics.USS_BRM_PROFILE_URI, null, null, null, null);
 		if (c.getCount()==1) // one and only one profile set
 		{
 			c.moveToFirst();
-			N_start = c.getInt(c.getColumnIndex("time"));
-			N_end = c.getInt(c.getColumnIndex("endtime"));
+			N_start = c.getDouble(c.getColumnIndex("time"));
+			N_end = c.getDouble(c.getColumnIndex("endtime"));
 			
 			
 		}
@@ -215,24 +215,28 @@ public class InsulinTherapy {
 			
 		c.close();
 		
-	
+		Debug.i(TAG, FUNC_TAG, "ToD: " + ToD_hours + "N_start: "+N_start+" N_end: "+N_end);
 	
 	double RelT=0;
-	if (ToD_hours-N_start<0) RelT = ToD_hours-N_start+24; //create relative time to start of night modulo 24
+	if (ToD_hours<N_start) RelT = ToD_hours-N_start+24; //create relative time to start of night modulo 24
 	else	RelT= ToD_hours-N_start;
 
-	if (N_end-N_start<0) N_end= N_end-N_start+24;  
+	if (N_end-N_start<0) N_end = N_end-N_start+24;  
 	else N_end= N_end-N_start;
 	N_length = Math.max(5,N_end);
-
+	
+	
+	
 		if (RelT<N_end)
 			x = RelT/N_length;
 		else if ((RelT>=N_end)&&(RelT<=N_end+1))
-			x = (Math.pow((double)(N_end),2)+N_end)/N_length - (N_end/N_length)*RelT;
+			x = (Math.pow((N_end),2)+N_end)/N_length - (N_end/N_length)*RelT;
 		else x = 0;
 		
 		double x1 = Math.pow((x/Taux),N_glucoseTarget)/(1.0+Math.pow((x/Taux),N_glucoseTarget));
-		double glucose_target = Gmax-Gspred*x1;
+		double offset = Math.pow((1/Taux),N_glucoseTarget)/(1.0+Math.pow((1/Taux),N_glucoseTarget));
+		double glucose_target = Gmax-Gspred*x1/offset;
+		Debug.i(TAG, FUNC_TAG, "ToD: " + ToD_hours + ", RelT: " + RelT + ", N_end: " + N_end + ", N_length: " + N_length + ", x: " + x + ", TGT: " + glucose_target);
 		
 		Log.log_action(context, TAG, "ToD_hours="+String.format("%.2f", ToD_hours)+", glucose_target="+String.format("%.2f", glucose_target), System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
 		
