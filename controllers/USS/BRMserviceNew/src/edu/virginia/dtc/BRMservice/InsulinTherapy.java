@@ -236,9 +236,8 @@ public class InsulinTherapy {
 		double x1 = Math.pow((x/Taux),N_glucoseTarget)/(1.0+Math.pow((x/Taux),N_glucoseTarget));
 		double offset = Math.pow((1.0/Taux),N_glucoseTarget)/(1.0+Math.pow((1.0/Taux),N_glucoseTarget));
 		double glucose_target = Gmax-Gspred*x1/offset;
-		Debug.i(TAG, FUNC_TAG, "ToD: " + ToD_hours + ", RelT: " + RelT + ", N_end: " + N_end + ", N_length: " + N_length + ", x: " + x + ", TGT: " + glucose_target);
+		Log.log_action(context, TAG, "ToD: " + String.format("%.2f", ToD_hours) + ", RelT: " + String.format("%.2f", RelT) + ", N_end: " + String.format("%.2f", N_end) + ", N_length: " + String.format("%.2f", N_length) + ", x: " + String.format("%.2f", x) + ", TGT: " + String.format("%.2f", glucose_target), System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG););
 		
-		Log.log_action(context, TAG, "ToD_hours="+String.format("%.2f", ToD_hours)+", glucose_target="+String.format("%.2f", glucose_target), System.currentTimeMillis()/1000, Log.LOG_ACTION_DEBUG);
 		
 		Debug.i(TAG, FUNC_TAG, "ToD_hours: "+ToD_hours+" x: "+x+" x1: "+x1);
 		Debug.i(TAG, FUNC_TAG, "Time: "+time+", ToD_hours="+ToD_hours+", glucose_target="+glucose_target);
