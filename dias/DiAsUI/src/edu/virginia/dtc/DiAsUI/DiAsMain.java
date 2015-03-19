@@ -1577,7 +1577,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
  	   
  	   //TODO: Not only check Allowed Mode but also Controller Status / Night Profile Activity
  	   boolean PumpModeEnabled = Mode.isPumpModeAvailable(getContentResolver());
- 	   boolean SafetyModeEnabled = Mode.isSafetyModeAvailable(getContentResolver());
+ 	   boolean SafetyModeEnabled = Mode.isSafetyModeAvailable(getContentResolver(), timeNowMins);
  	   boolean ClosedLoopEnabled = Mode.isClosedLoopAvailable(getContentResolver(), timeNowMins);
  	   
  	   Debug.i(TAG, FUNC_TAG, "CLenable: "+ClosedLoopEnabled+" OLenable: "+PumpModeEnabled+" mode:"+Mode.getMode(getContentResolver()));

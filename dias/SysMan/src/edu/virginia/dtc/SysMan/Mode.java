@@ -178,6 +178,18 @@ public class Mode {
 		return isSafetyModeAllowed(resolver);
 	}
 	
+	/**
+	 * Indicates whether Safety Mode is available (allowed + available), this is a wrapper
+	 * for Closed Loop availability
+	 * @param resolver
+	 * @param timeInMinutes
+	 * @return boolean
+	 */
+	public static boolean isSafetyModeAvailable(ContentResolver resolver, int timeInMinutes)
+	{
+		return isClosedLoopAvailable(resolver, timeInMinutes);
+	}
+	
 	
 	/**
 	 * Indicates whether Closed Loop Mode is available (allowed + available) at a given time

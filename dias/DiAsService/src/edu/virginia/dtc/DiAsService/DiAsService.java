@@ -574,7 +574,7 @@ public class DiAsService extends Service
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
       				Debug.i(TAG, FUNC_TAG, "Transition from insulin delivering mode to safety, pump, sensor or stopped mode (DESC availability)");
-      				if (Mode.isSafetyModeAvailable(getContentResolver()))
+      				if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes()))
       					updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
       				else if (Mode.isPumpModeAvailable(getContentResolver()))
       					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
@@ -713,7 +713,7 @@ public class DiAsService extends Service
       			
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
-      				if (Mode.isSafetyModeAvailable(getContentResolver()))
+      				if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes()))
       					updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
       				else if (Mode.isPumpModeAvailable(getContentResolver()))
       					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
@@ -830,7 +830,7 @@ public class DiAsService extends Service
       			
       			if(DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP)
       			{
-      				if (Mode.isSafetyModeAvailable(getContentResolver()))
+      				if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes()))
       					updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
       				else if (Mode.isPumpModeAvailable(getContentResolver()))
       					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
@@ -1131,7 +1131,7 @@ public class DiAsService extends Service
     			
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP) {
     				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes())) {
-    					if (Mode.isSafetyModeAvailable(getContentResolver())) {
+    					if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes())) {
     						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
 	    					Bundle b = new Bundle();
 	        	    		b.putString("description", "Scheduled switch to Safety Mode.");
@@ -1150,7 +1150,7 @@ public class DiAsService extends Service
     				}
     			}
     			else if (DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
-    				if (!Mode.isSafetyModeAvailable(getContentResolver())) {
+    				if (!Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes())) {
     					if (Mode.isPumpModeAvailable(getContentResolver())) {
           					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
 	    					Bundle b = new Bundle();
@@ -1228,13 +1228,14 @@ public class DiAsService extends Service
     			
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP) {
     				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes())) {
-    					if (Mode.isSafetyModeAvailable(getContentResolver())) {
-    						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
-	    					Bundle b = new Bundle();
-	        	    		b.putString("description", "Scheduled switch to Safety Mode.");
-	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_SAFETY_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
-    					}
-    					else if (Mode.isPumpModeAvailable(getContentResolver())) {
+//    					if (Mode.isSafetyModeAvailable(getContentResolver())) {
+//    						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
+//	    					Bundle b = new Bundle();
+//	        	    		b.putString("description", "Scheduled switch to Safety Mode.");
+//	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_SAFETY_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+//    					}
+    						
+    					if (Mode.isPumpModeAvailable(getContentResolver())) {
           					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
 	    					Bundle b = new Bundle();
 	        	    		b.putString("description", "Scheduled switch to Pump mode.");
@@ -1247,7 +1248,7 @@ public class DiAsService extends Service
     				}
     			}
     			else if (DIAS_STATE == State.DIAS_STATE_SAFETY_ONLY) {
-    				if (!Mode.isSafetyModeAvailable(getContentResolver())) {
+    				if (!Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes())) {
     					if (Mode.isPumpModeAvailable(getContentResolver())) {
           					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
 	    					Bundle b = new Bundle();
@@ -3599,7 +3600,7 @@ public class DiAsService extends Service
 			case State.DIAS_STATE_STOPPED:
 			case State.DIAS_STATE_SENSOR_ONLY: result = true; break;
 			case State.DIAS_STATE_OPEN_LOOP: result = Mode.isPumpModeAvailable(getContentResolver()); break;
-			case State.DIAS_STATE_SAFETY_ONLY: result = Mode.isSafetyModeAvailable(getContentResolver()); break;
+			case State.DIAS_STATE_SAFETY_ONLY: result = Mode.isSafetyModeAvailable(getContentResolver(), now_minutes); break;
 			case State.DIAS_STATE_CLOSED_LOOP: result = Mode.isClosedLoopAvailable(getContentResolver(), now_minutes); break;
 			default: break;
 		}
