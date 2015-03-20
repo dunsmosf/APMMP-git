@@ -20,12 +20,12 @@
      
      0: No operating modes
      1: Pump mode only
-     2: Safety mode only
-     3: Pump and Safety modes only
+     2: Safety mode only                                (eq. to 0 if "safetyDistinctFromCL" = false)
+     3: Pump and Safety modes only                      (eq. to 1 if "safetyDistinctFromCL" = false)
      4: Closed Loop mode only
      5:	Pump and Closed Loop modes allowed
-     6: Safety and Closed Loop modes allowed
-     7: Pump, Safety,and Closed Loop modes allowed
+     6: Safety and Closed Loop modes allowed            (eq. to 4 if "safetyDistinctFromCL" = false)
+     7: Pump, Safety,and Closed Loop modes allowed      (eq. to 5 if "safetyDistinctFromCL" = false)
      
      [see "apc_enabled" and "brm_enabled" for controllers activity based on Night Profile]
      -->
@@ -38,8 +38,10 @@
      2: Enabled within Night Profile
      3: Disabled within Night Profile
      -->
-    <parameter name="apc_enabled" value="1" type="int"> </parameter>
+    <parameter name="apc_enabled" value="3" type="int"> </parameter>
     <parameter name="brm_enabled" value="1" type="int"> </parameter>
+    
+    <parameter name="safetyDistinctFromCL" value="true" type="boolean"> </parameter>
     
     <!--
      Traffic Light Control:
@@ -130,7 +132,7 @@
     <parameter name="hypo_mute_middle_bg" value="15" type="int"> </parameter>
     <parameter name="hypo_mute_high_bg" value="30" type="int"> </parameter>
     
-    <parameter name="enableIO" value="true" type="boolean"> </parameter>
+    <parameter name="enableIO" value="false" type="boolean"> </parameter>
     
     <!-- The number of addresses "macX" must match the number of "tandem_addresses" -->
     <parameter name="tandem_addresses" value="4" type="int"> </parameter>
