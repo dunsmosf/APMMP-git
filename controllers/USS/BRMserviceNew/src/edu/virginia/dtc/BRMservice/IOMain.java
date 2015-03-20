@@ -298,7 +298,7 @@ public class IOMain extends Service {
 		int MinBolusNum=240;
 		double tdi=0;
 		Cursor c=getContentResolver().query(Biometrics.INSULIN_URI, null, "deliv_time > "+start_time, null, null);
-		Cursor cbasal=getContentResolver().query(Biometrics.BASAL_PROFILE_URI, null, null, null, null);
+		Cursor cbasal=getContentResolver().query(Biometrics.BASAL_PROFILE_URI, null, null, null, "time ASC");
 		// Fetch basal profile data		
 	    double basal_value=0.0;
 		long basal_time = 0;
