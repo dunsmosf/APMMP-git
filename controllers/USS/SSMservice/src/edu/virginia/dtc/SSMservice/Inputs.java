@@ -818,8 +818,8 @@ public class Inputs {
 		last_time_temp_secs = 0;
 		if (c.moveToFirst()) {
 			do{
-				meal_value = (double)c.getDouble(c.getColumnIndex("meal_size_grams"));
-				meal_status = (int)c.getDouble(c.getColumnIndex("meal_status"));
+				meal_value = (double)c.getDouble(c.getColumnIndex("carbs"));
+				meal_status = (int)c.getDouble(c.getColumnIndex("status"));
                 if (meal_value>=0 && meal_status==Meal.MEAL_STATUS_APPROVED) {
                 	if (c.getLong(c.getColumnIndex("time")) > last_time_temp_secs) {
 						last_time_temp_secs = c.getLong(c.getColumnIndex("time"));

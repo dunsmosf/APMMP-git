@@ -1837,7 +1837,7 @@ public class SafetyService extends Service {
 						int id = c.getInt(c.getColumnIndex("_id"));
 						Debug.i(TAG, FUNC_TAG, "ID: "+id);						
 						ContentValues cv = new ContentValues();
-						cv.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVAL_TIMEOUT);
+						cv.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVAL_TIMEOUT);
 						// Reset 'received_server' so the row is resent to the server:
 						cv.put("received_server", false);
 						getContentResolver().update(Biometrics.MEAL_URI, cv, "_id='"+id+"'", null);
@@ -1870,7 +1870,7 @@ public class SafetyService extends Service {
 						int id = c.getInt(c.getColumnIndex("_id"));
 						Debug.i(TAG, FUNC_TAG, "ID: "+id);						
 						ContentValues cv = new ContentValues();
-						cv.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_ABORTED);
+						cv.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_ABORTED);
 						// Reset 'received_server' so the row is resent to the server:
 						cv.put("received_server", false);
 						getContentResolver().update(Biometrics.MEAL_URI, cv, "_id='"+id+"'", null);
@@ -2008,7 +2008,7 @@ public class SafetyService extends Service {
 						int id = c.getInt(c.getColumnIndex("_id"));
 						Debug.i(TAG, FUNC_TAG, "ID: "+id);						
 						ContentValues cv = new ContentValues();
-						cv.put("meal_status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
+						cv.put("status", edu.virginia.dtc.SysMan.Meal.MEAL_STATUS_APPROVED);
 						// Reset 'received_server' so the row is resent to the server:
 						cv.put("received_server", false);
 						getContentResolver().update(Biometrics.MEAL_URI, cv, "_id='"+id+"'", null);
