@@ -1131,21 +1131,34 @@ public class DiAsService extends Service
     			
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP) {
     				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes())) {
-    					if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes())) {
-    						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
-	    					Bundle b = new Bundle();
-	        	    		b.putString("description", "Scheduled switch to Safety Mode.");
-	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_SAFETY_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					if (Mode.isSafetyDistinctFromCL(getContentResolver())) {
+	    					if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes())) {
+	    						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
+		    					Bundle b = new Bundle();
+		        	    		b.putString("description", "Scheduled switch to Safety Mode.");
+		        	    		Event.addEvent(getApplicationContext(), Event.EVENT_SAFETY_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+	    					}
+	    					else if (Mode.isPumpModeAvailable(getContentResolver())) {
+	          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+		    					Bundle b = new Bundle();
+		        	    		b.putString("description", "Scheduled switch to Pump mode.");
+		        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+	    					}
+	          				else {
+	          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
+	          				}
     					}
-    					else if (Mode.isPumpModeAvailable(getContentResolver())) {
-          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
-	    					Bundle b = new Bundle();
-	        	    		b.putString("description", "Scheduled switch to Pump mode.");
-	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					else {
+	    					if (Mode.isPumpModeAvailable(getContentResolver())) {
+	          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+		    					Bundle b = new Bundle();
+		        	    		b.putString("description", "Scheduled switch to Pump mode.");
+		        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+	    					}
+	          				else {
+	          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
+	          				}
     					}
-          				else {
-          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
-          				}
             			
     				}
     			}
@@ -1228,22 +1241,34 @@ public class DiAsService extends Service
     			
     			if (DIAS_STATE == State.DIAS_STATE_CLOSED_LOOP) {
     				if (!Mode.isClosedLoopAvailable(getContentResolver(), timeNowInMinutes())) {
-//    					if (Mode.isSafetyModeAvailable(getContentResolver())) {
-//    						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
-//	    					Bundle b = new Bundle();
-//	        	    		b.putString("description", "Scheduled switch to Safety Mode.");
-//	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_SAFETY_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
-//    					}
-    						
-    					if (Mode.isPumpModeAvailable(getContentResolver())) {
-          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
-	    					Bundle b = new Bundle();
-	        	    		b.putString("description", "Scheduled switch to Pump mode.");
-	        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+    					if (Mode.isSafetyDistinctFromCL(getContentResolver())) {
+	    					if (Mode.isSafetyModeAvailable(getContentResolver(), timeNowInMinutes())) {
+	    						updateDiasService(State.DIAS_STATE_SAFETY_ONLY, false);
+		    					Bundle b = new Bundle();
+		        	    		b.putString("description", "Scheduled switch to Safety Mode.");
+		        	    		Event.addEvent(getApplicationContext(), Event.EVENT_SAFETY_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+	    					}
+	    					else if (Mode.isPumpModeAvailable(getContentResolver())) {
+	          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+		    					Bundle b = new Bundle();
+		        	    		b.putString("description", "Scheduled switch to Pump mode.");
+		        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+	    					}
+	          				else {
+	          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
+	          				}
     					}
-          				else {
-          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
-          				}
+    					else {
+	    					if (Mode.isPumpModeAvailable(getContentResolver())) {
+	          					updateDiasService(State.DIAS_STATE_OPEN_LOOP, false);
+		    					Bundle b = new Bundle();
+		        	    		b.putString("description", "Scheduled switch to Pump mode.");
+		        	    		Event.addEvent(getApplicationContext(), Event.EVENT_PUMP_MODE, Event.makeJsonString(b), Event.SET_POPUP_AUDIBLE);
+	    					}
+	          				else {
+	          					updateDiasService(State.DIAS_STATE_SENSOR_ONLY, false);
+	          				}
+    					}
             			
     				}
     			}

@@ -84,6 +84,17 @@ public class Mode {
 	
 	
 	/**
+	 * Indicates whether Safety and Closed Loop Modes should be available separately
+	 * @param resolver
+	 * @return boolean
+	 */
+	public static boolean isSafetyDistinctFromCL(ContentResolver resolver)
+	{
+		return Params.getBoolean(resolver, "safetyDistinctFromCL", false);
+	}
+	
+	
+	/**
 	 * Indicate whether Pump Mode is allowed based on the parameters' allowed modes setting
 	 * @param resolver
 	 * @return boolean
@@ -114,20 +125,25 @@ public class Mode {
 	 */
 	public static boolean isSafetyModeAllowed(ContentResolver resolver)
 	{
-		int mode = getMode(resolver);
+		if (!isSafetyDistinctFromCL(resolver))
+			return isClosedLoopAllowed(resolver);
 		
-		switch(mode) {
-			case SAFETY_ALLOWED:
-			case PUMP_AND_SAFETY_ALLOWED:
-			case SAFETY_AND_CLOSED_ALLOWED:
-			case PUMP_SAFETY_AND_CLOSED_ALLOWED: return true;
+		else {
+			int mode = getMode(resolver);
 			
-			case NONE_ALLOWED:
-			case PUMP_ALLOWED:
-			case CLOSED_ALLOWED:
-			case PUMP_AND_CLOSED_ALLOWED:
-			default: return false;
-		} 
+			switch(mode) {
+				case SAFETY_ALLOWED:
+				case PUMP_AND_SAFETY_ALLOWED:
+				case SAFETY_AND_CLOSED_ALLOWED:
+				case PUMP_SAFETY_AND_CLOSED_ALLOWED: return true;
+				
+				case NONE_ALLOWED:
+				case PUMP_ALLOWED:
+				case CLOSED_ALLOWED:
+				case PUMP_AND_CLOSED_ALLOWED:
+				default: return false;
+			}
+		}
 		
 	}
 	
@@ -179,15 +195,18 @@ public class Mode {
 	}
 	
 	/**
-	 * Indicates whether Safety Mode is available (allowed + available), this is a wrapper
-	 * for Closed Loop availability
+	 * Indicates whether Safety Mode is available (allowed + available) at a given time, this is a wrapper
+	 * for Closed Loop availability if 'safetyDistinctFromCL' is false
 	 * @param resolver
 	 * @param timeInMinutes
 	 * @return boolean
 	 */
 	public static boolean isSafetyModeAvailable(ContentResolver resolver, int timeInMinutes)
 	{
-		return isClosedLoopAvailable(resolver, timeInMinutes);
+		if (isSafetyDistinctFromCL(resolver))
+			return isSafetyModeAvailable(resolver);
+		else
+			return isClosedLoopAvailable(resolver, timeInMinutes);
 	}
 	
 	
