@@ -295,13 +295,36 @@ public class IOMain extends Service {
 	
 	private double CalculateTDIfromInsulinDelivery(long start_time) {
 		final String FUNC_TAG = "CalculateTDIfromInsulinDelivery";
-		
+		int MinBolusNum=240;
 		double tdi=0;
 		Cursor c=getContentResolver().query(Biometrics.INSULIN_URI, null, "deliv_time > "+start_time, null, null);
+		Cursor cbasal=getContentResolver().query(Biometrics.BASAL_PROFILE_URI, null, null, null, null);
+		// Fetch basal profile data		
+	    double basal_value=0.0;
+		long basal_time = 0;
+		double MeanBasal = 0.0;
+		double pump_increment = 0.1;
+		double term = 0;
+		
+	    if (cbasal.moveToFirst()) {
+	    	long FirstTime = cbasal.getLong(cbasal.getColumnIndex("time"));
+	    	do{
+	    		basal_time = cbasal.getLong(cbasal.getColumnIndex("time"));
+	    		MeanBasal = MeanBasal + ((double)basal_time)*basal_value;
+	    		basal_value = cbasal.getDouble(cbasal.getColumnIndex("value")); 
+	    		MeanBasal = MeanBasal - ((double)basal_time)*basal_value;
+		      //return_value = true;
+	    	}while (cbasal.moveToNext());
+	    	
+	    	MeanBasal=(MeanBasal + 1440.0 * basal_value + ((double)FirstTime)*basal_value)/1440.0;
+	    }	
+	    cbasal.close();
+	    MinBolusNum=(int)((5.0/6.0)*288.0*(MeanBasal/12.0)/pump_increment); //computes the number of 5 minutes interval where we expect a microbolus if delivering basal over 24h
+		
 		
 		try {
 			if (c.moveToFirst()) {
-				if (c.getCount()>240) {			//If we have a disconnection of 4 hours or more, we don't take it into account
+				if (c.getCount()>MinBolusNum) {			//If we have a disconnection of 4 hours or more, we don't take it into account
 					while (c.moveToNext()) 
 					{
 						tdi =(double)Math.round((tdi+ c.getDouble(c.getColumnIndex("deliv_total"))) * 100) / 100;
