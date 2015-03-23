@@ -259,21 +259,21 @@ public class MCMservice extends Service
 		if(MealActivity.carbsValid && MealActivity.carbsInsulin > Constraints.MAX_MEAL)
 			MealActivity.carbsInsulin = Constraints.MAX_MEAL;
 		
-		double correct;
-		if(MealActivity.iobChecked)
-			correct = MealActivity.iobInsulin;
-		else
-			correct = 0.0;
-		
-		if(MealActivity.bgValid && MealActivity.corrValid) {
-			correct += (MealActivity.bgInsulin + MealActivity.corrInsulin);
-		}
-		else if(MealActivity.bgValid) {
+		double correct = 0.0;
+		if(MealActivity.bgValid) {
 			correct += MealActivity.bgInsulin;
 		}
-		else if(MealActivity.corrValid) {
+		
+		if(MealActivity.corrValid) {
 			correct += MealActivity.corrInsulin;
 		}
+		
+		if(MealActivity.iobChecked) {
+			correct -= MealActivity.iobInsulin;
+		}
+		
+		if(correct < 0.0)
+			correct = 0.0;
 		
 		if(correct > Constraints.MAX_CORR)
 		{
