@@ -581,24 +581,19 @@ public class Bioharness_Driver extends Service {
 		}
 	}
 	
-	private void reportUIChange(double activity, int battery, int time) {
+	private void reportUIChange(double activity, int battery, int HR, int time) {
 		
 		Bioharness_DriverUI.battery = battery;
-		Bioharness_DriverUI.hr_val_List.insert("Activity: "+ activity + " || Date: "+ time, 0);
+		Bioharness_DriverUI.hr_val_List.insert("Activity: "+ activity + " || Date: "+ time+" || HR: "+HR, 0);
 		
-//		if (messengerToUI != null) {
-//			try {
-//				Message msg = Message.obtain(null, DRIVER2UI_NEW_HR);
-//				
-//				msg.arg1 = time;
-//				msg.arg2 = battery;
-//				msg.obj=activity;
-//				
-//				messengerToUI.send(msg);
-//			} catch (RemoteException e) {
-//				e.printStackTrace();
-//			}
-//		}
+		if (messengerToUI != null) {
+			try {
+				Message msg = Message.obtain(null, DRIVER2UI_DEV_STATUS);
+				messengerToUI.send(msg);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
+		}
 
 	}
 	
@@ -816,7 +811,7 @@ public class Bioharness_Driver extends Service {
 //					sendBroadcast(cgmState);
 	        		
 	        		//reportUIChange(Activity, BatteryLevel, (int)((d +MsofDay)/1000));		// Edited on 08-05-14
-	        		reportUIChange(Activity, BatteryLevel, (int)d);
+	        		reportUIChange(Activity, BatteryLevel, HR, (int)d);
     			}
     			catch (Exception e){
     				Debug.i(TAG,FUNC_TAG,"Exception "+ e.getMessage());
