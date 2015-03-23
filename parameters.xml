@@ -14,14 +14,34 @@
      -->
 
     <!--
-     Modes:
-     0 = No OL or CL (Sensor Only and Stopped always available)
-     1 = OL Available
-     2 = CL and Safety Available (If time within BRM schedule use BRM Only)
-     3 = OL, CL and Safety available (If time within BRM schedule use BRM Only)
-     4 = OL is always available, CL with BRM Only available if within Controller segment
+     Allowed Modes:
+     
+     Combination of Pump (1), Safety (2) and Closed Loop (4) Modes.
+     
+     0: No operating modes
+     1: Pump mode only
+     2: Safety mode only                                (eq. to 0 if "safetyDistinctFromCL" = false)
+     3: Pump and Safety modes only                      (eq. to 1 if "safetyDistinctFromCL" = false)
+     4: Closed Loop mode only
+     5:	Pump and Closed Loop modes allowed
+     6: Safety and Closed Loop modes allowed            (eq. to 4 if "safetyDistinctFromCL" = false)
+     7: Pump, Safety,and Closed Loop modes allowed      (eq. to 5 if "safetyDistinctFromCL" = false)
+     
+     [see "apc_enabled" and "brm_enabled" for controllers activity based on Night Profile]
      -->
-    <parameter name="mode" value="2" type="int"> </parameter>
+    <parameter name="allowed_modes" value="7" type="int"> </parameter>
+    
+    <!--
+     Controllers action ("apc_enabled", "brm_enabled"):
+     0: Disabled
+     1: Enabled
+     2: Enabled within Night Profile
+     3: Disabled within Night Profile
+     -->
+    <parameter name="apc_enabled" value="3" type="int"> </parameter>
+    <parameter name="brm_enabled" value="1" type="int"> </parameter>
+    
+    <parameter name="safetyDistinctFromCL" value="false" type="boolean"> </parameter>
     
     <!--
      Traffic Light Control:
@@ -30,7 +50,7 @@
      2 = APC Controlled
      3 = BRM Controlled
      -->
-    <parameter name="traffic_lights" value="3" type="int"> </parameter>
+    <parameter name="traffic_lights" value="1" type="int"> </parameter>
     
     <!--
      Blood Glucose display units:
@@ -41,49 +61,51 @@
     
     <!--
      MealActivity Bolus Calculation Mode:
-     0 = MealActivity calculates bolus in all modes
-     1 = MealActivity calculates bolus in Pump mode; MCMservice calculates bolus in CL, Safety modes
-     2 = MCMservice calculates boluses in all modes
+     0 = Classic bolus calculator (Carbs, BG, Correction, IOB) at all times
+     1 = Classic bolus calculator in Pump mode, custom calculator in CL, Safety modes
+     2 = Custom calculator in all modes
      -->
-    <parameter name="meal_activity_bolus_calculation_mode" value="0" type="int"> </parameter>
+    <parameter name="meal_activity_bolus_calculation_mode" value="1" type="int"> </parameter>
     
     <!--
      Exercise detection mode (sets the exercise button automatically on and off
-     0 = none
-     1 = ExerciseService
+     0 = Manual - button press in DiAsUI
+     1 = ExerciseService - initial value is 'not exercising'
+     2 = ExerciseService - initial value is 'not exercising' if current time is within Night Profile range and 'exercising' otherwise
      -->
     <parameter name="exercise_detection_mode" value="0" type="int"> </parameter>
     
-    <parameter name="bolus_redeliver_threshold_units" value="1.0" type="double"> </parameter>
-    <parameter name="bolus_missed_threshold" value="4" type="int"> </parameter>
-    <parameter name="brm_sets_floor" value="false" type="boolean"> </parameter>
+    <parameter name="bolus_missed_threshold" value="3" type="int"> </parameter>
     
     <parameter name="acc_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_interval" value="60000" type="long"> </parameter>
-    
-    <parameter name="apc_enabled" value="true" type="boolean"> </parameter>
-    <parameter name="brm_enabled" value="false" type="boolean"> </parameter>
-    
-    <parameter name="tbr_enabled" value="false" type="boolean"> </parameter>
+
+    <parameter name="tbr_enabled" value="true" type="boolean"> </parameter>
     <parameter name="setup_screen_font_size" value="16" type="int"> </parameter>
     <parameter name="mdi_requested_at_startup" value="true" type="boolean"> </parameter>
     <parameter name="audible_alarms" value="true" type="boolean"> </parameter>
-    <parameter name="vibrate_alarms" value="false" type="boolean"> </parameter>
-    <parameter name="night_screen_enabled" value="false" type="boolean"> </parameter>
-    <parameter name="dwm_address_default" value="https://dias.med.virginia.edu/staging" type="string"> </parameter>
-    <parameter name="dwm_address_2" value="https://dwm.med.virginia.edu/staging" type="string"> </parameter>
+    
+    <!--
+     Audible Alarms Threshold:
+     0: Hypo Only
+     1: All Events
+     -->
+    <parameter name="audible_alarms_threshold" value="1" type="int"> </parameter>
+    <parameter name="vibrate_alarms" value="true" type="boolean"> </parameter>
+    
+    <parameter name="dwm_address_default" value="https://dwm.med.virginia.edu/staging" type="string"> </parameter>
+    <parameter name="dwm_address_2" value="https://dias.med.virginia.edu/staging" type="string"> </parameter>
     <parameter name="dwm_address_3" value="https://dwm.med.virginia.edu" type="string"> </parameter>
+    
     <parameter name="backup_password" value="diabetes" type="string"> </parameter>
+    
     <parameter name="bolus_interceptor_enabled" value="true" type="boolean"> </parameter>
     
     <parameter name="center" value="DTC" type="string"> </parameter>
-    <parameter name="protocol" value="API1" type="string"> </parameter>
+    <parameter name="protocol" value="TST0" type="string"> </parameter>
     
     <parameter name="cgm_history_hrs" value="2" type="int"> </parameter>
-    
-    <!-- Determines if Logcat sends data to the SD card (DO NOT leave this true in production)-->
-    <parameter name="logcatToSd" value="true" type="boolean"> </parameter>
     
     <!--
      Hypo Alarm handling:
@@ -110,19 +132,25 @@
     <parameter name="hypo_mute_middle_bg" value="15" type="int"> </parameter>
     <parameter name="hypo_mute_high_bg" value="30" type="int"> </parameter>
     
-    <parameter name="connection_scheduling" value="true" type="boolean"> </parameter>
-    <parameter name="enableIO" value="true" type="boolean"> </parameter>
-
-    <parameter name="speedupEnabled" value="false" type="boolean"> </parameter>
+    <parameter name="enableIO" value="false" type="boolean"> </parameter>
     
     <!-- The number of addresses "macX" must match the number of "tandem_addresses" -->
-    <parameter name="tandem_addresses" value="3" type="int"> </parameter>
-    <parameter name="mac1" value="FC:2D:B7" type="string"> </parameter>
+    <parameter name="tandem_addresses" value="4" type="int"> </parameter>
+    <parameter name="mac1" value="D0:5F:B8" type="string"> </parameter>
     <parameter name="mac2" value="D0:D7:EB" type="string"> </parameter>
     <parameter name="mac3" value="FC:6A:29" type="string"> </parameter>
-  
-    <parameter name="temporaryBasalRateEnabled" value="true" type="boolean"> </parameter>
+    <parameter name="mac4" value="FC:2D:B7" type="string"> </parameter>
+
+    <!--
+     Temporary Basal Rate Enabled in:
+     
+     0: No operating mode
+     1: Pump mode only
+     2: Closed Loop only
+     3: Pump and Closed Loop modes
+     -->
+    <parameter name="temporaryBasalRateEnabled" value="0" type="int"> </parameter>
     
-    <parameter name="collectBatteryStats" value="true" type="boolean"> </parameter>
+    <parameter name="collectBatteryStats" value="false" type="boolean"> </parameter>
     <parameter name="collectBatteryStatsInterval" value="15" type="int"> </parameter>
 </parameters_list>
