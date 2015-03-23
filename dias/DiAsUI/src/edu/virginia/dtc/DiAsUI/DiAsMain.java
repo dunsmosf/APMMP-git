@@ -1931,38 +1931,40 @@ public class DiAsMain extends Activity implements OnGestureListener {
    		final String FUNC_TAG = "exerciseConfirm";
    		
         Button exercise = (Button) findViewById(R.id.buttonExercise);
-        boolean exerPress = false;
         
         if (EXERCISING)
         {
-        	exerPress = false; 	   
-     	   	exercise.setBackgroundResource(R.drawable.button_not_exercising);
+        	exercise.setBackgroundResource(R.drawable.button_not_exercising);
      	   	exercise.setText("");
+     	   	
+     	   	Debug.i(TAG, FUNC_TAG, "Not exercising");		   
+     	   	Intent intent1 = new Intent();
+     	   	intent1.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
+     	   	intent1.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE);
+     	   	intent1.putExtra("currentlyExercising", false);
+     	   	startService(intent1);
+     	   	
+     	    Intent exerciseStop = new Intent();
+			String action = "edu.virginia.dtc.DiAsUI.exerciseStopAction";
+			exerciseStop.setAction(action);
+			sendBroadcast(exerciseStop);
         } 
         else 
         {
-        	exerPress = true;
-     	   	exercise.setBackgroundResource(R.drawable.button_exercising);
+        	exercise.setBackgroundResource(R.drawable.button_exercising);
      	   	exercise.setText("");
-        }
-    	   
-        if (exerPress) 
-        {
-        	Debug.i(TAG, FUNC_TAG, "Exercising");
-        	Intent intent1 = new Intent();
-        	intent1.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
-    		intent1.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE);
-    		intent1.putExtra("currentlyExercising", true);
-    		startService(intent1);
-        }
-        else 
-        {
-        	Debug.i(TAG, FUNC_TAG, "Not exercising");		   
-        	Intent intent1 = new Intent();
-        	intent1.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
-        	intent1.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE);
-        	intent1.putExtra("currentlyExercising", false);
-        	startService(intent1);
+     	   	
+     	   	Debug.i(TAG, FUNC_TAG, "Exercising");
+	       	Intent intent1 = new Intent();
+	       	intent1.setClassName("edu.virginia.dtc.DiAsService", "edu.virginia.dtc.DiAsService.DiAsService");
+	   		intent1.putExtra("DiAsCommand", DIAS_SERVICE_COMMAND_SET_EXERCISE_STATE);
+	   		intent1.putExtra("currentlyExercising", true);
+	   		startService(intent1);
+	   		
+	   		Intent exerciseStart = new Intent();
+			String action = "edu.virginia.dtc.DiAsUI.exerciseStartAction";
+			exerciseStart.setAction(action);
+			sendBroadcast(exerciseStart);
         }
      }
    	   	
