@@ -272,9 +272,6 @@ public class MCMservice extends Service
 			correct -= MealActivity.iobInsulin;
 		}
 		
-		if(correct < 0.0)
-			correct = 0.0;
-		
 		if(correct > Constraints.MAX_CORR)
 		{
 			MealActivity.bgValid = false;
@@ -750,7 +747,7 @@ public class MCMservice extends Service
     		   {
     			   IOB = c.getDouble(c.getColumnIndex("iobValue"));
     			   if(IOB < 0.0)
-    				   IOB = 0;
+    				   IOB = 0.0;
     			   
     			   MealActivity.iobInsulin = IOB;
     			   
