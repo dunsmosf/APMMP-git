@@ -26,6 +26,6 @@
         			android:screenOrientation="landscape"
         			 android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         </activity>
-        <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
+        <meta-data android:name="Version" android:value="$Rev: 2410 $*"/>
     </application>
 </manifest>

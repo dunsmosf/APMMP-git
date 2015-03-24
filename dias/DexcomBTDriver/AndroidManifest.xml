@@ -61,6 +61,6 @@
             </intent-filter>
         </service>    
         
-        <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
+        <meta-data android:name="Version" android:value="$Rev: 2410 $*"/>
     </application>    
 </manifest>

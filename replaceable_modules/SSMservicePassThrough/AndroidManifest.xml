@@ -54,7 +54,7 @@
                 <action android:name="edu.virginia.dtc.intent.action.TEMP_BASAL"></action> 
             </intent-filter>    
         </activity>
-        <meta-data android:name="Version" android:value="$Rev: 2300 $*"/>
+        <meta-data android:name="Version" android:value="$Rev: 2410 $*"/>
         </application>
    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>
