@@ -49,6 +49,15 @@ adb uninstall edu.virginia.dtc.MealActivity
 adb uninstall edu.virginia.dtc.APCservice
 adb uninstall edu.virginia.dtc.MCMservice
 
+::Delete 'parameters.xml' and 'configurations.xml'
+::---------------------------------------------------------
+adb shell rm /mnt/sdcard/parameters.xml
+adb shell rm /mnt/sdcard/configurations.xml
+
+::Reboot Device
+::---------------------------------------------------------
+adb reboot
+
 ::pause
 """
 
