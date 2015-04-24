@@ -564,6 +564,7 @@ public class networkService extends Service {
 		                	insulinRow.moveToFirst();
 		                	if (insulinRow.getInt(insulinRow.getColumnIndex("status")) == Pump.PENDING || insulinRow.getInt(insulinRow.getColumnIndex("status")) == Pump.DELIVERING) {
 		                		new_values.put("received_server", false);
+		                		new_values.put("send_attempts_server", 0);
 		                	}
 		                	insulinRow.close();
 		                }
