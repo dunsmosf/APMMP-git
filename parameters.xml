@@ -65,7 +65,7 @@
      1 = Classic bolus calculator in Pump mode, custom calculator in CL, Safety modes
      2 = Custom calculator in all modes
      -->
-    <parameter name="meal_activity_bolus_calculation_mode" value="1" type="int"> </parameter>
+    <parameter name="meal_activity_bolus_calculation_mode" value="0" type="int"> </parameter>
     
     <!--
      Exercise detection mode (sets the exercise button automatically on and off
@@ -75,7 +75,7 @@
      -->
     <parameter name="exercise_detection_mode" value="0" type="int"> </parameter>
     
-    <parameter name="bolus_missed_threshold" value="3" type="int"> </parameter>
+    <parameter name="bolus_missed_threshold" value="4" type="int"> </parameter>
     
     <parameter name="acc_enabled" value="false" type="boolean"> </parameter>
     <parameter name="gps_enabled" value="false" type="boolean"> </parameter>
@@ -153,4 +153,8 @@
     
     <parameter name="collectBatteryStats" value="false" type="boolean"> </parameter>
     <parameter name="collectBatteryStatsInterval" value="15" type="int"> </parameter>
+    
+    <parameter name="hba1c" value="7.0" type="float"> </parameter>
+    
+    <parameter name="cgmBlinded" value="false" type="boolean"> </parameter>
 </parameters_list>
