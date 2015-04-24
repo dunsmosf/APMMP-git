@@ -215,6 +215,9 @@ public class DiAsService extends Service
 	
 	private final int CGM_WARN_DELAY_MINS = 12;
 	
+	// Blind system Test
+	private boolean cgmBlinded = false;
+	
 	private int basalPauseDuration = 0;
 	private final int basalPauseDurationOnGreenLight = 0;
 	private final int basalPauseDurationOnYellowLight = 30;
@@ -894,7 +897,10 @@ public class DiAsService extends Service
         cgm_value = -1;
         cgm_last_time_sec = (long)0;
         cgm_last_normal_time_sec = (long)0;
-
+        
+        //cgmBlinded = Params.getBoolean(getContentResolver(), "cgmBlinded", false);
+        cgmBlinded = true;
+        
         latestIOB = 0.0;
         initialize_exercise_state();
         
@@ -2201,7 +2207,7 @@ public class DiAsService extends Service
     	}
 		String CGMString = decimalFormat.format(cgm_value_in_selected_units);
     	
-		if ((cgm_value_in_selected_units) > 0 && (cgm_state == CGM.CGM_NORMAL)) {
+		if ((cgm_value_in_selected_units) > 0 && (cgm_state == CGM.CGM_NORMAL) && !cgmBlinded) {
 			Intent cgmValueIntent = new Intent("edu.virginia.dtc.intent.CUSTOM_ICON");
 			cgmValueIntent.putExtra("id", 9);
 			cgmValueIntent.putExtra("text", " " + CGMString + unit_string);

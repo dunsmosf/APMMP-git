@@ -157,6 +157,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
 	// CGM data gap constants
 	private boolean insulinSetupComplete = false;
 	
+	private boolean cgmBlinded = false;
+	
 	private int midFrameW, midFrameH;
 	
 	private SystemObserver sysObserver;
@@ -187,6 +189,8 @@ public class DiAsMain extends Activity implements OnGestureListener {
 		// This is the main method of UI update now, it listens to changes on the SYSTEM table
 		sysObserver = new SystemObserver(new Handler());
 		getContentResolver().registerContentObserver(Biometrics.SYSTEM_URI, true, sysObserver);
+		
+		cgmBlinded = Params.getBoolean(getContentResolver(), "cgmBlinded", false);
 		
         registerReceivers();
         
@@ -1044,7 +1048,7 @@ public class DiAsMain extends Activity implements OnGestureListener {
     	long stop;
     	
     	TextView textViewBolus = (TextView)this.findViewById(R.id.textViewBolusInfo);
-  	   	if (diasState == State.DIAS_STATE_SENSOR_ONLY) 
+  	   	if (diasState == State.DIAS_STATE_SENSOR_ONLY || cgmBlinded) 
   	   	{
   	   		textViewBolus.setVisibility(TextView.INVISIBLE);
   	   	}
@@ -1233,10 +1237,13 @@ public class DiAsMain extends Activity implements OnGestureListener {
 				textViewCGM.setText("CGM Sensor Failed");
 				break;
 		}
+		if (cgmBlinded) {
+			textViewCGM.setText("CGM Blinded");
+		}
 		
 		ImageView imageViewArrow = (ImageView)this.findViewById(R.id.imageViewArrow);
 
-		if(cgmReady())		//Only show the trend if a value is being shown
+		if(cgmReady() && !cgmBlinded)		//Only show the trend if a value is being shown
 		{
 			switch (cgmTrend)
 			{
@@ -1494,14 +1501,19 @@ public class DiAsMain extends Activity implements OnGestureListener {
     {   		
    		final String FUNC_TAG = "plotsClick";
     	 
-    	Intent plotsDisplay = new Intent();
- 		plotsDisplay.setComponent(new ComponentName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.PlotsActivity"));
-    	plotsDisplay.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
- 		plotsDisplay.putExtra("height", midFrameH);
- 		plotsDisplay.putExtra("width", midFrameW);
- 		plotsDisplay.putExtra("state", DIAS_STATE);
- 		plotsDisplay.putExtra("simTime", getTimeSeconds());
- 		startActivityForResult(plotsDisplay, PLOTS);
+   		if (cgmBlinded) {
+   			Toast.makeText(getApplicationContext(), "Plots unavailable when system is Blinded", Toast.LENGTH_SHORT).show();
+   		}
+   		else {
+	    	Intent plotsDisplay = new Intent();
+	 		plotsDisplay.setComponent(new ComponentName("edu.virginia.dtc.DiAsUI", "edu.virginia.dtc.DiAsUI.PlotsActivity"));
+	    	plotsDisplay.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+	 		plotsDisplay.putExtra("height", midFrameH);
+	 		plotsDisplay.putExtra("width", midFrameW);
+	 		plotsDisplay.putExtra("state", DIAS_STATE);
+	 		plotsDisplay.putExtra("simTime", getTimeSeconds());
+	 		startActivityForResult(plotsDisplay, PLOTS);
+   		}
     	 
  		Debug.i(TAG, FUNC_TAG, "after plotsClick");
      }
