@@ -1,59 +1,37 @@
 package edu.virginia.dtc.DiAsUI;
 
 import java.sql.Date;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import edu.virginia.dtc.SysMan.Biometrics;
-import edu.virginia.dtc.SysMan.Debug;
-import edu.virginia.dtc.SysMan.Event;
-import edu.virginia.dtc.SysMan.Pump;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.ContentProvider;
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.View.OnFocusChangeListener;
-import android.view.ViewGroup.LayoutParams;
-import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.TextView.OnEditorActionListener;
+import edu.virginia.dtc.SysMan.Biometrics;
+import edu.virginia.dtc.SysMan.Debug;
+import edu.virginia.dtc.SysMan.Event;
+import edu.virginia.dtc.SysMan.Pump;
 
 public class ViewerActivity extends Activity{
 	
@@ -364,36 +342,46 @@ public class ViewerActivity extends Activity{
 	{
 		final String FUNC_TAG = "showInsulinTable";
 				
-		Cursor c = getContentResolver().query(Biometrics.INSULIN_URI, null, null, null, null);
+		Cursor c = getContentResolver().query(Biometrics.INSULIN_URI, null, null, null, "_id DESC LIMIT 30");
     	
     	if(c!=null)
     	{
     		Debug.i(TAG, FUNC_TAG, "Row count: "+c.getCount());
     		
-    		if(c.moveToLast())
+    		if(c.moveToFirst())
     		{
-    			int k = 0;
-	    		do
+    			do
 	    		{
 	    			int id = c.getInt(c.getColumnIndex("_id"));
-	    			long time = c.getLong(c.getColumnIndex("deliv_time"));
+	    			long req_time = c.getLong(c.getColumnIndex("req_time"));
+	    			long deliv_time = c.getLong(c.getColumnIndex("deliv_time"));
+	    			double req_total = c.getDouble(c.getColumnIndex("req_total"));
 	    			double deliv_total = c.getDouble(c.getColumnIndex("deliv_total"));
 	    			int status = c.getInt(c.getColumnIndex("status"));
 	    		
 	    			Calendar cal = Calendar.getInstance();
 	    			TimeZone tz = cal.getTimeZone();
-	    			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd HH:mm");
+	    			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd HH:mm", Locale.US);
 	    			sdf.setTimeZone(tz);
-	    			String localTime = sdf.format(new Date(time * 1000));
+	    			String localReqTime;
+	    			if (req_time > 0)
+	    				localReqTime = sdf.format(new Date(req_time * 1000));
+	    			else
+	    				localReqTime = "-";
 	    			
-	    			listAdapter.add("ID: "+id+" | Time: "+localTime+" | Delivered: "+deliv_total+"U | Status: "+getStatus(status));
+	    			String localDelivTime;
+	    			if (deliv_time > 0)
+	    				localDelivTime = sdf.format(new Date(deliv_time * 1000));
+	    			else
+	    				localDelivTime = "-";
+	    			
+	    			listAdapter.add("ID: "+id+" | Requested: "+String.format("%.2f",req_total)+"U at "+localReqTime+" | Delivered: "+String.format("%.2f",deliv_total)+"U at "+localDelivTime+" | Status: "+getStatus(status));
 	    			
 	    			items.add(new listItem((listAdapter.getCount() - 1), id));
 	    			
 	    			Debug.i(TAG, FUNC_TAG, "Adding item index: "+(listAdapter.getCount()-1)+" ID: "+id);
-	    			k++;
 	    		}
-	    		while(c.moveToPrevious() && k < MAX_ENTRIES);
+	    		while(c.moveToNext());
     		}
     		
     		c.close();
@@ -424,6 +412,8 @@ public class ViewerActivity extends Activity{
     			int id = c.getInt(c.getColumnIndex("_id"));
     			long req_time = c.getLong(c.getColumnIndex("req_time"));
     			long deliv_time = c.getLong(c.getColumnIndex("deliv_time"));
+    			
+    			String status = getStatus(c.getInt(c.getColumnIndex("status")));
 
     			String dtotal = String.format("%.2f",c.getDouble(c.getColumnIndex("deliv_total")));
 				String dbasal = String.format("%.2f",c.getDouble(c.getColumnIndex("deliv_basal")));
@@ -439,10 +429,16 @@ public class ViewerActivity extends Activity{
     			TimeZone tz = cal.getTimeZone();
     			SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     			sdf.setTimeZone(tz);
-    			String reqTime = sdf.format(new Date(req_time * 1000));
-    			String delivTime = sdf.format(new Date(deliv_time * 1000));
+    			String reqTime = "-";
+    			if(req_time >0)
+    				reqTime = sdf.format(new Date(req_time * 1000));
     			
-    			details = 	"Requested:"+
+    			String delivTime = "-";
+    			if(deliv_time>0)
+    				delivTime = sdf.format(new Date(deliv_time * 1000));
+    			
+    			details = 	"Status: "+ status +
+    						"\n\nRequested:"+
     						"\n"+reqTime+
     						"\nTotal: "+rtotal+"U"+
     						"\nB: "+rbasal+"U | M: "+rmeal+"U | C: "+rcorr+"U"+
